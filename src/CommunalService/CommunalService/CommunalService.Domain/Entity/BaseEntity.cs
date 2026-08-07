@@ -8,7 +8,7 @@ public class BaseEntity
     /// <summary>
     /// ID
     /// </summary>
-    [Column(IsIdentity = true, IsPrimary = true,Position = 1),Description("Id")]
+    [Column(IsIdentity = true,Position = 1),Description("Id")]
     public long Id { get; set; }
 
     /// <summary>
