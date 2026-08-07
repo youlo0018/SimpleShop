@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="CommunalService.Domain" Version="1.0.11" />
+      <ProjectReference Include="..\..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
     </ItemGroup>
 
 </Project>

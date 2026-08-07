@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OrderService.Domin.Entity;
 using OrderService.Domin.IRepository;
+using YukeTools;
 
 namespace OrderService.Api.Controller;
 
@@ -10,7 +11,7 @@ public class OrderController(IFreeSql freeSql,IOrderRepository orderRepository) 
     [HttpGet]
     public IActionResult Index()
     {
-       // freeSql.CodeFirst.SyncStructure<Order>();
+        //freeSql.CodeFirst.SyncStructure<Order>();
         freeSql.Insert<Order>(new Order()
         {
             Id = 1,
@@ -21,4 +22,12 @@ public class OrderController(IFreeSql freeSql,IOrderRepository orderRepository) 
         }).ExecuteAffrows();
         return Ok();
     }
+    [HttpGet]
+    public IActionResult Query(long id)
+    {
+        var order=orderRepository.GetById(id);
+       //var order = orderRepository.GetById<TestOrder>(1);
+        return Ok(order.ToJson());
+    }
+
 }

@@ -8,13 +8,13 @@ public class BaseEntity
     /// <summary>
     /// ID
     /// </summary>
-    [Column(IsIdentity = true,Position = 1),Description("Id")]
+    [Column( IsPrimary=true ,Position = 1),Description("Id")]
     public long Id { get; set; }
 
     /// <summary>
     /// 是否已删除
     /// </summary>
-    [Column(Position = -4), Description("是否删除")]
+    [Column(Position = -4 ), Description("是否删除")]
     public bool IsDeleted { get; set; } = false;
     /// <summary>
     /// 创建时间
