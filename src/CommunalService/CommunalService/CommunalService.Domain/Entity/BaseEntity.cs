@@ -10,25 +10,26 @@ public class BaseEntity
     /// </summary>
     [Column(IsIdentity = true, IsPrimary = true,Position = 1),Description("Id")]
     public long Id { get; set; }
+
     /// <summary>
     /// 是否已删除
     /// </summary>
-    [Column(Position = -4),Description("是否删除")]
-    public bool IsDeleted { get; set; }
+    [Column(Position = -4), Description("是否删除")]
+    public bool IsDeleted { get; set; } = false;
     /// <summary>
     /// 创建时间
     /// </summary>
-    [Column(Position = -3),Description("创建时间")]
+    [Column(Position = -3,IsNullable = true),Description("创建时间")]
     public DateTime CreatedAt { get; set; }
     /// <summary>
     /// 更新时间
     /// </summary>
-    [Column(Position = -2),Description("更新时间")]
+    [Column(Position = -2,IsNullable = true),Description("更新时间")]
     public DateTime UpdatedAt { get; set; }
     /// <summary>
     /// 删除时间
     /// </summary>
-    [Column(Position = -1),Description("删除时间")]
+    [Column(Position = -1,IsNullable = true),Description("删除时间")]
     public DateTime DeletedAt { get; set; }
     
 }
