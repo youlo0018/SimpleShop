@@ -8,6 +8,7 @@ namespace OrderService.Domin.Entity;
 /// 订单表
 /// </summary>
 [Index("uk_orderNo", "orderNo", true)]
+[Table(Name = "order")]
 public sealed class Order : BaseEntity
 {
     [Column(StringLength = 32), Description("订单号")]
