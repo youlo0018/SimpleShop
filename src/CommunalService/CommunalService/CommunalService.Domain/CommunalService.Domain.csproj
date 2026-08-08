@@ -10,6 +10,8 @@
       <PackageReference Include="FreeSql" Version="3.5.311" />
       <PackageReference Include="FreeSql.Provider.MySql" Version="3.5.311" />
       <PackageReference Include="FreeSql.Provider.PostgreSQL" Version="3.5.311" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="11.0.0-preview.6.26359.118" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.6.26359.118" />
       <PackageReference Include="YukeTools" Version="1.0.12" />
     </ItemGroup>
 
