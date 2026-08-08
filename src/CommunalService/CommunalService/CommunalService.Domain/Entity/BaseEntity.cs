@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using CommunalService.Domain.Attributes;
 using FreeSql.DataAnnotations;
 
 namespace CommunalService.Domain.Entity;
@@ -8,6 +9,7 @@ public class BaseEntity
     /// <summary>
     /// ID
     /// </summary>
+    [Snowflake]
     [Column( IsPrimary=true ,Position = 1),Description("Id")]
     public long Id { get; set; }
 
