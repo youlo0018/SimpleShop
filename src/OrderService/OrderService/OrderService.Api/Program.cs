@@ -6,40 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-// builder.Configuration
-//     .SetBasePath(Directory.GetCurrentDirectory())
-//     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-//     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-//     .AddEnvironmentVariables();
-//
-// // 调试：打印所有配置节
-// foreach (var child in builder.Configuration.GetChildren())
-// {
-//     Console.WriteLine($"Top-level key: {child.Key}");
-// }
-//
-// // 检查 AgileConfig 节是否存在
-// var agileSection = builder.Configuration.GetSection("AgileConfig");
-// if (agileSection.Exists())
-// {
-//     Console.WriteLine("✅ AgileConfig section found!");
-//     foreach (var sub in agileSection.GetChildren())
-//     {
-//         Console.WriteLine($"  {sub.Key} = {sub.Value}");
-//     }
-// }
-// else
-// {
-//     Console.WriteLine("❌ AgileConfig section NOT found!");
-// }
-// var agileConfigSection = builder.Configuration.GetSection("AgileConfig");
-// if (agileConfigSection == null || !agileConfigSection.GetChildren().Any())
-// {
-//     throw new Exception("AgileConfig section not found in appsettings.json");
-// }
-
-// Console.WriteLine(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
-
 
 builder.AddInfrastructure();
 builder.Services.AddControllers();
