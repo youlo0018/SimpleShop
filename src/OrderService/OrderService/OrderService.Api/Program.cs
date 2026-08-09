@@ -40,17 +40,8 @@ builder.Services.AddOpenApi();
 
 // Console.WriteLine(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
 
-ConfigClientOptions  agileConfigOptions = new ConfigClientOptions()
-{
-     AppId = builder.Configuration["AgileConfig:appId"],
-     Tag = builder.Configuration["AgileConfig:tag"],
-     Secret = builder.Configuration["AgileConfig:secret"],
-     Nodes = builder.Configuration["AgileConfig:nodes"],
-     Name = builder.Configuration["AgileConfig:name"],
-     ENV = builder.Configuration[ "AgileConfig:env"]
-};
-builder.Host.UseAgileConfig(agileConfigOptions);
-builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.AddInfrastructure();
 builder.Services.AddControllers();
 
 var app = builder.Build();

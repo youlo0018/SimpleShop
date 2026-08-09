@@ -1,4 +1,5 @@
 ﻿using CommunalService.Domain.Infrastructure;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OrderService.Domin.IRepository;
@@ -14,11 +15,10 @@ public static class DependencyInjection
     /// <param name="services"></param>
     /// <param name="configuration"></param>
     public static void AddInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this WebApplicationBuilder builder)
     {
-        services.AddBaseInfrastructure(configuration);
-        services.AddTransient<IOrderRepository, OrderRepository>();
+        builder.AddBaseInfrastructure();
+        builder.Services.AddTransient<IOrderRepository, OrderRepository>();
 
     }
 }
