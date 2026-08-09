@@ -11,7 +11,7 @@ public class OrderController(IFreeSql freeSql,IOrderRepository orderRepository) 
     [HttpGet]
     public IActionResult Index()
     {
-        //freeSql.CodeFirst.SyncStructure<Order>();
+        freeSql.CodeFirst.SyncStructure<Order>();
         freeSql.Insert<Order>(new Order()
         {
             Id = 1,
