@@ -1,0 +1,11 @@
+namespace CommunalService.Domain.Infrastructure.Consul;
+
+public interface IServiceDiscovery
+{
+    /// <summary>
+    /// 获取指定服务名称的所有健康实例地址（IP:Port 列表）
+    /// </summary>
+    /// <param name="serviceName">服务名称（如 "user-service"）</param>
+    /// <returns>健康实例的地址列表（若无健康实例，返回空列表）</returns>
+    Task<IList<string>> GetHealthyServiceAddressesAsync(string serviceName);
+}

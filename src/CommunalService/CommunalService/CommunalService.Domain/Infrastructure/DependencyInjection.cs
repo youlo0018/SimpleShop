@@ -4,10 +4,13 @@ using System.Reflection;
 using AgileConfig.Client;
 using CommunalService.Domain.Attributes;
 using CommunalService.Domain.Entity;
+using CommunalService.Domain.Infrastructure.Consul;
+using Consul;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using SnowflakeId.AutoRegister.Builder;
 using SnowflakeId.AutoRegister.Interfaces;
 using StackExchange.Redis;
@@ -100,11 +103,50 @@ public static class BaseDependencyInjection
        
 
         #endregion
+
+        #region consul注册
+
+        builder.Services.AddConsulIntegration(builder.Configuration);
+
+        #endregion
     }
 
     public static async  Task AddBaseInfrastructure(this WebApplication app)
     {
         
      
+    }
+    
+    /// <summary>
+    /// 添加 Consul 服务注册与发现功能
+    /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="configuration">配置对象（用于读取 Consul 配置节）</param>
+    public static IServiceCollection AddConsulIntegration(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // 1. 绑定 Consul 配置
+        services.Configure<ConsulOptions>(configuration.GetSection("Consul"));
+
+        
+        // 2. 注册 Consul 客户端（单例）
+        services.AddSingleton<IConsulClient>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<ConsulOptions>>().Value;
+            return new ConsulClient(cfg =>
+            {
+                cfg.Address = new Uri(options.Address);
+            });
+        });
+
+        // 3. 注册我们自己的服务
+        services.AddScoped<IConsulServiceRegistry, ConsulServiceRegistry>();
+        services.AddScoped<IServiceDiscovery, ConsulServiceDiscovery>();
+
+        // 4. 注册 IHostedService，实现自动注册/注销
+        services.AddHostedService<ConsulHostedService>();
+
+        return services;
     }
 }
