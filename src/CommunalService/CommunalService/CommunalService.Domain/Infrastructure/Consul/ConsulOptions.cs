@@ -15,7 +15,7 @@ public class ConsulOptions
     public string ServiceId { get; set; }
 
     /// <summary>当前服务监听的 IP 或主机名（容器内使用容器名，宿主机使用 localhost）</summary>
-    public string ServiceAddress { get; set; } = "localhost";
+    public string ServiceAddress { get; set; }
 
     /// <summary>当前服务监听的端口</summary>
     public int ServicePort { get; set; } = 5000;

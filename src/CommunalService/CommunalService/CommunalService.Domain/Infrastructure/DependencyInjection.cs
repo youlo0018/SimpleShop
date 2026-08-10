@@ -107,13 +107,14 @@ public static class BaseDependencyInjection
         #region consul注册
 
         builder.Services.AddConsulIntegration(builder.Configuration);
+        builder.Services.AddHealthChecks();
 
         #endregion
     }
 
     public static async  Task AddBaseInfrastructure(this WebApplication app)
     {
-        
+       app.MapHealthChecks("/health");
      
     }
     
@@ -126,8 +127,9 @@ public static class BaseDependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var sen = configuration.GetSection("Basic:Consul");
         // 1. 绑定 Consul 配置
-        services.Configure<ConsulOptions>(configuration.GetSection("Consul"));
+        services.Configure<ConsulOptions>(sen);
 
         
         // 2. 注册 Consul 客户端（单例）
@@ -141,8 +143,8 @@ public static class BaseDependencyInjection
         });
 
         // 3. 注册我们自己的服务
-        services.AddScoped<IConsulServiceRegistry, ConsulServiceRegistry>();
-        services.AddScoped<IServiceDiscovery, ConsulServiceDiscovery>();
+        services.AddSingleton<IConsulServiceRegistry, ConsulServiceRegistry>();
+        services.AddSingleton<IServiceDiscovery, ConsulServiceDiscovery>();
 
         // 4. 注册 IHostedService，实现自动注册/注销
         services.AddHostedService<ConsulHostedService>();

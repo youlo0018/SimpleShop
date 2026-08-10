@@ -1,17 +1,18 @@
+using CommunalService.Domain.Infrastructure;
 using CustomerService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-
+Console.WriteLine($"AgileConfig__appId = {Environment.GetEnvironmentVariable("AgileConfig__appId")}");
 builder.Services.AddOpenApi();
 
  builder.AddInfrastructure();
  CustomerService.Application.DependencyInjection.AddInfrastructure(builder);
 builder.Services.AddControllers();
 var app = builder.Build();
-
+await app.AddBaseInfrastructure();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

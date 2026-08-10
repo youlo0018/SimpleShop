@@ -6,7 +6,9 @@
       "applicationUrl": "http://localhost:5280",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development", // 在这里添加环境变量
-        "AgileConfig__appId": "CustomerService"     // 多个变量用逗号分隔
+        "AgileConfig__appId": "CustomerService",     // 多个变量用逗号分隔
+        "Basic__Consul__ServiceAddress": "localhost",
+        "Basic__Consul__ServicePort": "5280"
       }
     }
   }

@@ -5,16 +5,19 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "http://localhost:5280",
+      "applicationUrl": "http://0.0.0.0:5280",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AgileConfig__appId": "CustomerService",     // 多个变量用逗号分隔
+        "Basic__Consul__ServiceAddress": "192.168.5.32",
+        "Basic__Consul__ServicePort": "5280"
       }
     },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:7093;http://localhost:5280",
+      "applicationUrl": "https://0.0.0.0:7093;http://0.0.0.0:5280",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
