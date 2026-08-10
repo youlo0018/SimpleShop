@@ -6,7 +6,7 @@ using CustomerService.Infrastructure.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OrderService.Infrastructure;
+namespace CustomerService.Infrastructure;
 
 public static class DependencyInjection
 {

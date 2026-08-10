@@ -5,10 +5,11 @@ using YukeTools;
 
 namespace CustomerService.Api.Controllers;
 
-[Route("api/[controller]/[action]")]
 [ApiController]
-public class BaseController : Controller
+[Route("api/[controller]/[action]")]
+public class BaseController : Microsoft.AspNetCore.Mvc.Controller
 {
+    [ApiExplorerSettings(IgnoreApi = true)]
     protected ApiResponse<T> Ok<T>(T data)
     {
         return new ApiResponse<T>()
@@ -19,6 +20,7 @@ public class BaseController : Controller
         };
     }
 
+    [ApiExplorerSettings(IgnoreApi = true)]
     protected ApiResponse<object> Ok()
     {
         return new ApiResponse<object>()
@@ -29,6 +31,7 @@ public class BaseController : Controller
         };
     }
 
+    [ApiExplorerSettings(IgnoreApi = true)]
     protected ApiResponse<object> Ok(ApiResponseCode code)
     {
         return new ApiResponse<object>()
@@ -39,7 +42,7 @@ public class BaseController : Controller
         };
     }
 
-
+    [ApiExplorerSettings(IgnoreApi = true)]
     protected ApiResponse<T> Ok<T>(T data, ApiResponseCode code)
     {
         return new ApiResponse<T>()
@@ -50,6 +53,7 @@ public class BaseController : Controller
         };
     }
 
+    [ApiExplorerSettings(IgnoreApi = true)]
     protected ApiResponse<object> Error(ApiResponseCode code, string message = null)
     {
         return new ApiResponse<object>

@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\CustomerService.Domin\CustomerService.Domin.csproj" />
+    </ItemGroup>
+
 </Project>

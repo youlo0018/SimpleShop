@@ -1,18 +1,24 @@
 using CommunalService.Domain;
+using CustomerService.Application.Features.Customer.CreateCustomer;
 using CustomerService.Domin.Entity;
 using CustomerService.Domin.IRepository;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CustomerService.Api.Controllers;
 
-public class CustomerController(ICustomerRepository<Customer> customerRepository) : BaseController
+public class CustomerController(IMediator mediator,IFreeSql freeSql) : BaseController
 {
-    private readonly ICustomerRepository<Customer> _customerRepository = customerRepository;
+   
 
-    [HttpGet]
-    public async Task<BaseApiResponse> AddCustomer<T>(Customer customer)
+    [HttpPost]
+    public async Task<BaseApiResponse> AddCustomer([FromBody]CreateCustomerCommand command)
     {
-        var list = await _customerRepository.QueryAsync(x => x.Id == 1);
-        return Ok(list);
+        freeSql.CodeFirst.SyncStructure<Customer>();
+        
+        var data = await mediator.Send(command);
+        return Ok(data);
+        
+       
     }
 }

@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+using CommunalService.Domain.Enums;
 
 namespace CustomerService.Domin.Enums;
 

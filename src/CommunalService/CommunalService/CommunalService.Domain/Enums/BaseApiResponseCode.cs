@@ -1,4 +1,4 @@
-namespace CommunalService.Domain;
+namespace CommunalService.Domain.Enums;
 
   
     // 这不是一个 enum，而是一个密封的类，模拟可扩展的枚举
