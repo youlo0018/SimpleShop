@@ -1,9 +1,5 @@
 using FluentValidation; // FluentValidation 核心命名空间
 using MediatR; // MediatR 核心命名空间
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CommunalService.Application.Common;
 

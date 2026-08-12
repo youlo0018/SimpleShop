@@ -1,8 +1,6 @@
 using CommunalService.Domain;
 using CustomerService.Application.Features.Customer.CreateCustomer;
 using CustomerService.Application.Features.Customer.GetCustomer;
-using CustomerService.Domin.Entity;
-using CustomerService.Domin.IRepository;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

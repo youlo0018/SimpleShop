@@ -1,5 +1,3 @@
-
-using System.ServiceModel;
 using CommunalService.Domain.Contracts.Messages;
 using MagicOnion;
 

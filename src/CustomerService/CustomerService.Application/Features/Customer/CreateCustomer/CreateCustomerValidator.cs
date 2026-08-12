@@ -1,6 +1,5 @@
 using CommunalService.Domain.Enums;
 using FluentValidation;
-using YukeTools;
 
 namespace CustomerService.Application.Features.Customer.CreateCustomer;
 

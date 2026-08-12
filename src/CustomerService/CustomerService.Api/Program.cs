@@ -1,12 +1,8 @@
 using CommunalService.Application.Common;
-using CommunalService.Domain.Contracts.Services;
 using CommunalService.Domain.Infrastructure;
 using CustomerService.Application;
 using CustomerService.Application.Features.Customer.GetCustomer;
 using CustomerService.Infrastructure;
-using Grpc.AspNetCore.Server;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,14 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5280);
-    options.ListenAnyIP(5001, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http2; // 强制 HTTP/2
-    });
-});
+
 
 builder.Services.AddOpenApi();
 builder.AddInfrastructure();

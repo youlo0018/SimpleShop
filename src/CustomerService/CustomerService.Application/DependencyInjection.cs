@@ -1,10 +1,4 @@
-
-using CommunalService.Domain.Contracts.Services;
-using CommunalService.Domain.Infrastructure;
-using CustomerService.Domin.Entity;
-using CustomerService.Domin.IRepository;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace CustomerService.Application;

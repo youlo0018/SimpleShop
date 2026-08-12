@@ -1,6 +1,4 @@
-using System.Linq.Expressions;
 using CommunalService.Domain.Infrastructure;
-using CommunalService.Domain.Interfaces;
 using CustomerService.Domin.Entity;
 using CustomerService.Domin.IRepository;
 

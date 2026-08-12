@@ -1,4 +1,3 @@
-using CustomerService.Application.Features.Customer.CreateCustomer;
 using MediatR;
 
 

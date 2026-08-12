@@ -20,9 +20,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-
-using SnowflakeId.AutoRegister.Builder;
-using SnowflakeId.AutoRegister.Interfaces;
 using StackExchange.Redis;
 using Yitter.IdGenerator;
 using YukeTools;
@@ -40,7 +37,12 @@ public static class BaseDependencyInjection
     public static void AddBaseInfrastructure(
         this WebApplicationBuilder builder)
     {
+        #region 注册本地缓存
+
         builder.Services.AddMemoryCache();
+
+        #endregion
+
 
         #region AgileConfig 配置中心注册
 
@@ -108,17 +110,31 @@ public static class BaseDependencyInjection
 
         builder.Services.AddConsulIntegration(builder.Configuration);
         builder.Services.AddHealthChecks();
-        
-        
+
         #endregion
 
         #region gRPC
-        MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions.WithResolver(MessagePack.Resolvers.StandardResolver.Instance);
+
+        MessagePackSerializer.DefaultOptions =
+            MessagePackSerializer.DefaultOptions.WithResolver(MessagePack.Resolvers.StandardResolver.Instance);
 
         builder.Services.AddGrpc();
-        builder.Services.AddMagicOnion();        // 添加 MagicOnion 支持
-       // ...
-        
+        builder.Services.AddMagicOnion(); // 添加 MagicOnion 支持
+        // ...
+
+        #endregion
+
+        #region 注册网络服务
+
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenAnyIP(builder.Configuration["Basic:port:httpport"].ToInt());
+
+            options.ListenAnyIP(builder.Configuration["Basic:port:grpcport"].ToInt(), listenOptions =>
+            {
+                listenOptions.Protocols = HttpProtocols.Http2; // 强制 HTTP/2
+            });
+        });
 
         #endregion
     }
@@ -153,12 +169,14 @@ public static class BaseDependencyInjection
         {
             foreach (var type in assembly.GetTypes())
             {
-                if (type.IsInterface && type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IService<>)))
+                if (type.IsInterface && type.GetInterfaces()
+                        .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IService<>)))
                 {
                     Console.WriteLine($"MagicOnion service interface: {type.FullName}");
                 }
             }
         }
+
         app.MapMagicOnionService();
     }
 
