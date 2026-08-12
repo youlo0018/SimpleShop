@@ -2,15 +2,25 @@
 
 using System.Reflection;
 using AgileConfig.Client;
+using CommunalService.Application.Common;
 using CommunalService.Domain.Attributes;
 using CommunalService.Domain.Entity;
 using CommunalService.Domain.Infrastructure.Consul;
+using CommunalService.Domain.Infrastructure.Redis;
+using CommunalService.Domain.Infrastructure.Snowflake;
 using Consul;
+using FluentValidation;
+using MagicOnion;
+using MediatR;
+using MessagePack;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+
 using SnowflakeId.AutoRegister.Builder;
 using SnowflakeId.AutoRegister.Interfaces;
 using StackExchange.Redis;
@@ -30,17 +40,7 @@ public static class BaseDependencyInjection
     public static void AddBaseInfrastructure(
         this WebApplicationBuilder builder)
     {
-        #region 雪花id注册
-
-        var options = new IdGeneratorOptions
-        {
-            WorkerId = 1, // 从配置读取，确保每个服务实例唯一
-            WorkerIdBitLength = 6,
-            SeqBitLength = 10
-        };
-        YitIdHelper.SetIdGenerator(options);
-
-        #endregion
+        builder.Services.AddMemoryCache();
 
         #region AgileConfig 配置中心注册
 
@@ -71,12 +71,12 @@ public static class BaseDependencyInjection
             fsql.Aop.AuditValue += (s, e) =>
             {
                 // 判断条件：属性类型为 long，并且标记了 [Snowflake] 特性，并且当前值为 0
-                if (e.Column.CsType == typeof(long) && 
-                    e.Property.GetCustomAttribute<SnowflakeAttribute>() != null && 
+                if (e.Column.CsType == typeof(long) &&
+                    e.Property.GetCustomAttribute<SnowflakeAttribute>() != null &&
                     e.Value?.ToString() == "0")
                 {
                     // 调用你的雪花ID生成器（例如 Yitter.IdGenerator）生成新ID
-                    e.Value = YitIdHelper.NextId(); 
+                    e.Value = YitIdHelper.NextId();
                 }
             };
             //查询时排除软删除数据
@@ -98,9 +98,9 @@ public static class BaseDependencyInjection
         #endregion
 
         #region 雪花id生成注册
+
         builder.Services.AddSingleton<RedisWorkerIdProvider>();
         builder.Services.AddHostedService<WorkerIdBackgroundService>();
-       
 
         #endregion
 
@@ -108,16 +108,60 @@ public static class BaseDependencyInjection
 
         builder.Services.AddConsulIntegration(builder.Configuration);
         builder.Services.AddHealthChecks();
+        
+        
+        #endregion
+
+        #region gRPC
+        MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions.WithResolver(MessagePack.Resolvers.StandardResolver.Instance);
+
+        builder.Services.AddGrpc();
+        builder.Services.AddMagicOnion();        // 添加 MagicOnion 支持
+       // ...
+        
 
         #endregion
     }
 
-    public static async  Task AddBaseInfrastructure(this WebApplication app)
+    /// <summary>
+    /// 注册 MediatR
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="handlerAssemblies"></param>
+    public static void AddMediatRWithHandlers(this WebApplicationBuilder builder, params Assembly[] handlerAssemblies)
     {
-       app.MapHealthChecks("/health");
-     
+        // 1. 注册 MediatR（自动扫描并注册所有 Handler）
+
+        builder.Services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblies(handlerAssemblies);
+            cfg.LicenseKey = builder.Configuration["Basic:MediatR:LicenseKey"];
+        });
+
+        // 2. 注册 FluentValidation（自动扫描并注册所有 Validator）
+
+        builder.Services.AddValidatorsFromAssemblies(handlerAssemblies);
+        // 3. 注册 MediatR 管道行为（用于自动验证）
+        builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     }
-    
+
+    public static async Task AddBaseInfrastructure(this WebApplication app)
+    {
+        app.MapHealthChecks("/health");
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        foreach (var assembly in assemblies)
+        {
+            foreach (var type in assembly.GetTypes())
+            {
+                if (type.IsInterface && type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IService<>)))
+                {
+                    Console.WriteLine($"MagicOnion service interface: {type.FullName}");
+                }
+            }
+        }
+        app.MapMagicOnionService();
+    }
+
     /// <summary>
     /// 添加 Consul 服务注册与发现功能
     /// </summary>
@@ -131,15 +175,12 @@ public static class BaseDependencyInjection
         // 1. 绑定 Consul 配置
         services.Configure<ConsulOptions>(sen);
 
-        
+
         // 2. 注册 Consul 客户端（单例）
         services.AddSingleton<IConsulClient>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<ConsulOptions>>().Value;
-            return new ConsulClient(cfg =>
-            {
-                cfg.Address = new Uri(options.Address);
-            });
+            return new ConsulClient(cfg => { cfg.Address = new Uri(options.Address); });
         });
 
         // 3. 注册我们自己的服务

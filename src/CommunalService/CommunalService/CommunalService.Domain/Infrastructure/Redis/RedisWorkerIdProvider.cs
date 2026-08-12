@@ -1,6 +1,6 @@
 using StackExchange.Redis;
 
-namespace CommunalService.Domain;
+namespace CommunalService.Domain.Infrastructure.Redis;
 
 public class RedisWorkerIdProvider : IDisposable
 {

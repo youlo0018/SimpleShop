@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using MediatR;
 
+
 namespace CustomerService.Application.Features.Customer.CreateCustomer;
 
 public record CreateCustomerCommand:IRequest<object>

@@ -1,28 +1,32 @@
-using System.Reflection;
-using CommunalService.Application.Common;
-using FluentValidation;
-using MediatR;
+
+using CommunalService.Domain.Contracts.Services;
+using CommunalService.Domain.Infrastructure;
+using CustomerService.Domin.Entity;
+using CustomerService.Domin.IRepository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+
 
 namespace CustomerService.Application;
 
 public static class DependencyInjection
 {
-    public static void AddInfrastructure(this WebApplicationBuilder builder)
+  /// <summary>
+    /// 服务注册
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configuration"></param>
+    public static void AddApplicationInfrastructure(
+        this WebApplicationBuilder builder)
     {
-        // 1. 注册 MediatR（自动扫描并注册所有 Handler）
-        builder.Services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-        });
+        
+       
 
-        // 2. 注册 FluentValidation（自动扫描并注册所有 Validator）
-        builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+    }
+    public static void AddApplicationInfrastructure(
+        this WebApplication app)
+    {
+      
 
-        // 3. 注册 MediatR 管道行为（用于自动验证）
-        builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-     
     }
 }

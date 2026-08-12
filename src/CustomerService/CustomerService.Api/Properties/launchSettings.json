@@ -6,10 +6,11 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "http://0.0.0.0:5280",
+      "port": 5280,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AgileConfig__appId": "CustomerService",     // 多个变量用逗号分隔
-        "Basic__Consul__ServiceAddress": "192.168.5.32",
+        "AgileConfig__appId": "CustomerService",     
+        "Basic__Consul__ServiceAddress": "172.17.0.1",
         "Basic__Consul__ServicePort": "5280"
       }
     },

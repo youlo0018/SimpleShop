@@ -6,6 +6,7 @@ using CustomerService.Infrastructure.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
+
 namespace CustomerService.Infrastructure;
 
 public static class DependencyInjection
@@ -18,6 +19,7 @@ public static class DependencyInjection
     public static void AddInfrastructure(
         this WebApplicationBuilder builder)
     {
+
         builder.AddBaseInfrastructure();
         builder.Services.AddTransient<ICustomerRepository<Customer>, CustomerRepository>();
 

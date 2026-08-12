@@ -1,4 +1,5 @@
 using AgileConfig.Client;
+using CommunalService.Domain.Infrastructure;
 using OrderService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,8 @@ builder.AddInfrastructure();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+await app.AddBaseInfrastructure();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

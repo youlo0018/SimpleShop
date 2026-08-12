@@ -1,7 +1,8 @@
+using CommunalService.Domain.Infrastructure.Redis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace CommunalService.Domain;
+namespace CommunalService.Domain.Infrastructure.Snowflake;
 
 using Yitter.IdGenerator;
 

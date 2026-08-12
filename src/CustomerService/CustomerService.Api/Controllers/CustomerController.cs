@@ -1,5 +1,6 @@
 using CommunalService.Domain;
 using CustomerService.Application.Features.Customer.CreateCustomer;
+using CustomerService.Application.Features.Customer.GetCustomer;
 using CustomerService.Domin.Entity;
 using CustomerService.Domin.IRepository;
 using MediatR;
@@ -14,9 +15,19 @@ public class CustomerController(IMediator mediator,IFreeSql freeSql) : BaseContr
     [HttpPost]
     public async Task<BaseApiResponse> AddCustomer([FromBody]CreateCustomerCommand command)
     {
-        freeSql.CodeFirst.SyncStructure<Customer>();
+        //freeSql.CodeFirst.SyncStructure<Customer>();
         
-        var data = await mediator.Send(command);
+        var data = await mediator.Send(command, CancellationToken.None);
+        return Ok(data);
+        
+       
+    }
+    [HttpGet]
+    public async Task<BaseApiResponse> GetCustomer([FromQuery]GetCustomerCommand command)
+    {
+        //freeSql.CodeFirst.SyncStructure<Customer>();
+        
+        var data = await mediator.Send(command, CancellationToken.None);
         return Ok(data);
         
        
