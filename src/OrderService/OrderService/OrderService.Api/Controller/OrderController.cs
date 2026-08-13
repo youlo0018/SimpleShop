@@ -5,8 +5,8 @@ using Consul;
 using Grpc.Net.Client;
 using MagicOnion.Client;
 using Microsoft.AspNetCore.Mvc;
-using OrderService.Domin.Entity;
-using OrderService.Domin.IRepository;
+using OrderService.Domain.Entity;
+using OrderService.Domain.IRepository;
 using YukeTools;
 
 

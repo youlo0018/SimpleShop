@@ -4,10 +4,12 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AssemblyName>OrderService.Domain</AssemblyName>
+        <RootNamespace>OrderService.Domain</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\OrderService.Domain\OrderService.Domain.csproj" />
+      <ProjectReference Include="..\..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
     </ItemGroup>
 
 </Project>

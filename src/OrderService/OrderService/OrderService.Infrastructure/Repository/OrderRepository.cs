@@ -1,5 +1,5 @@
-﻿using OrderService.Domin.Entity;
-using OrderService.Domin.IRepository;
+﻿using OrderService.Domain.Entity;
+using OrderService.Domain.IRepository;
 
 namespace OrderService.Infrastructure.Repository;
 

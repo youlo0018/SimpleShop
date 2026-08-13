@@ -6,8 +6,4 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
-    </ItemGroup>
-
 </Project>

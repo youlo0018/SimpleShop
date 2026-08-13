@@ -2,7 +2,7 @@
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
-namespace OrderService.Domin.Entity;
+namespace OrderService.Domain.Entity;
 
 /// <summary>
 /// 订单表

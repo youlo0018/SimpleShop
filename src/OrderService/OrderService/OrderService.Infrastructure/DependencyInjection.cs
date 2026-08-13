@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OrderService.Domin.IRepository;
+using OrderService.Domain.IRepository;
 using OrderService.Infrastructure.Repository;
 
 namespace OrderService.Infrastructure;
