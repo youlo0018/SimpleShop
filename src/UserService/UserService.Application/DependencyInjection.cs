@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 
 
-namespace CustomerService.Application;
+namespace UserService.Application;
 
 public static class DependencyInjection
 {

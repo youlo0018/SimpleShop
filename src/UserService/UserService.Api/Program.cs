@@ -1,28 +1,21 @@
 using CommunalService.Application.Common;
 using CommunalService.Domain.Infrastructure;
-using CustomerService.Application;
-using CustomerService.Application.Features.Customer.GetCustomer;
-using CustomerService.Infrastructure;
-
+using UserService.Application;
+using UserService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-
-
-
 builder.Services.AddOpenApi();
 builder.AddInfrastructure();
 builder.Services.AddControllers();
-builder.AddMediatRWithHandlers(typeof(GetCustomerCommand).Assembly, typeof(ValidationBehavior<,>).Assembly);
-var app = builder.Build();
-app.UseRouting();
+builder.AddMediatRWithHandlers(typeof(UserService.Application.DependencyInjection).Assembly, typeof(ValidationBehavior<,>).Assembly);
 
+var app = builder.Build();
 
 app.AddApplication();
 await app.AddBaseInfrastructure();
-
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -33,5 +26,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
 app.MapControllers();
+
 app.Run();
+

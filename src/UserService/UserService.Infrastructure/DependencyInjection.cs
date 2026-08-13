@@ -1,7 +1,11 @@
+
+using CommunalService.Domain.Infrastructure;
+
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 
-namespace CustomerService.Application;
+namespace UserService.Infrastructure;
 
 public static class DependencyInjection
 {
@@ -10,17 +14,11 @@ public static class DependencyInjection
     /// </summary>
     /// <param name="services"></param>
     /// <param name="configuration"></param>
-    public static void AddApplication(
+    public static void AddInfrastructure(
         this WebApplicationBuilder builder)
     {
-        
-       
 
-    }
-    public static void AddApplication(
-        this WebApplication app)
-    {
-      
+        builder.AddBaseInfrastructure();
 
     }
 }
