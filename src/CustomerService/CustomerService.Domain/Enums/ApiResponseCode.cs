@@ -1,6 +1,6 @@
 using CommunalService.Domain.Enums;
 
-namespace CustomerService.Domin.Enums;
+namespace CustomerService.Domain.Enums;
 
 public sealed  record ApiResponseCode:BaseApiResponseCode
 {

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
-namespace CustomerService.Domin.Entity;
+namespace CustomerService.Domain.Entity;
 
 [Index("uk_CustomeNo", "CustomeNo", true)]
 [Table(Name = "customer")]

@@ -1,5 +1,5 @@
 using CustomerService.Application.Features.Customer.CreateCustomer;
-using CustomerService.Domin.Entity;
+using CustomerService.Domain.Entity;
 
 namespace CustomerService.Application.Mappers;
 

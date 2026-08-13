@@ -1,5 +1,5 @@
 using CommunalService.Domain;
-using CustomerService.Domin.Enums;
+using CustomerService.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using YukeTools;
 

@@ -1,6 +1,6 @@
 using CommunalService.Domain.Infrastructure;
-using CustomerService.Domin.Entity;
-using CustomerService.Domin.IRepository;
+using CustomerService.Domain.Entity;
+using CustomerService.Domain.IRepository;
 
 namespace CustomerService.Infrastructure.Repository;
 

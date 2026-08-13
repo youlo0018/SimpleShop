@@ -2,12 +2,12 @@ using Argon2id.PasswordHasher;
 using CommunalService.Application.Common;
 using CommunalService.Domain.Enums;
 using CustomerService.Application.Mappers;
-using CustomerService.Domin.IRepository;
+using CustomerService.Domain.IRepository;
 using MediatR;
 using Yitter.IdGenerator;
 namespace CustomerService.Application.Features.Customer.CreateCustomer;
 
-public class CreateCustomerCommandHandler(ICustomerRepository<Domin.Entity.Customer> customerRepository)
+public class CreateCustomerCommandHandler(ICustomerRepository<Domain.Entity.Customer> customerRepository)
     : IRequestHandler<CreateCustomerCommand, object>
 {
     public async Task<object> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
