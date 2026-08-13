@@ -24,6 +24,7 @@ public class BaseEntity
     /// </summary>
     [Column(Position = -3, IsNullable = true), Description("创建时间")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    
 
     /// <summary>
     /// 更新时间
