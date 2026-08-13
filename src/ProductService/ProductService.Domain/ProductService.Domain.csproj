@@ -4,6 +4,8 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AssemblyName>ProductService.Domain</AssemblyName>
+        <RootNamespace>ProductService.Domain</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

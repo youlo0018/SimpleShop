@@ -2,7 +2,7 @@ using System.ComponentModel;
 using FreeSql.DataAnnotations;
 using CommunalService.Domain.Entity;
 
-namespace ProductService.Domin.Entity;
+namespace ProductService.Domain.Entity;
 
 [Table(Name = "product")]
 public sealed class Product : BaseEntity

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
-namespace ProductService.Domin.Entity;
+namespace ProductService.Domain.Entity;
 
 [Description("商品SKU表")]
 [Table(Name = "sku")]

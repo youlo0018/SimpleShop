@@ -3,7 +3,7 @@ using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
 
-namespace ProductService.Domin.Entity;
+namespace ProductService.Domain.Entity;
 
 [Description("商品SKU规格值连接表")]
 [Table(Name = "sku_specification")]

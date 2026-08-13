@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
-namespace ProductService.Domin.Entity;
+namespace ProductService.Domain.Entity;
 
 [Description("商品规格值表")]
 [Table(Name = "specification_value")]

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
-namespace ProductService.Domin.Entity;
+namespace ProductService.Domain.Entity;
 
 [Description("商品规格表")]
 [Table(Name = "specification")]
