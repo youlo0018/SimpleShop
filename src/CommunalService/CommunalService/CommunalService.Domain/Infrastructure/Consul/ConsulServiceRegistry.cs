@@ -46,6 +46,7 @@ public class ConsulServiceRegistry : IConsulServiceRegistry
             Name = _options.ServiceName, // 服务名称（用于发现）
             Address = _options.ServiceAddress, // 服务 IP/主机名
             Port = _options.ServicePort, // 服务端口
+            Meta =_options.MetaData,
             Check = healthCheck // 健康检查配置
         };
 

@@ -5,9 +5,12 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "http://localhost:5019",
+      "applicationUrl": "http://0.0.0.0:5019",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AgileConfig__appId": "AuthService",
+        "Basic__Consul__ServiceAddress": "172.17.0.1",
+        "Basic__Consul__ServicePort": "5019"
       }
     },
     "https": {

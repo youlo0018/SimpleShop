@@ -17,7 +17,7 @@ public static class DependencyInjection
     public static void AddInfrastructure(
         this WebApplicationBuilder builder)
     {
-        builder.AddBaseInfrastructure();
+      
         builder.Services.AddTransient<IOrderRepository, OrderRepository>();
 
     }

@@ -25,7 +25,7 @@ using Yitter.IdGenerator;
 using YukeTools;
 
 
-namespace CommunalService.Domain.Infrastructure;
+namespace CommunalService.Domain;
 
 public static class BaseDependencyInjection
 {
@@ -34,7 +34,7 @@ public static class BaseDependencyInjection
     /// </summary>
     /// <param name="services"></param>
     /// <param name="configuration"></param>
-    public static void AddBaseInfrastructure(
+    public static void AddBasicServices(
         this WebApplicationBuilder builder)
     {
         #region 注册本地缓存
@@ -128,7 +128,11 @@ public static class BaseDependencyInjection
 
         builder.WebHost.ConfigureKestrel(options =>
         {
-            options.ListenAnyIP(builder.Configuration["Basic:port:httpport"].ToInt());
+            options.ListenAnyIP(builder.Configuration["Basic:port:httpport"].ToInt(), listenOptions =>
+            {
+                listenOptions.UseHttps(); 
+                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+            });
 
             options.ListenAnyIP(builder.Configuration["Basic:port:grpcport"].ToInt(), listenOptions =>
             {
@@ -190,6 +194,7 @@ public static class BaseDependencyInjection
         IConfiguration configuration)
     {
         var sen = configuration.GetSection("Basic:Consul");
+        
         // 1. 绑定 Consul 配置
         services.Configure<ConsulOptions>(sen);
 

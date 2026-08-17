@@ -1,40 +1,39 @@
-using CommunalService.Domain;
-using CustomerService.Domain.Enums;
+using CommunalService.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using YukeTools;
 
-namespace CustomerService.Api.Controllers;
+namespace CommunalService.Domain;
 
 [ApiController]
 [Route("api/[controller]/[action]")]
 public class BaseController : Microsoft.AspNetCore.Mvc.Controller
 {
     [ApiExplorerSettings(IgnoreApi = true)]
-    protected ApiResponse<T> Ok<T>(T data)
+    protected ApiResponse Ok(object data)
     {
-        return new ApiResponse<T>()
+        return new ApiResponse()
         {
-            Code = ApiResponseCode.Success.Value,
-            Message = ApiResponseCode.Success.Name,
+            Code = BaseApiResponseCode.Success.Value,
+            Message = BaseApiResponseCode.Success.Name,
             Data = data
         };
     }
 
     [ApiExplorerSettings(IgnoreApi = true)]
-    protected ApiResponse<object> Ok()
+    protected ApiResponse Ok()
     {
-        return new ApiResponse<object>()
+        return new ApiResponse()
         {
-            Code = ApiResponseCode.Success.Value,
-            Message = ApiResponseCode.Success.Name,
+            Code = BaseApiResponseCode.Success.Value,
+            Message = BaseApiResponseCode.Success.Name,
             Data = new { }
         };
     }
 
     [ApiExplorerSettings(IgnoreApi = true)]
-    protected ApiResponse<object> Ok(ApiResponseCode code)
+    protected ApiResponse Ok(BaseApiResponseCode code)
     {
-        return new ApiResponse<object>()
+        return new ApiResponse()
         {
             Code = code.Value,
             Message = code.Name,
@@ -43,9 +42,9 @@ public class BaseController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [ApiExplorerSettings(IgnoreApi = true)]
-    protected ApiResponse<T> Ok<T>(T data, ApiResponseCode code)
+    protected ApiResponse Ok(object data, BaseApiResponseCode code)
     {
-        return new ApiResponse<T>()
+        return new ApiResponse()
         {
             Code = code.Value,
             Message = code.Name,
@@ -54,9 +53,9 @@ public class BaseController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [ApiExplorerSettings(IgnoreApi = true)]
-    protected ApiResponse<object> Error(ApiResponseCode code, string message = null)
+    protected ApiResponse Error(BaseApiResponseCode code, string message = null)
     {
-        return new ApiResponse<object>
+        return new ApiResponse()
         {
             Code = code.Value,
             Message = message.IsNull() ? code.Name : message,

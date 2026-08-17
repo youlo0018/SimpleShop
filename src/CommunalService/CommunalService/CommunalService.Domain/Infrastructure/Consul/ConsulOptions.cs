@@ -25,4 +25,5 @@ public class ConsulOptions
 
     /// <summary>健康检查间隔（秒）</summary>
     public int HealthCheckIntervalSeconds { get; set; } = 10;
+    public Dictionary<string,string> MetaData { get; set; } = new Dictionary<string,string>();
 }

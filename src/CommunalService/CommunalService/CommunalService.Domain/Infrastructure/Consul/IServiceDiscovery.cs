@@ -1,3 +1,5 @@
+using CommunalService.Domain.Enums;
+
 namespace CommunalService.Domain.Infrastructure.Consul;
 
 public interface IServiceDiscovery
@@ -14,5 +16,7 @@ public interface IServiceDiscovery
     /// <param name="serviceName"></param>
     /// <returns></returns>
     Task<ServiceAddressesDto> GetPollingAddressAsync(string serviceName);
+    
+    Task<string> GetPollingAddressAsync(string serviceName, PollingAddressType type=PollingAddressType.Default);
     
 }

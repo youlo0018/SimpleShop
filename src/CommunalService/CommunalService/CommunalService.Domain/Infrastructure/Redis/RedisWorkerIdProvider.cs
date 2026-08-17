@@ -71,10 +71,13 @@ public class RedisWorkerIdProvider : IDisposable
         // 1. 停止续约任务
         _renewCts?.Cancel();
         _renewCts?.Dispose();
+        _renewCts = null;
 
         // 2. 删除租约 Key，释放 WorkerId
         var leaseKey = $"{_leaseKeyPrefix}{_currentWorkerId.Value}";
         await _redisDb.KeyDeleteAsync(leaseKey);
+
+        _currentWorkerId = null;
     }
 
     public void Dispose()

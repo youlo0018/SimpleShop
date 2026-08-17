@@ -6,25 +6,15 @@ namespace CommunalService.Domain.Infrastructure.Snowflake;
 
 using Yitter.IdGenerator;
 
-public class WorkerIdBackgroundService : IHostedService
+public class WorkerIdBackgroundService(RedisWorkerIdProvider provider) : IHostedService
 {
-    private readonly RedisWorkerIdProvider _provider;
-    private readonly ILogger<WorkerIdBackgroundService> _logger;
-
-    public WorkerIdBackgroundService(
-        RedisWorkerIdProvider provider,
-        ILogger<WorkerIdBackgroundService> logger)
-    {
-        _provider = provider;
-        _logger = logger;
-    }
-
+    private readonly RedisWorkerIdProvider _provider = provider;
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         try
         {
             var workerId = await _provider.RegisterAsync();
-            _logger.LogInformation("WorkerId 注册成功: {WorkerId}", workerId);
+            Console.WriteLine($"WorkerId 注册成功: {workerId}");
 
             var options = new IdGeneratorOptions
             {
@@ -38,15 +28,15 @@ public class WorkerIdBackgroundService : IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "WorkerId 注册失败");
+            Console.WriteLine("WorkerId 注册失败");
             throw; // 可以决定是否阻止应用启动
         }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("正在释放 WorkerId...");
+        Console.WriteLine("正在释放 WorkerId...");
         await _provider.UnregisterAsync();
-        _logger.LogInformation("WorkerId 已释放");
+        Console.WriteLine("WorkerId 已释放");
     }
 }

@@ -20,7 +20,7 @@ public static class DependencyInjection
         this WebApplicationBuilder builder)
     {
 
-        builder.AddBaseInfrastructure();
+        
         builder.Services.AddTransient<ICustomerRepository<Customer>, CustomerRepository>();
 
     }
