@@ -1,5 +1,5 @@
 using CommunalService.Application.Common;
-using CommunalService.Domain.Infrastructure;
+using CommunalService.Domain;
 using CustomerService.Application;
 using CustomerService.Application.Features.Customer.GetCustomer;
 using CustomerService.Infrastructure;
@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddOpenApi();
+builder.AddBasicServices();
 builder.AddInfrastructure();
 builder.Services.AddControllers();
 builder.AddMediatRWithHandlers(typeof(GetCustomerCommand).Assembly, typeof(ValidationBehavior<,>).Assembly);

@@ -1,10 +1,12 @@
-﻿using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain;
+using CommunalService.Domain.Contracts.Messages;
 using CommunalService.Domain.Contracts.Services;
 using CommunalService.Domain.Infrastructure.Consul;
 using Consul;
 using Grpc.Net.Client;
 using MagicOnion.Client;
 using Microsoft.AspNetCore.Mvc;
+using Mysqlx;
 using OrderService.Domain.Entity;
 using OrderService.Domain.IRepository;
 using YukeTools;
@@ -18,7 +20,7 @@ namespace OrderService.Api.Controller;
 public class OrderController(IFreeSql freeSql,IOrderRepository orderRepository,IServiceDiscovery consul) : BaseController
 {
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<ApiResponse> Index()
     {
         
         var address = await consul.GetPollingAddressAsync("CustomerService");
@@ -32,7 +34,7 @@ public class OrderController(IFreeSql freeSql,IOrderRepository orderRepository,I
         return Ok(result);
     }
     [HttpGet]
-    public IActionResult Query(long id)
+    public ApiResponse Query(long id)
     {
         var order=orderRepository.GetById(id);
        //var order = orderRepository.GetById<TestOrder>(1);

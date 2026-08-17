@@ -25,7 +25,7 @@ using Yitter.IdGenerator;
 using YukeTools;
 
 
-namespace CommunalService.Domain.Infrastructure;
+namespace CommunalService.Domain;
 
 public static class BaseDependencyInjection
 {
@@ -34,7 +34,7 @@ public static class BaseDependencyInjection
     /// </summary>
     /// <param name="services"></param>
     /// <param name="configuration"></param>
-    public static void AddBaseInfrastructure(
+    public static void AddBasicServices(
         this WebApplicationBuilder builder)
     {
         #region 注册本地缓存

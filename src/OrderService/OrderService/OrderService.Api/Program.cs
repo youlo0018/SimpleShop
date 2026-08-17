@@ -1,4 +1,5 @@
 using AgileConfig.Client;
+using CommunalService.Domain;
 using CommunalService.Domain.Infrastructure;
 using OrderService.Infrastructure;
 
@@ -7,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-
+builder.AddBasicServices();
 builder.AddInfrastructure();
 builder.Services.AddControllers();
 
