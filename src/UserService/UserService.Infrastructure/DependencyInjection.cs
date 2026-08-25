@@ -1,8 +1,8 @@
 
-using CommunalService.Domain.Infrastructure;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+
+using CommunalService.Domain;
 
 
 namespace UserService.Infrastructure;
@@ -18,7 +18,6 @@ public static class DependencyInjection
         this WebApplicationBuilder builder)
     {
 
-        builder.AddBaseInfrastructure();
-
+        builder.AddBasicServices();
     }
 }

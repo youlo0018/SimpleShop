@@ -9,17 +9,8 @@
     <ItemGroup>
       <ProjectReference Include="..\OrderService.Domain\OrderService.Domain.csproj" />
     </ItemGroup>
-
     <ItemGroup>
-      <Reference Include="Microsoft.AspNetCore">
-        <HintPath>..\..\..\..\..\..\..\..\..\usr\lib\dotnet\shared\Microsoft.AspNetCore.App\10.0.10\Microsoft.AspNetCore.dll</HintPath>
-      </Reference>
-      <Reference Include="Microsoft.Extensions.Configuration.Abstractions">
-        <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.10\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
-      </Reference>
-      <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
-        <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.10\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
-      </Reference>
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 using CommunalService.Application.Common;
 using CommunalService.Domain.Infrastructure;
+using CommunalService.Domain;
 using UserService.Application;
 using UserService.Infrastructure;
 

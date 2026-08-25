@@ -8,6 +8,8 @@ using CommunalService.Domain.Entity;
 using CommunalService.Domain.Infrastructure.Consul;
 using CommunalService.Domain.Infrastructure.Redis;
 using CommunalService.Domain.Infrastructure.Snowflake;
+using CommunalService.Domain.Logging;
+using CommunalService.Domain.Messaging;
 using Consul;
 using FluentValidation;
 using MagicOnion;
@@ -40,6 +42,8 @@ public static class BaseDependencyInjection
         #region 注册本地缓存
 
         builder.Services.AddMemoryCache();
+        // 业务日志要从当前 HTTP 请求里取身份和 TraceId。
+        builder.Services.AddHttpContextAccessor();
 
         #endregion
 
@@ -102,6 +106,7 @@ public static class BaseDependencyInjection
         #region 雪花id生成注册
 
         builder.Services.AddSingleton<RedisWorkerIdProvider>();
+        builder.Services.AddSingleton<Infrastructure.Locks.IDistributedLock, Infrastructure.Locks.RedisDistributedLock>();
         builder.Services.AddHostedService<WorkerIdBackgroundService>();
 
         #endregion
@@ -110,6 +115,18 @@ public static class BaseDependencyInjection
 
         builder.Services.AddConsulIntegration(builder.Configuration);
         builder.Services.AddHealthChecks();
+
+        #region 消息队列
+
+        builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(RabbitMqOptions.SectionName));
+        // 懒加载单例：启动阶段不强制连接 MQ，避免本机没有 RabbitMQ 时服务直接挂掉。
+        builder.Services.AddSingleton<IMessagePublisher, RabbitMqMessagePublisher>();
+
+        // 日志发布器依赖消息队列；MQ 不可用时会在发布阶段失败，不影响请求主流程。
+        builder.Services.AddSingleton<LoggingEventPublisher>();
+        builder.Services.AddSingleton<IOperationLogger, OperationLogger>();
+
+        #endregion
 
         #endregion
 
@@ -168,6 +185,9 @@ public static class BaseDependencyInjection
     public static async Task AddBaseInfrastructure(this WebApplication app)
     {
         app.MapHealthChecks("/health");
+        // 顺序很重要：异常兜底包住后续管道，PV 才能记录到真实耗时和最终状态。
+        app.UseMiddleware<Logging.Middleware.ExceptionLoggingMiddleware>();
+        app.UseMiddleware<Logging.Middleware.PageViewLoggingMiddleware>();
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         foreach (var assembly in assemblies)
         {
@@ -182,6 +202,13 @@ public static class BaseDependencyInjection
         }
 
         app.MapMagicOnionService();
+    }
+
+    public static Task MigrateDatabaseAsync(this WebApplication app, params Type[] entityTypes)
+    {
+        var freeSql = app.Services.GetRequiredService<IFreeSql>();
+        freeSql.CodeFirst.SyncStructure(entityTypes);
+        return Task.CompletedTask;
     }
 
     /// <summary>

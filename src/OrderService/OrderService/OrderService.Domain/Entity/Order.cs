@@ -11,6 +11,8 @@ namespace OrderService.Domain.Entity;
 [Table(Name = "order")]
 public sealed class Order : BaseEntity
 {
+    [Description("平台ID")] public long PlatformId { get; set; }
+
     [Column(StringLength = 32), Description("订单号")]
     public string OrderNo { get; set; }
 
@@ -19,7 +21,26 @@ public sealed class Order : BaseEntity
     [Column(StringLength = 128), Description("用户编号")]
     public string CustomerNo { get; set; }
 
-    [Description("用户名")] public long CustomerName { get; set; }
+    [Column(StringLength = 64), Description("用户名")] public string CustomerName { get; set; }
+
+    [Column(StringLength = 64), Description("收货人")]
+    public string ReceiverName { get; set; }
+
+    [Column(StringLength = 20), Description("收货人电话")]
+    public string ReceiverPhone { get; set; }
+
+    [Column(StringLength = 255), Description("收货地址快照")]
+    public string ReceiverAddress { get; set; }
+
+    [Description("支付超时时间")]
+    public DateTime PaymentExpiredAt { get; set; }
+
+    [Description("取消原因")]
+    [Column(StringLength = 255, IsNullable = true)]
+    public string CancelReason { get; set; }
+
+    [Column(StringLength = 64), Description("幂等键")]
+    public string IdempotencyKey { get; set; } = string.Empty;
     [Description("订单总金额")] public decimal TotalPrice { get; set; }
     [Description("优惠总金额")] public decimal AllDiscountPrice { get; set; }
     [Description("支付金额")] public decimal PaymentPrice { get; set; }
@@ -34,4 +55,8 @@ public sealed class Order : BaseEntity
 
     [Description("是否有过退款")] public bool IsRefund { get; set; } = false;
     [Description("是否全部退款")] public bool IsAllRefund { get; set; } = false;
+
+    public int PaymentStatus => IsPayment ? 1 : 0;
+
+    public bool CanCancel => OrderStatus == (int)OrderState.AwaitPayment && !IsPayment;
 }

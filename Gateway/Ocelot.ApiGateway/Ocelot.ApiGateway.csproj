@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SimpleShop.Gateway</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="3.1.7" />
+    <ProjectReference Include="..\..\src\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
+    <PackageReference Include="Ocelot" Version="25.0.0-beta.2" />
+    <PackageReference Include="Ocelot.Provider.Consul" Version="25.0.0-beta.2" />
+  </ItemGroup>
+</Project>

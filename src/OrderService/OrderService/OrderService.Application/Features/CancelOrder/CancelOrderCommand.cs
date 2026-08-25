@@ -1,0 +1,10 @@
+using MediatR;
+
+namespace OrderService.Application.Features.CancelOrder;
+
+public sealed record CancelOrderCommand : IRequest<object>
+{
+    public long Id { get; init; }
+    public long CustomerId { get; init; }
+    public string Reason { get; init; } = "Customer cancelled";
+}

@@ -1,0 +1,79 @@
+<Solution>
+  <Folder Name="/Gateway/">
+    <Project Path="Gateway/Ocelot.ApiGateway/Ocelot.ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/AdminService/" />
+  <Folder Name="/src/AdminService/AdminService/">
+    <Project Path="src/AdminService/AdminService/AdminService.Domin/AdminService.Domin.csproj" />
+  </Folder>
+  <Folder Name="/src/AuthService/" />
+  <Folder Name="/src/AuthService/AuthService/">
+    <Project Path="src/AuthService/AuthService/AuthService.Api/AuthService.Api.csproj" />
+    <Project Path="src/AuthService/AuthService/AuthService.Application/AuthService.Application.csproj" />
+    <Project Path="src/AuthService/AuthService/AuthService.Domain/AuthService.Domain.csproj" />
+    <Project Path="src/AuthService/AuthService/AuthService.Infrastructure/AuthService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/CartService/">
+    <Project Path="src/CartService/CartService.Api/CartService.Api.csproj" />
+    <Project Path="src/CartService/CartService.Application/CartService.Application.csproj" />
+    <Project Path="src/CartService/CartService.Domain/CartService.Domain.csproj" />
+    <Project Path="src/CartService/CartService.Infrastructure/CartService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/CommunalService/" />
+  <Folder Name="/src/CommunalService/CommunalService/">
+    <Project Path="src/CommunalService/CommunalService/CommunalService.Domain/CommunalService.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/CustomerService/">
+    <Project Path="src/CustomerService/CustomerService.Api/CustomerService.Api.csproj" />
+    <Project Path="src/CustomerService/CustomerService.Application/CustomerService.Application.csproj" />
+    <Project Path="src/CustomerService/CustomerService.Domain/CustomerService.Domain.csproj" />
+    <Project Path="src/CustomerService/CustomerService.Infrastructure/CustomerService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/InventoryService/">
+    <Project Path="src/InventoryService/InventoryService.Api/InventoryService.Api.csproj" />
+    <Project Path="src/InventoryService/InventoryService.Application/InventoryService.Application.csproj" />
+    <Project Path="src/InventoryService/InventoryService.Domain/InventoryService.Domain.csproj" />
+    <Project Path="src/InventoryService/InventoryService.Infrastructure/InventoryService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/LogService/">
+    <Project Path="src/LogService/LogService.Api/LogService.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/MerchantPlatformService/">
+    <Project Path="src/MerchantPlatformService/MerchantPlatformService.Api/MerchantPlatformService.Api.csproj" />
+    <Project Path="src/MerchantPlatformService/MerchantPlatformService.Application/MerchantPlatformService.Application.csproj" />
+    <Project Path="src/MerchantPlatformService/MerchantPlatformService.Domain/MerchantPlatformService.Domain.csproj" />
+    <Project Path="src/MerchantPlatformService/MerchantPlatformService.Infrastructure/MerchantPlatformService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/OrderService/" />
+  <Folder Name="/src/OrderService/OrderService/">
+    <Project Path="src/OrderService/OrderService/OrderService.Api/OrderService.Api.csproj" />
+    <Project Path="src/OrderService/OrderService/OrderService.Application/OrderService.Application.csproj" />
+    <Project Path="src/OrderService/OrderService/OrderService.Domain/OrderService.Domain.csproj" />
+    <Project Path="src/OrderService/OrderService/OrderService.Infrastructure/OrderService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/PaymentService/">
+    <Project Path="src/PaymentService/PaymentService.Api/PaymentService.Api.csproj" />
+    <Project Path="src/PaymentService/PaymentService.Application/PaymentService.Application.csproj" />
+    <Project Path="src/PaymentService/PaymentService.Domain/PaymentService.Domain.csproj" />
+    <Project Path="src/PaymentService/PaymentService.Infrastructure/PaymentService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/PermissionService/">
+    <Project Path="src/PermissionService/PermissionService.Api/PermissionService.Api.csproj" />
+    <Project Path="src/PermissionService/PermissionService.Application/PermissionService.Application.csproj" />
+    <Project Path="src/PermissionService/PermissionService.Domain/PermissionService.Domain.csproj" />
+    <Project Path="src/PermissionService/PermissionService.Infrastructure/PermissionService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/ProductService/">
+    <Project Path="src/ProductService/ProductService.Api/ProductService.Api.csproj" />
+    <Project Path="src/ProductService/ProductService.Application/ProductService.Application.csproj" />
+    <Project Path="src/ProductService/ProductService.Domain/ProductService.Domain.csproj" />
+    <Project Path="src/ProductService/ProductService.Infrastructure/ProductService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/UserService/">
+    <Project Path="src/UserService/UserService.Api/UserService.Api.csproj" />
+    <Project Path="src/UserService/UserService.Application/UserService.Application.csproj" />
+    <Project Path="src/UserService/UserService.Domain/UserService.Domain.csproj" />
+    <Project Path="src/UserService/UserService.Infrastructure/UserService.Infrastructure.csproj" />
+  </Folder>
+</Solution>
