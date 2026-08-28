@@ -6,7 +6,7 @@ namespace UserService.Domain.Entity;
 
 public sealed class User:BaseEntity
 {
-    [Column(StringLength = 10), Description("用户名")]
+    [Column(StringLength = 64), Description("用户名")]
     public string UserName { get; set; }
 
     [Column(StringLength = 64), Description("邮箱")]
@@ -28,5 +28,11 @@ public sealed class User:BaseEntity
     [Description("是否启用")] public bool IsEnabled { get; set; } = true;
    
     [Description("操作员")] public long OperationId { get; set; }
+
+    [Column(StringLength = 20), Description("角色：admin/customer")]
+    public string Role { get; set; } = "customer";
+
+    [Column(StringLength = 255), Description("头像")]
+    public string Avatar { get; set; } = string.Empty;
 
 }

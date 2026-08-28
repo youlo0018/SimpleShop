@@ -1,5 +1,6 @@
 namespace CommunalService.Domain.Logging.Middleware;
 
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -18,8 +19,25 @@ public sealed class ExceptionLoggingMiddleware(
         {
             await next(context);
         }
+        catch (ValidationException exception)
+        {
+            var errors = exception.Errors
+                .Where(error => !string.IsNullOrWhiteSpace(error.ErrorMessage))
+                .GroupBy(error => error.PropertyName)
+                .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).Distinct().ToArray());
+            var messages = errors.Values.SelectMany(values => values).Distinct().ToArray();
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/json; charset=utf-8";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                code = 400,
+                message = messages.Length > 0 ? string.Join("；", messages) : "输入验证失败",
+                errors
+            });
+        }
         catch (Exception exception)
         {
+            logger.LogError(exception, "请求处理失败：{Method} {Path}", context.Request.Method, context.Request.Path);
             await PublishAsync(context, exception);
 
             // 统一错误契约：TraceId 给用户，堆栈只进 Elasticsearch，不暴露给前端。

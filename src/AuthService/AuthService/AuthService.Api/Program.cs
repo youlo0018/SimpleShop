@@ -2,6 +2,8 @@ using AuthService.Domain.Entity;
 using AuthService.Infrastructure;
 using AuthService.Infrastructure.OpenIddict;
 using CommunalService.Domain;
+using CommunalService.Application.Common;
+using AuthService.Application.Features.User.Login;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +14,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.AddBasicServices();
 builder.Services.AddControllers();
+builder.AddMediatRWithHandlers(
+    typeof(LoginCommand).Assembly,
+    typeof(ValidationBehavior<,>).Assembly);
 #region 删除freesql注册使用EF
 
 var descriptor = builder.Services.FirstOrDefault(s => s.ServiceType == typeof(IFreeSql));
@@ -105,8 +110,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 await app.AddBaseInfrastructure();
-app.UseHttpsRedirection();
 
 app.MapControllers();
 app.Run();
-

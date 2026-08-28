@@ -3,6 +3,7 @@ using CommunalService.Domain.Infrastructure;
 using CommunalService.Domain;
 using UserService.Application;
 using UserService.Infrastructure;
+using UserService.Domain.Entity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,9 @@ var app = builder.Build();
 app.AddApplication();
 await app.AddBaseInfrastructure();
 
+// 用户表由当前服务自治；启动时同步新增角色和头像字段，便于后台与应用端共用账号体系。
+app.Services.GetRequiredService<IFreeSql>().CodeFirst.SyncStructure<User>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -25,10 +29,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => { options.SwaggerEndpoint("/openapi/v1.json", "My API V1"); });
 }
 
-app.UseHttpsRedirection();
-
-
 app.MapControllers();
 
 app.Run();
-

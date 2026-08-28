@@ -79,7 +79,7 @@ public sealed class ElasticsearchLogWriter(
         {
             if (!string.IsNullOrWhiteSpace(value))
             {
-                filters.Add(Query.Term(new TermQuery { Field = field, Value = value }));
+                filters.Add(new TermQuery { Field = field, Value = value });
             }
         }
 

@@ -7,10 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AgileConfig.Client" Version="1.9.1"/>
+        <PackageReference Include="FreeSql" Version="3.5.311"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10"/>
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
       <ProjectReference Include="..\PermissionService.Application\PermissionService.Application.csproj" />
       <ProjectReference Include="..\PermissionService.Infrastructure\PermissionService.Infrastructure.csproj" />
     </ItemGroup>

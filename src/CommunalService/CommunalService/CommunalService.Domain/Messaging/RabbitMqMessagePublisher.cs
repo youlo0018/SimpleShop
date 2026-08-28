@@ -9,6 +9,8 @@ namespace CommunalService.Domain.Messaging;
 /// </summary>
 public sealed class RabbitMqMessagePublisher : IMessagePublisher, IDisposable
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IConnectionFactory _factory;
     private readonly string _exchange;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
@@ -60,7 +62,8 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IDisposable
         MessageEnvelope<TPayload> message,
         CancellationToken cancellationToken = default)
     {
-        var body = JsonSerializer.SerializeToUtf8Bytes(message);
+        // 消息契约统一 camelCase，和 REST API 保持一致，避免生产者与消费者大小写漂移。
+        var body = JsonSerializer.SerializeToUtf8Bytes(message, JsonOptions);
         var properties = new BasicProperties
         {
             ContentType = "application/json",

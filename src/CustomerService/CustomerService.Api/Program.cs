@@ -3,6 +3,7 @@ using CommunalService.Domain;
 using CustomerService.Application;
 using CustomerService.Application.Features.Customer.GetCustomer;
 using CustomerService.Infrastructure;
+using FreeSql;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ app.UseRouting();
 
 
 app.AddApplication();
+CustomerService.Infrastructure.DatabaseInitializer.Initialize(app.Services.GetRequiredService<IFreeSql>());
 await app.AddBaseInfrastructure();
 
 
@@ -31,8 +33,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseSwaggerUI(options => { options.SwaggerEndpoint("/openapi/v1.json", "My API V1"); });
 }
-
-app.UseHttpsRedirection();
 
 app.MapControllers();
 app.Run();

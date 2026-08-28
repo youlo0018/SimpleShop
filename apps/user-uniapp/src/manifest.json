@@ -1,0 +1,11 @@
+{
+  "name": "SimpleShop",
+  "appid": "",
+  "description": "SimpleShop 跨端商城",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": { "usingComponents": true, "nvueStyleCompiler": "uni-app", "compilerVersion": 3, "splashscreen": { "alwaysShowBeforeRender": true, "waiting": true, "autoclose": true } },
+  "mp-weixin": { "appid": "", "setting": { "urlCheck": false, "es6": true }, "usingComponents": true },
+  "h5": { "title": "SimpleShop", "router": { "mode": "hash" } }
+}

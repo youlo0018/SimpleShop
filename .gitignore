@@ -135,3 +135,7 @@ _NCrunch*s
 .vs/
 *.nupkg
 *.cache
+
+# Frontend dependencies and generated bundles
+node_modules/
+dist/

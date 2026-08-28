@@ -14,6 +14,7 @@ using Consul;
 using FluentValidation;
 using MagicOnion;
 using MediatR;
+using MessagePack.Resolvers;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -44,6 +45,8 @@ public static class BaseDependencyInjection
         builder.Services.AddMemoryCache();
         // 业务日志要从当前 HTTP 请求里取身份和 TraceId。
         builder.Services.AddHttpContextAccessor();
+        // 网关注入的租户声明是下游数据隔离统一入口。
+        builder.Services.AddSingleton<TenantContext>();
 
         #endregion
 
@@ -92,6 +95,12 @@ public static class BaseDependencyInjection
         };
         builder.Services.AddSingleton<IFreeSql>(fsqlFactory);
 
+        // 雪花 Id 超出 JavaScript Number 安全整数范围；统一按字符串序列化，避免前端精度丢失。
+        builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+            options.JsonSerializerOptions.NumberHandling =
+                System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString |
+                System.Text.Json.Serialization.JsonNumberHandling.WriteAsString);
+
         #endregion
 
         #region redis注册
@@ -133,7 +142,8 @@ public static class BaseDependencyInjection
         #region gRPC
 
         MessagePackSerializer.DefaultOptions =
-            MessagePackSerializer.DefaultOptions.WithResolver(MessagePack.Resolvers.StandardResolver.Instance);
+            MessagePackSerializer.DefaultOptions.WithResolver(
+                CompositeResolver.Create(DynamicObjectResolver.Instance, StandardResolver.Instance));
 
         builder.Services.AddGrpc();
         builder.Services.AddMagicOnion(); // 添加 MagicOnion 支持
@@ -145,16 +155,34 @@ public static class BaseDependencyInjection
 
         builder.WebHost.ConfigureKestrel(options =>
         {
-            options.ListenAnyIP(builder.Configuration["Basic:port:httpport"].ToInt(), listenOptions =>
+            var restPort = builder.Configuration["Basic:port:httpport"].ToInt();
+            if (restPort <= 0)
             {
-                listenOptions.UseHttps(); 
-                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-            });
+                return;
+            }
 
-            options.ListenAnyIP(builder.Configuration["Basic:port:grpcport"].ToInt(), listenOptions =>
+            var grpcPort = builder.Configuration["Basic:port:grpcport"].ToInt();
+            if (restPort != grpcPort)
             {
-                listenOptions.Protocols = HttpProtocols.Http2; // 强制 HTTP/2
-            });
+                options.ListenAnyIP(restPort, listenOptions =>
+                {
+                    listenOptions.Protocols = HttpProtocols.Http1;
+                });
+
+                options.ListenAnyIP(grpcPort, listenOptions =>
+                {
+                    // 独立 gRPC 端口必须使用明文 HTTP/2；REST 继续保留独立的 HTTP/1 端口。
+                    listenOptions.Protocols = HttpProtocols.Http2;
+                });
+            }
+            else
+            {
+                // 内网暂无纯 gRPC 消费方时允许 REST 与 gRPC 共端口，保持网关兼容性。
+                options.ListenAnyIP(restPort, listenOptions =>
+                {
+                    listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                });
+            }
         });
 
         #endregion
@@ -221,9 +249,30 @@ public static class BaseDependencyInjection
         IConfiguration configuration)
     {
         var sen = configuration.GetSection("Basic:Consul");
-        
+
+        if (!sen.GetValue("Enabled", true))
+        {
+            services.Configure<ConsulOptions>(sen);
+            services.AddSingleton<IConsulClient>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<ConsulOptions>>().Value;
+                return new ConsulClient(configure => configure.Address = new Uri(options.Address));
+            });
+            services.AddMemoryCache();
+            services.AddSingleton<IServiceDiscovery, ConsulServiceDiscovery>();
+            return services;
+        }
+
         // 1. 绑定 Consul 配置
         services.Configure<ConsulOptions>(sen);
+
+        if (string.IsNullOrWhiteSpace(sen["ServiceAddress"]))
+        {
+            services.PostConfigure<ConsulOptions>(options =>
+            {
+                options.ServiceAddress = "172.18.0.1";
+            });
+        }
 
 
         // 2. 注册 Consul 客户端（单例）

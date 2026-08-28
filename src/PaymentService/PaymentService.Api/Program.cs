@@ -16,7 +16,10 @@ builder.AddMediatRWithHandlers(
 var app = builder.Build();
 app.AddApplication();
 await app.AddBaseInfrastructure();
-await app.MigrateDatabaseAsync(typeof(PaymentService.Domain.Entity.PaymentOrder), typeof(PaymentService.Domain.Entity.RefundOrder));
+await app.MigrateDatabaseAsync(
+    typeof(PaymentService.Domain.Entity.PaymentOrder),
+    typeof(PaymentService.Domain.Entity.RefundOrder),
+    typeof(PaymentService.Domain.Entity.RefundOrderItem));
 
 if (app.Environment.IsDevelopment())
 {
@@ -25,4 +28,3 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.Run();
-

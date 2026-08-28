@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using CommunalService.Domain.Infrastructure.Locks;
 using Microsoft.Extensions.Configuration;
@@ -65,7 +65,7 @@ public sealed class PaymentSucceededConsumer(
             catch (Exception exception)
             {
                 logger.LogError(exception, "处理支付成功事件失败。");
-                await _channel.BasicNackAsync(eventArgs.DeliveryTag, false, requeue: false);
+                await _channel.BasicNackAsync(eventArgs.DeliveryTag, false, requeue: exception is LockTimeoutException);
             }
         };
 
@@ -75,7 +75,7 @@ public sealed class PaymentSucceededConsumer(
     private async Task HandleMessage(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
-        var payload = document.RootElement.GetProperty("Payload");
+        var payload = document.RootElement.GetProperty("payload");
         var orderNo = payload.GetProperty("bizNo").GetString();
 
         if (string.IsNullOrWhiteSpace(orderNo))
@@ -83,28 +83,37 @@ public sealed class PaymentSucceededConsumer(
             return;
         }
 
-        var order = await orderRepository.GetByOrderNoAsync(orderNo, cancellationToken);
-        if (order is null || order.OrderStatus != (int)Domain.Entity.OrderState.AwaitPayment)
+        var existing = await orderRepository.GetByOrderNoAsync(orderNo, cancellationToken);
+        if (existing is null)
         {
             return;
         }
 
+        // 支付和超时关单必须竞争同一把订单状态锁；不同锁键会让两个流程互相覆盖。
         await using var lockHandle = await distributedLock.AcquireAsync(
-            $"lock:order:pay:{order.Id}",
+            $"lock:order:{existing.Id}",
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(2),
             cancellationToken);
 
         if (lockHandle is null)
         {
-            throw new InvalidOperationException($"获取订单支付锁超时:{order.Id}");
+            logger.LogWarning("获取订单支付锁失败，消息将重新入队。OrderNo：{OrderNo}。", orderNo);
+            throw new LockTimeoutException(orderNo);
         }
 
-        order.OrderStatus = (int)Domain.Entity.OrderState.Paid;
-        order.IsPayment = true;
-        order.PaymentAt = DateTime.Now;
-        await orderRepository.UpdateAsync(order, cancellationToken);
+        // 锁内重新读取状态，避免用锁前的旧状态覆盖超时关单结果。
+        var latest = await orderRepository.GetByOrderNoAsync(orderNo, cancellationToken);
+        if (latest is null || latest.OrderStatus != (int)Domain.Entity.OrderState.AwaitPayment || latest.IsPayment)
+        {
+            return;
+        }
+
+        await orderRepository.TryMarkPaidAsync(latest.OrderNo, DateTime.Now, cancellationToken);
     }
+
+    private sealed class LockTimeoutException(string orderNo)
+        : Exception($"获取订单支付锁超时:{orderNo}");
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -113,4 +122,3 @@ public sealed class PaymentSucceededConsumer(
         await base.StopAsync(cancellationToken);
     }
 }
-

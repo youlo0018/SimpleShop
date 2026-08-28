@@ -10,17 +10,20 @@ public class GetCategoryTreeCommandHandler(ICategoryRepository<EntityCategory> r
 {
     public async Task<object> Handle(GetCategoryTreeCommand request, CancellationToken cancellationToken)
     {
-        var all = await repository.QueryAsync(c => c.IsActive);
+        // 后台分类管理必须能编辑停用节点；商城列表接口另行按启用状态过滤。
+        var all = await repository.QueryAsync(c => !c.IsDeleted);
         var roots = all.Where(c => c.ParentId == 0).OrderBy(c => c.Sort).ToList();
 
-        List<object> BuildTree(long parentId)
+        List<object> BuildTree(long parentId, int depth)
         {
+            if (depth >= 3) return [];
+
             return all.Where(c => c.ParentId == parentId)
                 .OrderBy(c => c.Sort)
-                .Select(c => (object)new { c.Id, c.Name, c.Sort, children = BuildTree(c.Id) })
+                .Select(c => (object)new { c.Id, c.Name, c.ParentId, c.Sort, c.IsActive, children = BuildTree(c.Id, depth + 1) })
                 .ToList();
         }
 
-        return roots.Select(r => new { r.Id, r.Name, r.Sort, children = BuildTree(r.Id) }).ToList();
+        return roots.Select(r => (object)new { r.Id, r.Name, r.ParentId, r.Sort, r.IsActive, children = BuildTree(r.Id, 1) }).ToList();
     }
 }

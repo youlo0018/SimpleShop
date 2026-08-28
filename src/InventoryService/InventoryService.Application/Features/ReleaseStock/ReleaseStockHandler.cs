@@ -1,13 +1,20 @@
 using Locks = CommunalService.Domain.Infrastructure.Locks;
+using CommunalService.Domain.Logging;
+using CommunalService.Domain.Contracts.Messages;
+using Microsoft.AspNetCore.Http;
 using MediatR;
 using InventoryService.Domain.IRepository;
 
 namespace InventoryService.Application.Features.ReleaseStock;
 
-public sealed class ReleaseStockHandler(IStockRepository repository, Locks.IDistributedLock distributedLock)
-    : IRequestHandler<ReleaseStockCommand, object>
+public sealed class ReleaseStockHandler(
+    IStockRepository repository,
+    Locks.IDistributedLock distributedLock,
+    IHttpContextAccessor httpContextAccessor,
+    IOperationLogger operationLogger)
+    : IRequestHandler<ReleaseStockCommand, InventoryStockResponse>
 {
-    public async Task<object> Handle(ReleaseStockCommand request, CancellationToken cancellationToken)
+    public async Task<InventoryStockResponse> Handle(ReleaseStockCommand request, CancellationToken cancellationToken)
     {
         foreach (var item in request.Items.OrderBy(item => item.SkuId))
         {
@@ -16,12 +23,28 @@ public sealed class ReleaseStockHandler(IStockRepository repository, Locks.IDist
 
             if (lockHandle is null)
             {
-                return new { success = false, message = "库存繁忙，请稍后重试" };
+                return new InventoryStockResponse { Success = false, Message = "库存繁忙，请稍后重试" };
             }
 
-            await repository.ReleaseAsync(item.SkuId, request.BizNo, item.Quantity, cancellationToken);
+            if (!await repository.HasFlowAsync(request.BizNo, item.SkuId, "release", cancellationToken))
+            {
+                await repository.ReleaseAsync(item.SkuId, request.BizNo, item.Quantity, cancellationToken);
+            }
         }
 
-        return new { success = true };
+        // 释放代表取消占用；记录业务单号可以解释库存为何回到可售状态。
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext is not null)
+        {
+            await operationLogger.LogAsync(
+                httpContext,
+                "release",
+                "stock",
+                request.BizNo,
+                $"释放库存，SKU 数量：{request.Items.Count}，合计数量：{request.Items.Sum(item => item.Quantity)}",
+                cancellationToken);
+        }
+
+        return new InventoryStockResponse { Success = true };
     }
 }

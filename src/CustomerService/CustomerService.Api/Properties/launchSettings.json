@@ -9,9 +9,7 @@
       "port": 5280,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AgileConfig__appId": "CustomerService",     
-        "Basic__Consul__ServiceAddress": "172.17.0.1",
-        "Basic__Consul__ServicePort": "5280"
+        "AgileConfig__appId": "CustomerService"
       }
     },
     "https": {

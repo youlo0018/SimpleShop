@@ -18,6 +18,12 @@ public class Sku : BaseEntity
     [Description("SKU编码"), Column(StringLength = 40)]
     public string SkuCode { get; set; }
 
+    [Column(StringLength = 40, IsNullable = true), Description("规格名")]
+    public string SpecName { get; set; } = string.Empty;
+
+    [Column(StringLength = 120, IsNullable = true), Description("规格值")]
+    public string SpecValue { get; set; } = string.Empty;
+
     [Description("价格"), Column(Precision = 18, Scale = 2)]
     public decimal Price { get; set; }
 

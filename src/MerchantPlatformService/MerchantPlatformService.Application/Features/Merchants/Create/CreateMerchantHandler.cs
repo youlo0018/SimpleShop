@@ -1,3 +1,5 @@
+using CommunalService.Domain.Logging;
+using Microsoft.AspNetCore.Http;
 using MediatR;
 using MerchantPlatformService.Domain.Entity;
 using MerchantPlatformService.Domain.Enums;
@@ -7,7 +9,9 @@ namespace MerchantPlatformService.Application.Features.Merchants.Create;
 
 public sealed class CreateMerchantHandler(
     IMerchantRepository merchantRepository,
-    IPlatformRepository platformRepository) : IRequestHandler<CreateMerchantCommand, object>
+    IPlatformRepository platformRepository,
+    IHttpContextAccessor httpContextAccessor,
+    IOperationLogger operationLogger) : IRequestHandler<CreateMerchantCommand, object>
 {
     public async Task<object> Handle(CreateMerchantCommand request, CancellationToken cancellationToken)
     {
@@ -30,6 +34,20 @@ public sealed class CreateMerchantHandler(
         };
 
         await merchantRepository.InsertAsync(merchant);
+
+        // 入驻申请是商户进入平台的起点，后续审核和经营追溯都依赖这条审计记录。
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext is not null)
+        {
+            await operationLogger.LogAsync(
+                httpContext,
+                "register",
+                "merchant",
+                merchant.MerchantNo,
+                $"提交商户入驻：{merchant.MerchantName}，平台：{merchant.PlatformId}",
+                cancellationToken);
+        }
+
         return new { merchant.Id, merchant.MerchantNo, merchant.State };
     }
 }

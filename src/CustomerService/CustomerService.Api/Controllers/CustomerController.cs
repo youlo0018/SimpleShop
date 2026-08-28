@@ -24,8 +24,6 @@ public class CustomerController(IMediator mediator,IFreeSql freeSql) : BaseContr
     [HttpGet]
     public async Task<ApiResponse> GetCustomer([FromQuery]GetCustomerCommand command)
     {
-        freeSql.CodeFirst.SyncStructure<Customer>();
-        
         var data = await mediator.Send(command, CancellationToken.None);
         return Ok(data);
         

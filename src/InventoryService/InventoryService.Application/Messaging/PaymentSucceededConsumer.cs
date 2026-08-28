@@ -79,7 +79,7 @@ public sealed class PaymentSucceededConsumer(
     private async Task HandleMessage(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
-        var root = document.RootElement.GetProperty("Payload");
+        var root = document.RootElement.GetProperty("payload");
         var bizNo = root.GetProperty("bizNo").GetString() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(bizNo))

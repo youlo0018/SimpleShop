@@ -6,4 +6,9 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
+      <PackageReference Include="FreeSql" Version="3.5.311" />
+    </ItemGroup>
+
 </Project>

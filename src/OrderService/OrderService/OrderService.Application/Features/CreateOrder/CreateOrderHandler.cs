@@ -53,6 +53,7 @@ public sealed class CreateOrderHandler(
         var order = new Order
         {
             PlatformId = request.PlatformId,
+            MerchantId = request.Items.FirstOrDefault()?.MerchantId ?? 0,
             OrderNo = $"SO{DateTimeOffset.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(100000, 999999)}",
             IdempotencyKey = request.IdempotencyKey,
             CustomerId = request.CustomerId,

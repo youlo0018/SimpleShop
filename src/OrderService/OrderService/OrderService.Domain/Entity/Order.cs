@@ -13,6 +13,8 @@ public sealed class Order : BaseEntity
 {
     [Description("平台ID")] public long PlatformId { get; set; }
 
+    [Description("商户ID")] public long MerchantId { get; set; }
+
     [Column(StringLength = 32), Description("订单号")]
     public string OrderNo { get; set; }
 

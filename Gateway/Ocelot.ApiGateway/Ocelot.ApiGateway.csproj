@@ -6,6 +6,7 @@
     <RootNamespace>SimpleShop.Gateway</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
     <PackageReference Include="MessagePack" Version="3.1.7" />
     <ProjectReference Include="..\..\src\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
     <PackageReference Include="Ocelot" Version="25.0.0-beta.2" />

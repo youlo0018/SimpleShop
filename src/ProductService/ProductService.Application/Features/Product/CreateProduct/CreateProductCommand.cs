@@ -21,4 +21,6 @@ public record CreateSkuItem
     public decimal OriginalPrice { get; set; }
     public int Stock { get; set; }
     public string Image { get; set; }
+    public string? SpecName { get; set; }
+    public string? SpecValue { get; set; }
 }

@@ -28,7 +28,14 @@ public class ShipmentRepository(IFreeSql freeSql) : IShipmentRepository
             item.ShipmentId = shipment.Id;
         }
 
-        return await freeSql.Insert(items).ExecuteAffrowsAsync(cancellationToken) == items.Count;
+        // 包裹明细逐条落库，避免批量插入行为差异导致请求卡住或部分成功难以判断。
+        var affectedRows = 0;
+        foreach (var item in items)
+        {
+            affectedRows += await freeSql.Insert(item).ExecuteAffrowsAsync(cancellationToken) > 0 ? 1 : 0;
+        }
+
+        return affectedRows == items.Count;
     }
 
     public async Task<bool> UpdateAsync(Shipment shipment, CancellationToken cancellationToken = default)

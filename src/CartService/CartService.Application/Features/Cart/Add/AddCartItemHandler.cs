@@ -20,6 +20,7 @@ public sealed class AddCartItemHandler(ICartStore cartStore) : IRequestHandler<A
             SkuId = request.SkuId,
             ProductId = request.ProductId,
             MerchantId = request.MerchantId,
+            PlatformId = request.PlatformId,
             ProductName = request.ProductName,
             Price = request.Price
         };

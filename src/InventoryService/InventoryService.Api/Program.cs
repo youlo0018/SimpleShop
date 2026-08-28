@@ -14,6 +14,8 @@ builder.AddMediatRWithHandlers(
     typeof(InventoryService.Application.DependencyInjection).Assembly,
     typeof(ValidationBehavior<,>).Assembly);
 builder.Services.AddHostedService<PaymentSucceededConsumer>();
+builder.Services.AddHostedService<ProductCreatedConsumer>();
+builder.Services.AddHostedService<PaymentRefundedConsumer>();
 
 var app = builder.Build();
 app.AddApplication();

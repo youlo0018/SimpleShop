@@ -2,9 +2,20 @@ using LogService.Api.Consumers;
 using LogService.Api.Endpoints;
 using LogService.Api;
 using LogService.Api.Elasticsearch;
+using AgileConfig.Client;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddAgileConfig(new ConfigClient(new ConfigClientOptions
+{
+    AppId = builder.Configuration["AgileConfig:appId"],
+    Secret = builder.Configuration["AgileConfig:secret"],
+    Nodes = builder.Configuration["AgileConfig:nodes"],
+    Name = builder.Configuration["AgileConfig:name"],
+    Tag = builder.Configuration["AgileConfig:tag"],
+    ENV = builder.Configuration["AgileConfig:env"]
+}));
 
 // 日志服务本身很轻：不对外承载业务，只需要健康检查和后台消费者。
 builder.Services.AddOpenApi();

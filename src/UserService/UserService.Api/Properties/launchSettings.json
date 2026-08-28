@@ -8,9 +8,7 @@
       "applicationUrl": "http://0.0.0.0:5011",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AgileConfig__appId": "UserService",
-        "Basic__Consul__ServiceAddress": "172.17.0.1",
-        "Basic__Consul__ServicePort": "5011"
+        "AgileConfig__appId": "UserService"
       }
     },
     "https": {

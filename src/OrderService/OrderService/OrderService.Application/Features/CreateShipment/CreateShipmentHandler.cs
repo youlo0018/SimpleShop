@@ -21,19 +21,20 @@ public sealed class CreateShipmentHandler(
             return new { success = false, message = "发货明细不能为空" };
         }
 
-        var order = await orderRepository.QueryByIdAsync(request.OrderId);
-        if (order is null || order.PlatformId != request.PlatformId)
+        // 先做无锁预检，减少无效锁竞争；锁内还会重新读取订单状态。
+        var existing = await orderRepository.QueryByIdAsync(request.OrderId);
+        if (existing is null || existing.PlatformId != request.PlatformId)
         {
             return new { success = false, message = "订单不存在" };
         }
 
-        if (order.OrderStatus != (int)OrderState.Paid)
+        if (existing.OrderStatus != (int)OrderState.Paid)
         {
             return new { success = false, message = "仅已支付订单可发货" };
         }
 
         await using var lockHandle = await distributedLock.AcquireAsync(
-            $"lock:order:ship:{request.OrderId}",
+            $"lock:order:{request.OrderId}",
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(2),
             cancellationToken);
@@ -41,6 +42,14 @@ public sealed class CreateShipmentHandler(
         if (lockHandle is null)
         {
             return new { success = false, message = "订单处理中，请稍后重试" };
+        }
+
+        var order = await orderRepository.QueryByIdAsync(request.OrderId);
+        if (order is null || order.PlatformId != request.PlatformId ||
+            (request.MerchantId > 0 && order.MerchantId != request.MerchantId) ||
+            order.OrderStatus != (int)OrderState.Paid)
+        {
+            return new { success = false, message = "当前订单状态不可发货" };
         }
 
         var items = request.Items.Select(item => new ShipmentItem
@@ -64,8 +73,17 @@ public sealed class CreateShipmentHandler(
         };
 
         var added = await shipmentRepository.AddAsync(shipment, items, cancellationToken);
-        return added
-            ? new { success = true, shipmentNo = shipment.ShipmentNo }
-            : new { success = false, message = "发货单创建失败" };
+        if (!added)
+        {
+            return new { success = false, message = "发货单创建失败" };
+        }
+
+        var shipped = await orderRepository.TryMarkShippedAsync(order.Id, cancellationToken);
+        if (!shipped)
+        {
+            return new { success = false, message = "发货单已创建，但订单状态更新失败" };
+        }
+
+        return new { success = true, shipmentNo = shipment.ShipmentNo };
     }
 }

@@ -22,14 +22,8 @@ public sealed class ReceiveShipmentHandler(
             return new { success = false, message = "发货单不存在" };
         }
 
-        var order = await orderRepository.QueryByIdAsync(shipment.OrderId);
-        if (order is null || order.CustomerId != request.CustomerId)
-        {
-            return new { success = false, message = "订单不存在" };
-        }
-
         await using var lockHandle = await distributedLock.AcquireAsync(
-            $"lock:order:receive:{shipment.Id}",
+            $"lock:order:{shipment.OrderId}",
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(2),
             cancellationToken);
@@ -37,6 +31,20 @@ public sealed class ReceiveShipmentHandler(
         if (lockHandle is null)
         {
             return new { success = false, message = "签收处理中，请稍后重试" };
+        }
+
+        shipment = await shipmentRepository.GetByIdAsync(request.ShipmentId);
+        if (shipment is null)
+        {
+            return new { success = false, message = "订单不存在" };
+        }
+
+        var order = await orderRepository.QueryByIdAsync(shipment.OrderId);
+        if (order is null ||
+            (!request.OverrideOwnerCheck && order.CustomerId != request.CustomerId) ||
+            order.OrderStatus != (int)OrderState.Shipped)
+        {
+            return new { success = false, message = "当前订单状态不可签收" };
         }
 
         if (shipment.Status != 20)
@@ -54,7 +62,7 @@ public sealed class ReceiveShipmentHandler(
             return new { success = false, message = "签收失败" };
         }
 
-        order.OrderStatus = 50;
+        order.OrderStatus = (int)OrderState.Completed;
         order.UpdatedAt = DateTime.Now;
         await orderRepository.UpdateAsync(order, cancellationToken);
 

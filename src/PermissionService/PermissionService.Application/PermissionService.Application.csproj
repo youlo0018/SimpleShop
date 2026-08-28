@@ -8,6 +8,8 @@
 
     <ItemGroup>
       <ProjectReference Include="..\PermissionService.Domain\PermissionService.Domain.csproj" />
+      <ProjectReference Include="..\..\CommunalService\CommunalService\CommunalService.Domain\CommunalService.Domain.csproj" />
+      <PackageReference Include="MagicOnion.Server" Version="7.10.2" />
     </ItemGroup>
 
 </Project>

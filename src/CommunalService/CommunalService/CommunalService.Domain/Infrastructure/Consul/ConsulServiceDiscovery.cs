@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using CommunalService.Domain.Enums;
 using Consul;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,8 +12,8 @@ namespace CommunalService.Domain.Infrastructure.Consul;
 public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache memoryCache) : IServiceDiscovery
 {
     private readonly IMemoryCache _memoryCache = memoryCache;
-    private static string _addressCacheKey = "consul_address";
-    private static int _counter = 0;
+
+    private static readonly ConcurrentDictionary<string, int> Counters = new();
 
     /// <summary>
     /// 查询健康实例，只返回状态为 "passing" 的服务地址
@@ -40,12 +41,7 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
 
     public async Task<ServiceAddressesDto> GetPollingAddressAsync(string serviceName)
     {
-        IList<ServiceAddressesDto> addresses = _memoryCache.Get(_addressCacheKey) as IList<ServiceAddressesDto>;
-        if (addresses.IsNull() || !addresses.Any())
-        {
-            addresses = await GetHealthyServiceAddressesAsync(serviceName);
-            _memoryCache.Set(_addressCacheKey, addresses, TimeSpan.FromSeconds(10));
-        }
+        var addresses = await GetCachedAddressesAsync(serviceName);
 
         if (!addresses.Any())
         {
@@ -53,20 +49,15 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
             return null;
         }
 
-        // 2. 简单负载均衡：取第一个（可替换为轮询、随机等策略）
-        var address = addresses[_counter++ % addresses.Count]; // 例如 "172.17.0.1:5001"
+        var counter = Counters.AddOrUpdate(serviceName, 1, (_, value) => value + 1);
+        var address = addresses[counter % addresses.Count];
         return address;
     }
 
     public async Task<string> GetPollingAddressAsync(string serviceName,
         PollingAddressType type = PollingAddressType.Default)
     {
-        IList<ServiceAddressesDto> addresses = _memoryCache.Get(_addressCacheKey) as IList<ServiceAddressesDto>;
-        if (addresses.IsNull() || !addresses.Any())
-        {
-            addresses = await GetHealthyServiceAddressesAsync(serviceName);
-            _memoryCache.Set(_addressCacheKey, addresses, TimeSpan.FromSeconds(10));
-        }
+        var addresses = await GetCachedAddressesAsync(serviceName);
 
         if (!addresses.Any())
         {
@@ -75,16 +66,30 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
         }
 
 
-        // 2. 简单负载均衡：取第一个（可替换为轮询、随机等策略）
-        var address = addresses[_counter++ % addresses.Count]; // 例如 "172.17.0.1:5001"
+        var counter = Counters.AddOrUpdate(serviceName, 1, (_, value) => value + 1);
+        var address = addresses[counter % addresses.Count];
         switch (type)
         {
             case PollingAddressType.Default:
                 return $"{address.IP}:{address.Port}";
             case PollingAddressType.Grpc:
-                return $"{address.IP}:{address.GrpcPort}";
+                // 兼容 HTTP1 与 MagicOnion 共端口的部署；未显式注册 gRPC 元数据时回退主端口。
+                return $"{address.IP}:{(address.GrpcPort > 0 ? address.GrpcPort : address.Port)}";
             default:
                 return $"{address.IP}:{address.Port}";
         }
+    }
+
+    private async Task<IList<ServiceAddressesDto>> GetCachedAddressesAsync(string serviceName)
+    {
+        var cacheKey = $"consul:healthy:{serviceName}";
+        if (_memoryCache.Get(cacheKey) is IList<ServiceAddressesDto> cached)
+        {
+            return cached;
+        }
+
+        var addresses = await GetHealthyServiceAddressesAsync(serviceName);
+        _memoryCache.Set(cacheKey, addresses, TimeSpan.FromSeconds(10));
+        return addresses;
     }
 }

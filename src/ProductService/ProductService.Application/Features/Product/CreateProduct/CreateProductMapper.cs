@@ -32,7 +32,9 @@ public static class CreateProductMapper
             Price = item.Price,
             OriginalPrice = item.OriginalPrice,
             Stock = item.Stock,
-            Image = item.Image
+            Image = item.Image,
+            SpecName = item.SpecName ?? string.Empty,
+            SpecValue = item.SpecValue ?? string.Empty
         };
     }
 }

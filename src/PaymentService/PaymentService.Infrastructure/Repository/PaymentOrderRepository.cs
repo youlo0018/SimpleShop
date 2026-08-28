@@ -26,6 +26,11 @@ public class PaymentOrderRepository(IFreeSql freeSql) : IPaymentOrderRepository
             .Where(refund => refund.PaymentId == paymentId && refund.Status == 20)
             .SumAsync(refund => refund.Amount, cancellationToken);
 
+    public Task<decimal> GetCommittedRefundAmountAsync(long paymentId, CancellationToken cancellationToken = default)
+        => freeSql.Select<RefundOrder>()
+            .Where(refund => refund.PaymentId == paymentId && (refund.Status == 10 || refund.Status == 20))
+            .SumAsync(refund => refund.Amount, cancellationToken);
+
     public async Task<bool> MarkRefundedAsync(string refundNo, CancellationToken cancellationToken = default)
         => await freeSql.Update<RefundOrder>()
             .Where(refund => refund.RefundNo == refundNo && refund.Status == 10)
@@ -40,4 +45,3 @@ public class PaymentOrderRepository(IFreeSql freeSql) : IPaymentOrderRepository
             .Set(payment => payment.PaidAt, DateTime.Now)
             .ExecuteAffrowsAsync(cancellationToken) > 0;
 }
-

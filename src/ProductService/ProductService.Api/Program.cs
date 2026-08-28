@@ -21,13 +21,14 @@ await app.MigrateDatabaseAsync(
     typeof(ProductService.Domain.Entity.Product),
     typeof(ProductService.Domain.Entity.Sku),
     typeof(ProductService.Domain.Entity.Category),
-    typeof(ProductService.Domain.Entity.Brand));
+    typeof(ProductService.Domain.Entity.Brand),
+    typeof(ProductService.Domain.Entity.UploadedFile));
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

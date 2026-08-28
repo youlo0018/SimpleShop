@@ -9,26 +9,28 @@
 | 能力 | 当前状态 |
 | --- | --- |
 | 服务分层 | 多数服务具备 Api / Application / Domain / Infrastructure 分层 |
-| 公共基础设施 | FreeSql + PostgreSQL、Redis、AgileConfig、Consul、MagicOnion、MediatR、FluentValidation |
-| Ocelot 网关 | 已有统一入口、健康检查和基础灰度 Header |
+| 公共基础设施 | FreeSql + PostgreSQL、Redis、RabbitMQ、分布式锁、AgileConfig、Consul、MagicOnion、MediatR、FluentValidation |
+| Ocelot 网关 | 统一入口、健康检查、请求 ID、基础灰度 Header 和 PV 日志 |
 | Auth | OpenIddict、Cookie 登录、API 登录命令 |
-| Product | 商品创建、详情、上架、分类树 |
-| Customer | 客户创建、查询和 gRPC 示例 |
-| MerchantPlatform | 商户创建、查询、审核；平台配置保存与查询 |
-| Order | 订单创建、查询、取消的基础模型 |
+| Product | 平台/商户归属、商品/SKU 创建、审核与上架约束、详情、分类树 |
+| Customer | 客户创建、查询和 MagicOnion gRPC |
+| MerchantPlatform | 平台创建/查询；商户创建、查询、审核；平台配置保存/查询 |
+| Cart | Redis 加购、查询、移除 |
+| Inventory | SKU 库存锁定、扣减、释放、流水防重和支付成功消费 |
+| Order | 幂等下单、库存联动、订单/详情查询、取消、发货、签收、支付结果补偿和超时关单 |
+| Payment | 支付单幂等创建、模拟确认、退款记录和 `payment.succeeded` 事件 |
+| Logging | PV/操作/异常事件发布、LogService 消费、Elasticsearch 按天索引、死信队列、查询 API 和 Prometheus 指标 |
 
 ### 1.2 主要缺口
 
 | 缺口 | 影响 | 本蓝图处理 |
 | --- | --- | --- |
-| 平台与商户层级不完整 | 无法支撑多平台、多商户经营 | 增加平台注册、商户入驻依赖平台、商户账号与权限 |
-| 商品缺少商户归属和库存 | 商品无法交易，也无法防超卖 | 商品绑定 PlatformId/MerchantId，独立库存服务 |
-| 无购物车服务 | 用户无法完成浏览到结算链路 | 新建 CartService，Redis 主存储 |
-| 下单/支付无分布式锁 | 并发下可能重复下单或超卖 | Redis 锁 + 幂等键 + 数据库唯一约束兜底 |
-| 无支付与消息事件 | 支付结果不能驱动订单、库存、通知 | PaymentService + Kafka/RabbitMQ + Outbox |
-| 无 PV/操作日志体系 | 无法分析转化、审计风险行为 | 行为日志网关埋点 + 业务日志事件化 |
-| 无履约、售后、结算 | 交易闭环断裂 | 补齐发货、售后退款、商户结算 |
-| 无营销、搜索、评价、风控 | 运营增长能力不足 | 规划为第二阶段增强域 |
+| 平台/商户账号和数据范围未闭环 | 现有商户审核后仍缺少完整后台身份与越权防护 | 补商户账号、角色、数据范围和平台级审批 |
+| 关键事件没有 Outbox | 业务落库和消息发布不是同一本地事务 | 引入 Outbox 表、后台中继、重试和对账 |
+| 订单快照与状态机不完整 | 商品/价格变化和历史状态校验存在风险 | 明确商品、价格、地址快照和禁止跳变的状态规则 |
+| 履约能力内嵌在 OrderService | 当前可发货/签收，但无法扩展仓配和物流轨迹 | 后续拆出 FulfillmentService 与物流适配层 |
+| 售后只有支付退款记录 | 缺少退货、逆向库存和售后单状态机 | 建立 AfterSaleService 与订单/库存/财务事件协议 |
+| 营销、搜索、评价、风控缺失 | 运营增长和安全治理能力不足 | 规划为后续增强域 |
 
 ## 2. 总体角色与边界
 
@@ -426,32 +428,39 @@ public interface IMessagePublisher
 
 ### 6.2 PV 日志流程
 
+当前实现：
+
 ```text
-前端 SDK / 网关中间件
+API / Gateway 中间件
   -> 组装 PageViewEvent
        TraceId, RequestId, UserId, DeviceId,
        PlatformId, MerchantId, Page, ItemId,
        Source, ExperimentGroup, OccurredAt
-  -> 批量上报 /gateway/logs/pv
-  -> Gateway 校验并写入 Kafka pv.log
-  -> LogConsumer 批量解析
-       -> PostgreSQL 明细/日汇总
-       -> ClickHouse/Elasticsearch 分析库
+  -> 敏感信息脱敏
+  -> RabbitMQ pv.log
+  -> LogService.Consumer
+       -> 按天写入 Elasticsearch logs-pv-yyyy.MM.dd
+       -> eventId 作为文档 ID 防止重复消费
 ```
+
+后续可保留同一事件契约，把前端批量上报、Kafka 高吞吐通道和 ILM/冷热分层作为扩展点。
 
 ### 6.3 业务操作日志流程
 
 ```text
 后台写接口执行成功
-  -> OperationLogAspect/Middleware
+  -> IOperationLogger.LogAsync()
        -> OperationType, ObjectType, ObjectId,
           OperatorId, OperatorType,
           BeforeSnapshotHash, AfterSnapshotHash,
           Ip, UserAgent, TraceId
-  -> Outbox 或本地队列
+  -> 敏感信息脱敏
   -> operation.log
-  -> LogConsumer 落库
+  -> LogService.Consumer
+       -> 按天写入 Elasticsearch logs-operation-yyyy.MM.dd
 ```
+
+当前 RabbitMQ 发布是懒连接且失败不影响业务响应；要达到“业务成功则审计必达”，仍需要引入 Outbox。
 
 ### 6.4 日志字段规范
 
@@ -500,6 +509,12 @@ public interface IMessagePublisher
 | PermissionService | role、permission、resource、role_permission、data_scope |
 
 ## 8. 分阶段实施计划
+
+### 当前进度（2026-08-26）
+
+- 已完成：Cart、Inventory、Order、Payment 正向主链路 MVP；商品归属与审核字段；平台/商户基础管理；Redis 分布式锁；RabbitMQ 事件；PV/操作/异常日志进入 EFK。
+- 已完成但仍在演进：订单发货与签收在 OrderService 内实现；支付退款只生成退款记录；超时关单通过定时任务调用库存释放；支付确认、商品创建、库存调整和商户注册/审核已有操作审计。
+- 未完成：Outbox、真实支付渠道、完整售后状态机、商户账号与数据范围、营销试算、独立搜索服务、权限/Admin/API 中台。
 
 ### 阶段 A：主链路打通（P0）
 

@@ -20,7 +20,8 @@ await app.AddBaseInfrastructure();
 await app.MigrateDatabaseAsync(
     typeof(MerchantPlatformService.Domain.Entity.Platform),
     typeof(MerchantPlatformService.Domain.Entity.Merchant),
-    typeof(MerchantPlatformService.Domain.Entity.PlatformConfig));
+    typeof(MerchantPlatformService.Domain.Entity.PlatformConfig),
+    typeof(MerchantPlatformService.Domain.Entity.PlatformAppConfig));
 
 if (app.Environment.IsDevelopment())
 {
@@ -28,6 +29,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "MerchantPlatform API V1"));
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

@@ -17,21 +17,23 @@ public class LoginCommandHandler(IServiceDiscovery consul)
 {
     public async Task<(ClaimsPrincipal, string)> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-//         var address = await consul.GetPollingAddressAsync("UserService", PollingAddressType.Grpc);
-//         var channel = GrpcChannel.ForAddress($"http://{address}"); // 实际通过 Consul 获取地址
-//         // 2. 使用 MagicOnionClient 创建客户端代理
-//         var client = MagicOnionClient.Create<IUserService>(channel);
-//
-// // 3. 调用服务方法
-//         var result = await client.LoginAsync(new LoginRequest()
-//         {
-//             UserName=request.UserName,
-//             Password = request.Password
-//             
-//         });
-        string name = "admin";
-        string pwd = "123";
-        long id = 123444;
+        var address = await consul.GetPollingAddressAsync("UserService", PollingAddressType.Grpc)
+            ?? throw new InvalidOperationException("UserService 不可用");
+        using var channel = GrpcChannel.ForAddress($"http://{address}");
+        var client = MagicOnionClient.Create<IUserService>(channel);
+        var result = await client.LoginAsync(new LoginRequest
+        {
+            UserName = request.UserName,
+            Password = request.Password
+        });
+
+        if (result.Id <= 0)
+        {
+            throw new UnauthorizedAccessException("用户名或密码错误");
+        }
+
+        long id = result.Id;
+        string name = result.UserName;
         
         // 2. 创建身份标识 (ClaimsIdentity)
         var identity = new ClaimsIdentity(
@@ -41,7 +43,6 @@ public class LoginCommandHandler(IServiceDiscovery consul)
 
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, id.ToString()));
         identity.AddClaim(new Claim(ClaimTypes.Name, name));
-        // 可添加更多 Claims，如用户角色等
 
         var principal = new ClaimsPrincipal(identity);
 

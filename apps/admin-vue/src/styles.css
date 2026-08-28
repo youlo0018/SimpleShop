@@ -1,0 +1,5 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #262626; }
+.page-card { min-height: calc(100vh - 130px); }
+.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.pager { margin-top: 18px; justify-content: flex-end; }

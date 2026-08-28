@@ -6,5 +6,6 @@ public sealed record CancelOrderCommand : IRequest<object>
 {
     public long Id { get; init; }
     public long CustomerId { get; init; }
+    public bool OverrideCustomerScope { get; set; }
     public string Reason { get; init; } = "Customer cancelled";
 }

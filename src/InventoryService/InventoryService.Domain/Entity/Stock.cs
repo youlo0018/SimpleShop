@@ -20,7 +20,7 @@ public sealed class Stock : BaseEntity
 
     [Description("已扣减库存")] public int DeductedQuantity { get; set; }
 
-    public int SellableQuantity => AvailableQuantity - LockedQuantity;
+    public int SellableQuantity => AvailableQuantity - LockedQuantity - DeductedQuantity;
 }
 
 [Table(Name = "stock_flow")]

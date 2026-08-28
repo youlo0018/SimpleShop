@@ -1,6 +1,8 @@
 ﻿using CommunalService.Domain.Infrastructure.Locks;
+using CommunalService.Domain.Messaging;
 using MediatR;
 using PaymentService.Domain.IRepository;
+using PaymentService.Domain.Entity;
 
 namespace PaymentService.Application.Features.RefundPayment;
 
@@ -9,7 +11,9 @@ namespace PaymentService.Application.Features.RefundPayment;
 /// </summary>
 public sealed class RefundPaymentHandler(
     IPaymentOrderRepository repository,
-    IDistributedLock distributedLock)
+    IFreeSql freeSql,
+    IDistributedLock distributedLock,
+    IMessagePublisher messagePublisher)
     : IRequestHandler<RefundPaymentCommand, object>
 {
     public async Task<object> Handle(RefundPaymentCommand request, CancellationToken cancellationToken)
@@ -36,8 +40,8 @@ public sealed class RefundPaymentHandler(
             return new { success = false, message = "支付单不存在或未支付" };
         }
 
-        var refunded = await repository.GetRefundedAmountAsync(payment.Id, cancellationToken);
-        if (refunded + request.Amount > payment.Amount)
+        var committed = await repository.GetCommittedRefundAmountAsync(payment.Id, cancellationToken);
+        if (committed + request.Amount > payment.Amount)
         {
             return new { success = false, message = "累计退款不能超过实付金额" };
         }
@@ -52,13 +56,28 @@ public sealed class RefundPaymentHandler(
             UserId = payment.UserId,
             Amount = request.Amount,
             Reason = request.Reason,
-            Status = 20,
-            RefundedAt = DateTime.Now
+            Status = 10
         };
 
         var added = await repository.AddRefundAsync(refund, cancellationToken);
-        return added
-            ? new { success = true, refundNo = refund.RefundNo, amount = refund.Amount }
-            : new { success = false, message = "退款创建失败" };
+        if (!added)
+        {
+            return new { success = false, message = "退款创建失败" };
+        }
+
+        if (request.Items.Count > 0)
+        {
+            var refundItems = request.Items.Select(item => new RefundOrderItem
+            {
+                RefundId = refund.Id,
+                BizNo = payment.BizNo,
+                SkuId = item.SkuId,
+                Quantity = item.Quantity
+            }).ToList();
+            await freeSql.Insert(refundItems).ExecuteAffrowsAsync(cancellationToken);
+        }
+
+        // 退款单进入待审核；同意后再发布退款事件，避免未审批就恢复库存或更新订单状态。
+        return new { success = true, refundNo = refund.RefundNo, amount = refund.Amount, status = refund.Status };
     }
 }
