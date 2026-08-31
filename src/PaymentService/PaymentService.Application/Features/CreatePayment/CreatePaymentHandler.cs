@@ -1,3 +1,5 @@
+using CommunalService.Domain;
+using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
 using MediatR;
 using PaymentService.Domain.Entity;
@@ -5,26 +7,36 @@ using PaymentService.Domain.IRepository;
 
 namespace PaymentService.Application.Features.CreatePayment;
 
-public sealed class CreatePaymentHandler(IPaymentOrderRepository repository, IDistributedLock distributedLock)
-    : IRequestHandler<CreatePaymentCommand, object>
+public sealed class CreatePaymentHandler(
+    IPaymentOrderRepository repository,
+    TenantContext tenant,
+    IDistributedLock distributedLock)
+    : IRequestHandler<CreatePaymentCommand, ApiResponse>
 {
-    public async Task<object> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
+        if (tenant.UserId <= 0)
+        {
+            return ApiResults.Fail(BaseApiResponseCode.Unauthorized, "请先登录");
+        }
+
+        // 支付单的归属与订单保持一致；强制覆盖请求体，避免用户指定他人 userId。
+        request = request with { UserId = tenant.UserId };
+
         await using var lockHandle = await distributedLock.AcquireAsync(
             $"lock:payment:order:{request.BizNo}",
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(2),
             cancellationToken);
-
         if (lockHandle is null)
         {
-            return new { success = false, message = "支付处理中，请稍后重试" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付处理中，请稍后重试");
         }
 
         var existing = await repository.GetByBizNoAsync(request.BizNo, cancellationToken);
         if (existing is not null)
         {
-            return new { success = true, existing.Id, existing.PaymentNo, existing.Status };
+            return ApiResults.Ok(new { success = true, existing.Id, existing.PaymentNo, existing.Status });
         }
 
         var payment = new PaymentOrder
@@ -36,9 +48,8 @@ public sealed class CreatePaymentHandler(IPaymentOrderRepository repository, IDi
             UserId = request.UserId,
             Amount = request.Amount
         };
-
         return await repository.AddAsync(payment, cancellationToken)
-            ? new { success = true, payment.Id, payment.PaymentNo }
-            : new { success = false, message = "支付单创建失败" };
+            ? ApiResults.Ok(new { success = true, payment.Id, payment.PaymentNo })
+            : ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付单创建失败");
     }
 }

@@ -24,9 +24,9 @@ export const requireLogin = () => {
 export const applyTheme = theme => {
   const value = theme || {}
   uni.setStorageSync('theme', {
-    primary: value.primary || '#ff4d6d',
-    background: value.background || '#f5f7fb',
-    tabColor: value.tabColor || value.primary || '#ff4d6d'
+    primary: value.primary || '#0071e3',
+    background: value.background || '#f5f5f7',
+    tabColor: value.tabColor || value.primary || '#0071e3'
   })
 }
-export const getTheme = () => uni.getStorageSync('theme') || { primary: '#ff4d6d', background: '#f5f7fb', tabColor: '#ff4d6d' }
+export const getTheme = () => uni.getStorageSync('theme') || { primary: '#0071e3', background: '#f5f5f7', tabColor: '#0071e3' }

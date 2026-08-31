@@ -131,4 +131,21 @@ public class OrderRepository(IFreeSql freeSql, InventoryClient inventoryClient) 
             .Take(limit)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<(List<Order> Items, long Total)> QueryPagedAsync(string keyword, int? status, long customerId,
+        long? platformId, long? merchantId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var selection = freeSql.Select<Order>()
+            .Where(order => !order.IsDeleted)
+            .WhereIf(!string.IsNullOrWhiteSpace(keyword), order =>
+                order.OrderNo.Contains(keyword) || order.ReceiverName.Contains(keyword) || order.ReceiverPhone.Contains(keyword))
+            .WhereIf(status.HasValue, order => order.OrderStatus == status!.Value)
+            .WhereIf(customerId > 0, order => order.CustomerId == customerId)
+            .WhereIf(platformId.HasValue, order => order.PlatformId == platformId!.Value)
+            .WhereIf(merchantId.HasValue, order => order.MerchantId == merchantId!.Value);
+        var total = await selection.CountAsync();
+        var items = await selection.OrderByDescending(order => order.CreatedAt)
+            .Page(Math.Max(page, 1), pageSize).ToListAsync();
+        return (items, total);
+    }
 }

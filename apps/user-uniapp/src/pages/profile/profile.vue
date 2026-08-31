@@ -1,22 +1,54 @@
 <template>
   <view class="page">
-    <view class="header"><image :src="user.avatar || fallback" class="avatar" /><view><view class="name">{{ user.userName || '未登录' }}</view><view class="sub">{{ user.phone || '登录后享受完整服务' }}</view></view></view>
-    <view class="grid">
-      <view @tap="go('/pages/orders/orders')"><text class="icon">📦</text><span>订单</span></view><view @tap="go('/pages/address/address')"><text class="icon">📍</text><span>地址</span></view>
-      <view @tap="goCart"><text class="icon">🛒</text><span>购物车</span></view><view @tap="refresh"><text class="icon">🔄</text><span>刷新</span></view>
+    <view class="header">
+      <view class="avatar">{{ avatarText }}</view>
+      <view class="who">
+        <view class="name">{{ user.userName || '未登录' }}</view>
+        <view class="sub">{{ user.phone || '登录后享受完整服务' }}</view>
+      </view>
     </view>
-    <view class="platform"><view><view class="p-name">{{ platform?.platformName || '未选择平台' }}</view><view class="p-code">{{ platform?.platformCode || '返回首页选择' }}</view></view><button @tap="switchPlatform">切换平台</button></view>
-    <button v-if="isLogged" class="exit" @tap="exit">退出登录</button><button v-else class="login" @tap="go('/pages/auth/login')">立即登录</button>
+
+    <view class="group">
+      <view class="cell" @tap="go('/pages/orders/orders')">
+        <image class="cell-icon" src="/static/tabbar/cell-order.png" mode="aspectFit" />
+        <text class="cell-label">我的订单</text><text class="chevron">›</text>
+      </view>
+      <view class="cell cell-divider" @tap="go('/pages/address/address')">
+        <image class="cell-icon" src="/static/tabbar/cell-pin.png" mode="aspectFit" />
+        <text class="cell-label">收货地址</text><text class="chevron">›</text>
+      </view>
+      <view class="cell cell-divider" @tap="goCart">
+        <image class="cell-icon" src="/static/tabbar/cell-cart.png" mode="aspectFit" />
+        <text class="cell-label">购物车</text><text class="chevron">›</text>
+      </view>
+      <view class="cell cell-divider" @tap="refresh">
+        <image class="cell-icon" src="/static/tabbar/cell-sync.png" mode="aspectFit" />
+        <text class="cell-label">刷新资料</text><text class="chevron">›</text>
+      </view>
+    </view>
+
+    <view class="group">
+      <view class="cell" @tap="switchPlatform">
+        <view class="platform-info">
+          <view class="p-name">{{ platform?.platformName || '未选择平台' }}</view>
+          <view class="p-code">{{ platform?.platformCode || '返回首页选择平台' }}</view>
+        </view>
+        <text class="chevron">›</text>
+      </view>
+    </view>
+
+    <button v-if="logged" class="exit safe-bottom" @tap="exit">退出登录</button>
+    <button v-else class="login safe-bottom" @tap="go('/pages/auth/login')">立即登录</button>
   </view>
 </template>
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { clearPlatform, getPlatform, getUser, isLogin, logout, requireLogin } from '@/common/store'
 
-const fallback = 'https://dummyimage.com/120x120/3b82f6/fff&text=U'
 const user = ref({}); const platform = ref(null); const logged = ref(false)
+const avatarText = computed(() => (user.value.userName || 'U').slice(0, 1).toUpperCase())
 const go = url => uni.navigateTo({ url: logged.value ? url : '/pages/auth/login' })
 const goCart = () => { requireLogin(); uni.switchTab({ url: '/pages/cart/cart' }) }
 const switchPlatform = () => { clearPlatform(); uni.navigateTo({ url: '/pages/platform/selector' }) }
@@ -25,11 +57,39 @@ const exit = () => { logout(); user.value = {}; logged.value = false; uni.showTo
 onShow(() => { user.value = getUser(); platform.value = getPlatform(); logged.value = isLogin() })
 </script>
 
-<style scoped>.page { min-height: 100vh; background: #f5f7fb; padding-bottom: 50px; }
-.header { display: flex; align-items: center; gap: 24rpx; background: linear-gradient(135deg,#3b82f6,#8b5cf6); padding: 70rpx 40rpx 90rpx; color: #fff; }
-.avatar { width: 110rpx; height: 110rpx; border-radius: 50%; border: 4rpx solid rgba(255,255,255,.6); } .name { font-size: 36rpx; font-weight: 700; } .sub { opacity: .82; margin-top: 8rpx; }
-.grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16rpx; margin: -50rpx 24rpx 0; }
-.grid view { background: #fff; border-radius: 20rpx; padding: 26rpx 12rpx; display: grid; justify-items: center; gap: 10rpx; } .icon { font-size: 40rpx; } span { font-size: 24rpx; color: #667085; }
-.platform { margin: 20rpx 24rpx; background: #fff; border-radius: 20rpx; padding: 26rpx; display: flex; align-items: center; justify-content: space-between; }
-.p-name { font-weight: 700; } .p-code { color: #8a94a6; font-size: 24rpx; margin-top: 8rpx; } .platform button { background: #f1f5f9; color: #334155; font-size: 24rpx; padding: 0 24rpx; height: 58rpx; line-height: 58rpx; }
-.login,.exit { margin: 40rpx 24rpx; background: #ff4d6d; color: #fff; } .exit { background: #fff; color: #e11d48; }</style>
+<style scoped>
+.page { min-height: 100vh; background: #f5f5f7; padding-bottom: 50px; }
+
+/* 头部：渐变 + 首字母头像 */
+.header { display: flex; align-items: center; gap: 26rpx; padding: 64rpx 44rpx 56rpx; }
+.avatar {
+  width: 116rpx; height: 116rpx;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a84ff, #5e5ce6);
+  color: #fff; font-size: 44rpx; font-weight: 700;
+  box-shadow: 0 8rpx 24rpx rgba(10, 132, 255, .28);
+}
+.who { flex: 1; } .name { font-size: 40rpx; font-weight: 700; letter-spacing: -.02em; color: #1d1d1f; }
+.sub { color: #86868b; margin-top: 8rpx; font-size: 26rpx; }
+
+/* iOS 设置风格分组列表 */
+.group { background: #fff; border-radius: 28rpx; margin: 0 24rpx 24rpx; overflow: hidden; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .04); }
+.cell { display: flex; align-items: center; gap: 24rpx; padding: 24rpx 30rpx; transition: background .15s ease; }
+.cell:active { background: #f5f5f7; }
+.cell-divider { border-top: 1rpx solid rgba(0, 0, 0, .05); }
+.cell-icon { width: 64rpx; height: 64rpx; border-radius: 16rpx; }
+.cell-label { flex: 1; font-size: 30rpx; font-weight: 500; color: #1d1d1f; }
+.chevron { color: #c7c7cc; font-size: 40rpx; line-height: 1; font-weight: 400; }
+
+.platform-info { flex: 1; }
+.p-name { font-size: 30rpx; font-weight: 600; letter-spacing: -.01em; color: #1d1d1f; }
+.p-code { color: #86868b; font-size: 24rpx; margin-top: 6rpx; }
+
+.login, .exit {
+  margin: 48rpx 24rpx; background: #0071e3; color: #fff;
+  height: 96rpx; display: flex; align-items: center; justify-content: center;
+  font-size: 30rpx; box-shadow: 0 8rpx 24rpx rgba(0, 113, 227, .26);
+}
+.exit { background: #fff; color: #ff3b30; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .05); }
+</style>

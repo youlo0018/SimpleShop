@@ -7,6 +7,9 @@ using InventoryService.Domain.IRepository;
 
 namespace InventoryService.Application.Features.ReleaseStock;
 
+/// <summary>
+/// 释放库存（下单落库失败补偿 / 超时关单 / 退款回补共用）：锁定减少、可售回补；流水幂等保证重放安全。
+/// </summary>
 public sealed class ReleaseStockHandler(
     IStockRepository repository,
     Locks.IDistributedLock distributedLock,

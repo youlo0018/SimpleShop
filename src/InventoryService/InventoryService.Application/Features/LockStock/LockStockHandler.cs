@@ -7,6 +7,10 @@ using InventoryService.Domain.IRepository;
 
 namespace InventoryService.Application.Features.LockStock;
 
+/// <summary>
+/// 锁定库存（下单第一步）：按 SkuId 升序逐个加 SKU 锁（固定顺序防死锁）；
+/// 流水按 BizNo+SKU+动作 幂等；任一 SKU 失败立即补偿释放已锁定的部分并返回失败。
+/// </summary>
 public sealed class LockStockHandler(
     IStockRepository repository,
     Locks.IDistributedLock distributedLock,

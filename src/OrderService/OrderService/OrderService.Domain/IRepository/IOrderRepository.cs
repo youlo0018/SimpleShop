@@ -22,4 +22,6 @@ public interface IOrderRepository
     Task<Order?> GetByOrderNoAsync(string orderNo, CancellationToken cancellationToken = default);
     Task<bool> HasIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
     Task<List<Order>> QueryExpiredAwaitPaymentAsync(DateTime now, int limit, CancellationToken cancellationToken = default);
+    Task<(List<Order> Items, long Total)> QueryPagedAsync(string keyword, int? status, long customerId,
+        long? platformId, long? merchantId, int page, int pageSize, CancellationToken cancellationToken = default);
 }

@@ -7,6 +7,9 @@ using InventoryService.Domain.IRepository;
 
 namespace InventoryService.Application.Features.DeductStock;
 
+/// <summary>
+/// 扣减库存（支付成功事件驱动）：锁定数量转为已扣数量；流水幂等防重复投递；失败回补已扣部分。
+/// </summary>
 public sealed class DeductStockHandler(
     IStockRepository repository,
     Locks.IDistributedLock distributedLock,

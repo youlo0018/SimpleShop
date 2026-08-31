@@ -4,6 +4,10 @@ using CommunalService.Domain.Interfaces;
 
 namespace CommunalService.Domain.Infrastructure;
 
+/// <summary>
+/// 仓储基类：封装 FreeSql 的常规读写，全部软删除语义（Delete 实际是置 IsDeleted）。
+/// 各服务仓储继承它并按需扩展领域查询方法；查询侧注意全局过滤器已排除 IsDeleted=true 的行。
+/// </summary>
 public class BaseRepository<T>(IFreeSql freeSql) : IBaseRepository<T> where T : BaseEntity
 {
     public bool Insert(T entity)

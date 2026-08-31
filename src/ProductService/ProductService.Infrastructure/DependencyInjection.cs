@@ -10,6 +10,7 @@ public static class DependencyInjection
 {
     public static void AddInfrastructure(this WebApplicationBuilder builder)
     {
+        builder.Services.AddTransient<IProductAdminRepository, ProductAdminRepository>();
         builder.Services.AddTransient<IProductRepository<Product>, ProductRepository>();
         builder.Services.AddTransient<ICategoryRepository<Category>, CategoryRepository>();
         builder.Services.AddTransient<IBrandRepository<Brand>, BrandRepository>();

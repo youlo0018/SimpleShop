@@ -80,7 +80,7 @@ onMounted(async () => { await Promise.all([loadRefs(), load()]) })
 
 <style scoped>
 .product-cell { display: flex; align-items: center; gap: 10px; }
-.product-image { width: 52px; height: 52px; border-radius: 6px; background: #f5f7fa; }
-.image-fallback { display: grid; place-items: center; width: 100%; height: 100%; color: #999; font-size: 12px; }
-.muted { color: #8d99ae; }
+.product-image { width: 52px; height: 52px; border-radius: 10px; background: var(--apple-bg, #f5f5f7); }
+.image-fallback { display: grid; place-items: center; width: 100%; height: 100%; color: #a1a1a6; font-size: 12px; }
+.muted { color: var(--apple-text-3, #86868b); }
 </style>

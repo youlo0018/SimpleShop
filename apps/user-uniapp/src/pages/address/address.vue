@@ -36,9 +36,11 @@ const choose = item => {
 onShow(() => { requireLogin(); load() })
 </script>
 
-<style scoped>.page { padding: 20rpx 20rpx 140rpx; } .card { background: #fff; border-radius: 18rpx; margin-bottom: 20rpx; padding: 26rpx; }
-.line { display: flex; gap: 16rpx; align-items: center; margin-bottom: 10rpx; } .tag { color: #ff4d6d; font-size: 22rpx; } .addr { color: #667085; line-height: 1.5; }
-.submit { position: fixed; left: 30rpx; right: 30rpx; bottom: calc(50px + 20rpx); background: #ff4d6d; color: #fff; }
-.mask { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: flex-end; }
-.form { width: 100%; background: #fff; border-radius: 28rpx 28rpx 0 0; padding: 38rpx; } .form input { height: 88rpx; border-bottom: 1px solid #edf2f7; margin-bottom: 18rpx; }
+<style scoped>.page { padding: 20rpx 20rpx 140rpx; } .card { background: #fff; border-radius: 24rpx; margin: 0 24rpx 20rpx; padding: 28rpx; box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, .04); }
+.line { display: flex; gap: 16rpx; align-items: center; margin-bottom: 10rpx; } .line b { font-size: 30rpx; } .line text { color: #86868b; }
+.tag { color: #0071e3 !important; background: rgba(0, 113, 227, .1); font-size: 20rpx !important; font-weight: 600; padding: 4rpx 14rpx; border-radius: 980px; }
+.addr { color: #6e6e73; line-height: 1.55; }
+.submit { position: fixed; left: 30rpx; right: 30rpx; bottom: calc(50px + 20rpx); background: #0071e3; color: #fff; box-shadow: 0 8rpx 24rpx rgba(0, 113, 227, .28); }
+.mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; }
+.form { width: 100%; background: #fff; border-radius: 32rpx 32rpx 0 0; padding: 40rpx; } .form input { height: 92rpx; border-bottom: 1rpx solid #e5e5ea; margin-bottom: 18rpx; }
 .row { display: flex; gap: 12rpx; } .row input { min-width: 0; }</style>

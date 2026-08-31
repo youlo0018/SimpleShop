@@ -1,8 +1,9 @@
+using CommunalService.Domain;
 using MediatR;
 
 namespace ProductService.Application.Features.Product.CreateProduct;
 
-public record CreateProductCommand : IRequest<object>
+public record CreateProductCommand : IRequest<ApiResponse>
 {
     public long PlatformId { get; set; }
     public long MerchantId { get; set; }

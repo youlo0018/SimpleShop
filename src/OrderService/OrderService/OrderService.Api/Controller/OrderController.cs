@@ -8,8 +8,7 @@ using OrderService.Application.Features.CreateShipment;
 using OrderService.Application.Features.ReceiveShipment;
 using OrderService.Application.Features.GetOrder;
 using OrderService.Application.Features.GetOrderDetail;
-using FreeSql;
-using OrderService.Domain.Entity;
+using OrderService.Application.Features.GetOrderList;
 
 
 
@@ -17,33 +16,11 @@ using OrderService.Domain.Entity;
 namespace OrderService.Api.Controller;
 
 
-public sealed record OrderListQuery(
-    string Keyword = "", int? Status = null, long CustomerId = 0,
-    int Page = 1, int PageSize = 10);
-
-public class OrderController(IMediator mediator, IFreeSql freeSql, TenantContext tenant) : BaseController
+public class OrderController(IMediator mediator, TenantContext tenant) : BaseController
 {
     [HttpGet]
-    public async Task<ApiResponse> List([FromQuery] OrderListQuery query)
-    {
-        var selection = freeSql.Select<Order>()
-            .Where(order => !order.IsDeleted)
-            .WhereIf(!string.IsNullOrWhiteSpace(query.Keyword), order =>
-                order.OrderNo.Contains(query.Keyword) || order.ReceiverName.Contains(query.Keyword) || order.ReceiverPhone.Contains(query.Keyword))
-            .WhereIf(query.Status.HasValue, order => order.OrderStatus == query.Status!.Value)
-            .WhereIf(query.CustomerId > 0, order => order.CustomerId == query.CustomerId);
-        if (tenant.IsPlatform) selection = selection.Where(order => order.PlatformId == tenant.PlatformId);
-        if (tenant.IsMerchant) selection = selection.Where(order => order.MerchantId == tenant.MerchantId);
-        if (tenant.IsCustomer) selection = selection.Where(order => order.CustomerId == tenant.UserId);
-        if (!tenant.HasWildcard && !tenant.IsPlatform && !tenant.IsMerchant && !tenant.IsCustomer)
-            return Error(BaseApiResponseCode.Unauthorized, "请先登录");
-
-        var total = await selection.CountAsync();
-        var items = await selection.OrderByDescending(order => order.CreatedAt)
-            .Page((Math.Max(query.Page, 1) - 1) * query.PageSize, query.PageSize)
-            .ToListAsync();
-        return Ok(new { items, total, page = query.Page, pageSize = query.PageSize });
-    }
+    public Task<ApiResponse> List([FromQuery] ListOrdersQuery query)
+        => mediator.Send(query, CancellationToken.None);
 
     [HttpPost]
     public async Task<ApiResponse> Create([FromBody] CreateOrderCommand command)
@@ -76,19 +53,8 @@ public class OrderController(IMediator mediator, IFreeSql freeSql, TenantContext
     }
 
     [HttpPost]
-    public async Task<ApiResponse> Shipment([FromBody] CreateShipmentCommand command)
-    {
-        var order = await SelectScopedOrder(command.OrderId);
-        if (order is null) return Error(BaseApiResponseCode.Forbidden, "无权操作该订单");
-        command = command with { PlatformId = order.PlatformId, MerchantId = order.MerchantId };
-        return Ok(await mediator.Send(command, CancellationToken.None));
-    }
-
-    private async Task<Order?> SelectScopedOrder(long id) => await freeSql.Select<Order>()
-        .Where(order => order.Id == id && !order.IsDeleted)
-        .WhereIf(tenant.IsPlatform, order => order.PlatformId == tenant.PlatformId)
-        .WhereIf(tenant.IsMerchant, order => order.MerchantId == tenant.MerchantId)
-        .FirstAsync();
+    public Task<ApiResponse> Shipment([FromBody] CreateShipmentCommand command)
+        => mediator.Send(command, CancellationToken.None);
     [HttpPost]
     public async Task<ApiResponse> Receive([FromBody] ReceiveShipmentCommand command)
     {
@@ -97,11 +63,6 @@ public class OrderController(IMediator mediator, IFreeSql freeSql, TenantContext
     }
 
     [HttpPost]
-    public async Task<ApiResponse> Cancel([FromBody] CancelOrderCommand command)
-    {
-        var order = await SelectScopedOrder(command.Id);
-        if (order is null) return Error(BaseApiResponseCode.Forbidden, "无权操作该订单");
-        command = command with { CustomerId = tenant.UserId, OverrideCustomerScope = !tenant.IsCustomer };
-        return Ok(await mediator.Send(command, CancellationToken.None));
-    }
+    public Task<ApiResponse> Cancel([FromBody] CancelOrderCommand command)
+        => mediator.Send(command, CancellationToken.None);
 }

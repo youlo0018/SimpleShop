@@ -1,5 +1,7 @@
 using AgileConfig.Client;
 using CommunalService.Application.Common;
+using PermissionService.Domain.IRepository;
+using PermissionService.Infrastructure.Repository;
 using CommunalService.Domain;
 using CommunalService.Domain.Infrastructure.Locks;
 using FreeSql;
@@ -21,6 +23,9 @@ builder.Services.AddOpenApi();
 builder.AddBasicServices();
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
+// 控制器业务已迁移到 Application 层 Handler；注册 MediatR 与 FluentValidation 管道。
+builder.AddMediatRWithHandlers(typeof(PermissionService.Application.GrpcServices.PermissionGrpcService).Assembly, typeof(ValidationBehavior<,>).Assembly);
+builder.Services.AddTransient<IPermissionCenterRepository, PermissionCenterRepository>();
 
 var app = builder.Build();
 await app.AddBaseInfrastructure();

@@ -104,7 +104,7 @@ const design = ref(emptyDesign())
 
 function emptyDesign() {
   return {
-    theme: { primary: '#ff4d6d', background: '#f5f7fb', tabColor: '#ff4d6d' },
+    theme: { primary: '#0071e3', background: '#f5f5f7', tabColor: '#0071e3' },
     home: { appName: '', slogan: '', notice: '', banners: [], modules: [] },
     tabs: { home: '首页', category: '分类', cart: '购物车', profile: '我的' }
   }

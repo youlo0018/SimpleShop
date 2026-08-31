@@ -2,7 +2,7 @@ import { get } from './request'
 import { applyTheme, getPlatformCode } from './store'
 
 const fallback = {
-  theme: { primary: '#ff4d6d', background: '#f5f7fb', tabColor: '#ff4d6d' },
+  theme: { primary: '#0071e3', background: '#f5f5f7', tabColor: '#0071e3' },
   home: { appName: '精选商城', slogan: '', notice: '', banners: [], modules: [] },
   tabs: { home: '首页', category: '分类', cart: '购物车', profile: '我的' }
 }

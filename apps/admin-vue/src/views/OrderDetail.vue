@@ -75,4 +75,4 @@ const load = async () => {
 onMounted(() => { resetRefundForm(); load() })
 </script>
 
-<style scoped>.header-row{display:flex;justify-content:space-between;align-items:center}.section{margin-top:16px}.amount{color:#f56c6c}</style>
+<style scoped>.header-row{display:flex;justify-content:space-between;align-items:center}.section{margin-top:16px}.amount{color:var(--apple-red,#ff3b30);font-weight:600}</style>

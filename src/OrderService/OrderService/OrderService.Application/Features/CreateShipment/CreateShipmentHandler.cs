@@ -1,4 +1,6 @@
-﻿using CommunalService.Domain.Infrastructure.Locks;
+using CommunalService.Domain;
+using CommunalService.Domain.Enums;
+using CommunalService.Domain.Infrastructure.Locks;
 using MediatR;
 using OrderService.Domain.Entity;
 using OrderService.Domain.IRepository;
@@ -11,26 +13,27 @@ namespace OrderService.Application.Features.CreateShipment;
 public sealed class CreateShipmentHandler(
     IOrderRepository orderRepository,
     IShipmentRepository shipmentRepository,
+    TenantContext tenant,
     IDistributedLock distributedLock)
-    : IRequestHandler<CreateShipmentCommand, object>
+    : IRequestHandler<CreateShipmentCommand, ApiResponse>
 {
-    public async Task<object> Handle(CreateShipmentCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse> Handle(CreateShipmentCommand request, CancellationToken cancellationToken)
     {
         if (request.Items.Count == 0)
         {
-            return new { success = false, message = "发货明细不能为空" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "发货明细不能为空");
         }
 
         // 先做无锁预检，减少无效锁竞争；锁内还会重新读取订单状态。
         var existing = await orderRepository.QueryByIdAsync(request.OrderId);
-        if (existing is null || existing.PlatformId != request.PlatformId)
+        if (existing is null)
         {
-            return new { success = false, message = "订单不存在" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "订单不存在");
         }
 
         if (existing.OrderStatus != (int)OrderState.Paid)
         {
-            return new { success = false, message = "仅已支付订单可发货" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "仅已支付订单可发货");
         }
 
         await using var lockHandle = await distributedLock.AcquireAsync(
@@ -41,16 +44,29 @@ public sealed class CreateShipmentHandler(
 
         if (lockHandle is null)
         {
-            return new { success = false, message = "订单处理中，请稍后重试" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "订单处理中，请稍后重试");
         }
 
         var order = await orderRepository.QueryByIdAsync(request.OrderId);
-        if (order is null || order.PlatformId != request.PlatformId ||
-            (request.MerchantId > 0 && order.MerchantId != request.MerchantId) ||
-            order.OrderStatus != (int)OrderState.Paid)
+        if (order is null || order.OrderStatus != (int)OrderState.Paid)
         {
-            return new { success = false, message = "当前订单状态不可发货" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "当前订单状态不可发货");
         }
+
+        // 租户归属：平台限本平台，商户限本商户；命令里的归属以订单事实为准回填。
+        if (tenant.IsPlatform && order.PlatformId != tenant.PlatformId)
+        {
+            return ApiResults.Fail(BaseApiResponseCode.Forbidden, "无权操作该订单");
+        }
+        if (tenant.IsMerchant && order.MerchantId != tenant.MerchantId)
+        {
+            return ApiResults.Fail(BaseApiResponseCode.Forbidden, "无权操作该订单");
+        }
+        request = request with
+        {
+            PlatformId = order.PlatformId,
+            MerchantId = request.MerchantId > 0 ? request.MerchantId : order.MerchantId
+        };
 
         var items = request.Items.Select(item => new ShipmentItem
         {
@@ -75,15 +91,15 @@ public sealed class CreateShipmentHandler(
         var added = await shipmentRepository.AddAsync(shipment, items, cancellationToken);
         if (!added)
         {
-            return new { success = false, message = "发货单创建失败" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "发货单创建失败");
         }
 
         var shipped = await orderRepository.TryMarkShippedAsync(order.Id, cancellationToken);
         if (!shipped)
         {
-            return new { success = false, message = "发货单已创建，但订单状态更新失败" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "发货单已创建，但订单状态更新失败");
         }
 
-        return new { success = true, shipmentNo = shipment.ShipmentNo };
+        return ApiResults.Ok(new { success = true, shipmentNo = shipment.ShipmentNo });
     }
 }

@@ -2,7 +2,7 @@
   <view class="page">
     <view class="card" @tap="selectAddress"><view v-if="address"><b>{{ address.receiverName }} {{ address.receiverPhone }}</b><view class="muted">{{ fullAddress(address) }}</view></view><view v-else class="center">请选择收货地址 +</view></view>
     <view class="card"><view v-for="item in items" :key="item.skuId" class="item"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="goods"><view>{{ item.productName }}</view><view class="muted">¥{{ item.price }} × {{ item.quantity }}</view></view><b>¥{{ (item.price * item.quantity).toFixed(2) }}</b></view></view>
-    <view class="bar safe-bottom"><view>合计：<text class="amount">¥{{ amount }}</text></view><button class="submit" :disabled="submitting" @tap="submit">{{ submitting ? '支付中' : '提交并支付' }}</button></view>
+    <view class="bar safe-bottom"><view class="bar-total">合计：<text class="amount"><text class="yen">¥</text>{{ amount }}</text></view><button class="submit" :disabled="submitting" @tap="submit">{{ submitting ? '支付中' : '提交并支付' }}</button></view>
   </view>
 </template>
 
@@ -44,7 +44,8 @@ onLoad(options => { items.value = uni.getStorageSync('checkout') || []; requireL
 onShow(() => { address.value = uni.getStorageSync('selectedAddress') || null })
 </script>
 
-<style scoped>.card { background: #fff; border-radius: 20rpx; margin: 20rpx; padding: 26rpx; } .muted { color: #667085; font-size: 24rpx; margin-top: 10rpx; } .center { color: #ff4d6d; text-align: center; }
-.item { display: flex; gap: 18rpx; margin-bottom: 18rpx; align-items: center; } .item image { width: 110rpx; height: 110rpx; border-radius: 12rpx; } .goods { flex: 1; }
-.bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20rpx; }
-.amount { color: #ff4d6d; font-weight: 800; font-size: 34rpx; } .submit { width: 250rpx; background: #ff4d6d; color: #fff; }</style>
+<style scoped>.card { background: #fff; border-radius: 28rpx; margin: 20rpx 24rpx; padding: 30rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .04); } .muted { color: #86868b; font-size: 24rpx; margin-top: 10rpx; } .center { color: #0071e3; text-align: center; font-weight: 500; }
+.item { display: flex; gap: 18rpx; margin-bottom: 18rpx; align-items: center; } .item image { width: 110rpx; height: 110rpx; border-radius: 16rpx; background: #f5f5f7; } .goods { flex: 1; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, .92); backdrop-filter: blur(20px); border-top: 1rpx solid rgba(0, 0, 0, .06); padding: 18rpx 26rpx; }
+.bar-total { color: #86868b; font-size: 26rpx; }
+.amount { color: #1d1d1f; font-weight: 800; font-size: 38rpx; font-variant-numeric: tabular-nums; } .amount .yen { font-size: 24rpx; font-weight: 600; margin-right: 2rpx; } .submit { width: 260rpx; background: #0071e3; color: #fff; box-shadow: 0 6rpx 18rpx rgba(0, 113, 227, .3); }</style>

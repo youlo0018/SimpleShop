@@ -1,5 +1,260 @@
+/* ============================================================
+   SimpleShop Admin · Apple 风格设计系统
+   基准：apple.com / macOS System Settings
+   - 页面底色 #f5f5f7，卡片纯白、大圆角、极浅投影
+   - 主色 #0071e3（Apple 蓝），语义色取 iOS 系统色
+   - 按钮胶囊形（980px），输入框聚焦带蓝色光晕
+   - 文字：主 #1d1d1f / 次 #6e6e73 / 三级 #86868b
+   ============================================================ */
+
+:root {
+  /* Apple 设计变量 */
+  --apple-bg: #f5f5f7;
+  --apple-surface: #ffffff;
+  --apple-text: #1d1d1f;
+  --apple-text-2: #6e6e73;
+  --apple-text-3: #86868b;
+  --apple-blue: #0071e3;
+  --apple-blue-hover: #0077ed;
+  --apple-green: #34c759;
+  --apple-orange: #ff9500;
+  --apple-red: #ff3b30;
+  --apple-gray: #8e8e93;
+  --apple-separator: rgba(0, 0, 0, .08);
+  --apple-hairline: rgba(0, 0, 0, .06);
+  --apple-radius-card: 16px;
+  --apple-shadow-card: 0 2px 12px rgba(0, 0, 0, .05);
+  --apple-shadow-float: 0 12px 40px rgba(0, 0, 0, .14);
+
+  /* Element Plus 主题变量覆盖（浅色变体用 color-mix 派生） */
+  --el-color-primary: var(--apple-blue);
+  --el-color-primary-light-3: color-mix(in srgb, var(--apple-blue) 70%, white);
+  --el-color-primary-light-5: color-mix(in srgb, var(--apple-blue) 50%, white);
+  --el-color-primary-light-7: color-mix(in srgb, var(--apple-blue) 30%, white);
+  --el-color-primary-light-8: color-mix(in srgb, var(--apple-blue) 20%, white);
+  --el-color-primary-light-9: color-mix(in srgb, var(--apple-blue) 10%, white);
+  --el-color-primary-dark-2: color-mix(in srgb, var(--apple-blue) 80%, black);
+
+  --el-color-success: var(--apple-green);
+  --el-color-success-light-3: color-mix(in srgb, var(--apple-green) 70%, white);
+  --el-color-success-light-5: color-mix(in srgb, var(--apple-green) 50%, white);
+  --el-color-success-light-7: color-mix(in srgb, var(--apple-green) 30%, white);
+  --el-color-success-light-8: color-mix(in srgb, var(--apple-green) 20%, white);
+  --el-color-success-light-9: color-mix(in srgb, var(--apple-green) 10%, white);
+  --el-color-success-dark-2: color-mix(in srgb, var(--apple-green) 80%, black);
+
+  --el-color-warning: var(--apple-orange);
+  --el-color-warning-light-3: color-mix(in srgb, var(--apple-orange) 70%, white);
+  --el-color-warning-light-5: color-mix(in srgb, var(--apple-orange) 50%, white);
+  --el-color-warning-light-7: color-mix(in srgb, var(--apple-orange) 30%, white);
+  --el-color-warning-light-8: color-mix(in srgb, var(--apple-orange) 20%, white);
+  --el-color-warning-light-9: color-mix(in srgb, var(--apple-orange) 10%, white);
+  --el-color-warning-dark-2: color-mix(in srgb, var(--apple-orange) 80%, black);
+
+  --el-color-danger: var(--apple-red);
+  --el-color-danger-light-3: color-mix(in srgb, var(--apple-red) 70%, white);
+  --el-color-danger-light-5: color-mix(in srgb, var(--apple-red) 50%, white);
+  --el-color-danger-light-7: color-mix(in srgb, var(--apple-red) 30%, white);
+  --el-color-danger-light-8: color-mix(in srgb, var(--apple-red) 20%, white);
+  --el-color-danger-light-9: color-mix(in srgb, var(--apple-red) 10%, white);
+  --el-color-danger-dark-2: color-mix(in srgb, var(--apple-red) 80%, black);
+
+  --el-color-error: var(--apple-red);
+  --el-color-error-light-3: color-mix(in srgb, var(--apple-red) 70%, white);
+  --el-color-error-light-5: color-mix(in srgb, var(--apple-red) 50%, white);
+  --el-color-error-light-7: color-mix(in srgb, var(--apple-red) 30%, white);
+  --el-color-error-light-8: color-mix(in srgb, var(--apple-red) 20%, white);
+  --el-color-error-light-9: color-mix(in srgb, var(--apple-red) 10%, white);
+  --el-color-error-dark-2: color-mix(in srgb, var(--apple-red) 80%, black);
+
+  --el-color-info: var(--apple-gray);
+  --el-color-info-light-3: color-mix(in srgb, var(--apple-gray) 70%, white);
+  --el-color-info-light-5: color-mix(in srgb, var(--apple-gray) 50%, white);
+  --el-color-info-light-7: color-mix(in srgb, var(--apple-gray) 30%, white);
+  --el-color-info-light-8: color-mix(in srgb, var(--apple-gray) 20%, white);
+  --el-color-info-light-9: color-mix(in srgb, var(--apple-gray) 10%, white);
+  --el-color-info-dark-2: color-mix(in srgb, var(--apple-gray) 80%, black);
+
+  --el-bg-color-page: var(--apple-bg);
+  --el-fill-color: #f5f5f7;
+  --el-fill-color-light: #f5f5f7;
+  --el-fill-color-lighter: #fafafc;
+  --el-border-color: rgba(0, 0, 0, .14);
+  --el-border-color-light: var(--apple-separator);
+  --el-border-color-lighter: var(--apple-hairline);
+  --el-border-color-extra-light: rgba(0, 0, 0, .04);
+  --el-text-color-primary: var(--apple-text);
+  --el-text-color-regular: #424245;
+  --el-text-color-secondary: var(--apple-text-2);
+  --el-text-color-placeholder: #a1a1a6;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 980px;
+  --el-box-shadow: var(--apple-shadow-float);
+  --el-box-shadow-light: var(--apple-shadow-card);
+  --el-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --el-mask-color: rgba(245, 245, 247, .72);
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #262626; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  font-family: var(--el-font-family);
+  font-size: 14px;
+  background: var(--apple-bg);
+  color: var(--apple-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 { letter-spacing: -.02em; }
+
+/* 细滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .16); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .28); }
+::-webkit-scrollbar-track { background: transparent; }
+::selection { background: rgba(0, 113, 227, .18); }
+
+/* ---------- 业务页面通用布局类 ---------- */
 .page-card { min-height: calc(100vh - 130px); }
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 .pager { margin-top: 18px; justify-content: flex-end; }
+
+/* ---------- 卡片 ---------- */
+.el-card {
+  border: none;
+  border-radius: var(--apple-radius-card);
+  box-shadow: var(--apple-shadow-card);
+  transition: box-shadow .2s ease;
+}
+.el-card__header {
+  border-bottom: 1px solid var(--apple-hairline);
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.el-card__body { padding: 20px; }
+
+/* ---------- 按钮：胶囊形（灰色底只作用于默认类型，避免覆盖 primary/danger 等语义色） ---------- */
+.el-button {
+  border-radius: 980px;
+  font-weight: 500;
+}
+.el-button:not([class*='el-button--']) {
+  --el-button-bg-color: #f5f5f7;
+  --el-button-border-color: transparent;
+  --el-button-hover-bg-color: #e8e8ed;
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: var(--apple-text);
+  --el-button-active-bg-color: #dcdce1;
+  --el-button-active-border-color: transparent;
+}
+.el-button--primary {
+  box-shadow: 0 1px 4px rgba(0, 113, 227, .28);
+  --el-button-hover-bg-color: var(--apple-blue-hover);
+  --el-button-hover-border-color: var(--apple-blue-hover);
+  --el-button-active-bg-color: #006edb;
+}
+.el-button--primary:hover { box-shadow: 0 2px 8px rgba(0, 113, 227, .32); }
+.el-button.is-link, .el-button.is-text { box-shadow: none; }
+
+/* ---------- 输入控件 ---------- */
+.el-input__wrapper, .el-select__wrapper, .el-textarea__inner {
+  border-radius: 10px;
+}
+.el-input__wrapper.is-focus, .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--apple-blue) inset, 0 0 0 3.5px rgba(0, 113, 227, .13) !important;
+}
+.el-textarea__inner:focus { box-shadow: 0 0 0 1px var(--apple-blue) inset, 0 0 0 3.5px rgba(0, 113, 227, .13); }
+.el-checkbox__inner { border-radius: 5px; }
+.el-form-item__label { color: var(--apple-text-2); font-weight: 500; }
+
+/* 下拉 / 弹层 */
+.el-popper.is-light { border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, .12); border-color: var(--apple-hairline); }
+.el-popper.is-dark { border-radius: 9px; }
+.el-select-dropdown__item { border-radius: 8px; margin: 0 6px; }
+.el-select-dropdown__item.is-selected { color: var(--apple-blue); font-weight: 600; }
+
+/* 分段控件（el-radio-button）→ macOS 风格 */
+.el-radio-group:has(.el-radio-button) {
+  background: rgba(0, 0, 0, .05);
+  border-radius: 980px;
+  padding: 3px;
+}
+.el-radio-button__inner {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 980px !important;
+  color: var(--apple-text-2);
+  font-weight: 500;
+  box-shadow: none !important;
+  padding: 6px 16px;
+  transition: color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: #ffffff !important;
+  color: var(--apple-text) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .14) !important;
+}
+
+/* ---------- 表格 ---------- */
+.el-table {
+  --el-table-border-color: var(--apple-hairline);
+  --el-table-header-bg-color: #fafafc;
+  --el-table-header-text-color: var(--apple-text-2);
+  --el-table-row-hover-bg-color: #f5f5f7;
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.el-table th.el-table__cell {
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: .01em;
+}
+.el-table .el-table__cell { padding: 10px 0; }
+
+/* ---------- 标签：胶囊形 ---------- */
+.el-tag {
+  border-radius: 980px;
+  border: none;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+/* ---------- 对话框 / 消息 ---------- */
+.el-dialog { border-radius: 16px; box-shadow: var(--apple-shadow-float); }
+.el-dialog__header { padding: 20px 24px 10px; }
+.el-dialog__title { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.el-dialog__body { padding: 10px 24px; }
+.el-message { border-radius: 12px; border: none; box-shadow: var(--apple-shadow-float); }
+.el-message-box { border-radius: 16px; }
+.el-notification { border-radius: 14px; }
+
+/* ---------- 分页 ---------- */
+.el-pagination { --el-pagination-text-color: var(--apple-text-2); }
+.el-pager li { border-radius: 8px; font-weight: 500; }
+.el-pager li.is-active {
+  color: var(--apple-blue);
+  background: color-mix(in srgb, var(--apple-blue) 10%, white);
+  font-weight: 700;
+}
+.el-pagination button { border-radius: 8px; }
+.el-pagination button:hover { background: #e8e8ed; }
+
+/* ---------- 其他 ---------- */
+.el-loading-mask { background-color: rgba(255, 255, 255, .72); backdrop-filter: blur(3px); }
+.el-switch.is-checked .el-switch__core { background-color: var(--apple-green); border-color: var(--apple-green); }
+.el-empty__description p { color: var(--apple-text-3); }
+.el-descriptions__label { color: var(--apple-text-2); font-weight: 500; }
+.el-divider__text { color: var(--apple-text-3); font-size: 12.5px; }
+.el-link.is-underline:hover { opacity: .85; }
+
+/* 页面切换动画（在 App.vue 中配合 transition 使用） */
+.page-enter-active { transition: opacity .18s ease, transform .18s ease; }
+.page-leave-active { transition: opacity .12s ease; }
+.page-enter-from { opacity: 0; transform: translateY(6px); }
+.page-leave-to { opacity: 0; }

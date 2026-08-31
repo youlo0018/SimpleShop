@@ -1,3 +1,5 @@
+using CommunalService.Domain;
+using CommunalService.Domain.Enums;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Messaging;
 using Microsoft.AspNetCore.Http;
@@ -11,13 +13,26 @@ namespace ProductService.Application.Features.Product.CreateProduct;
 public class CreateProductCommandHandler(
     IProductRepository<EntityProduct> productRepository,
     ISkuRepository<Sku> skuRepository,
+    IProductAdminRepository adminRepository,
+    TenantContext tenant,
     IMessagePublisher messagePublisher,
     IHttpContextAccessor httpContextAccessor,
     IOperationLogger operationLogger)
-    : IRequestHandler<CreateProductCommand, object>
+    : IRequestHandler<CreateProductCommand, ApiResponse>
 {
-    public async Task<object> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
+        // 租户归属回填与库内唯一性/存在性校验；字段级校验见 CreateProductValidator。
+        request.PlatformId = tenant.IsPlatform ? tenant.PlatformId : request.PlatformId;
+        request.MerchantId = tenant.IsMerchant ? tenant.MerchantId : request.MerchantId;
+        if (request.MerchantId <= 0) return ApiResults.Fail(BaseApiResponseCode.BadRequest, "商户必选");
+        if (request.PlatformId <= 0) return ApiResults.Fail(BaseApiResponseCode.BadRequest, "平台归属缺失");
+        var category = await adminRepository.GetCategoryAsync(request.CategoryId, cancellationToken);
+        if (category is null || !category.IsActive || category.IsDeleted)
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "分类不存在或已停用");
+        if (await adminRepository.SkuCodesExistAsync(request.Skus.Select(sku => sku.SkuCode), cancellationToken))
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "SKU编码已存在");
+
         var product = request.ToProduct();
         await productRepository.InsertAsync(product);
 
@@ -60,6 +75,6 @@ public class CreateProductCommandHandler(
                 cancellationToken);
         }
 
-        return product.Id;
+        return ApiResults.Ok(product.Id);
     }
 }

@@ -1,3 +1,4 @@
+using CommunalService.Domain;
 ﻿using MediatR;
 
 namespace OrderService.Application.Features.CreateShipment;
@@ -9,7 +10,7 @@ public sealed record ShipmentItemInput
     public int Quantity { get; init; }
 }
 
-public sealed record CreateShipmentCommand : IRequest<object>
+public sealed record CreateShipmentCommand : IRequest<ApiResponse>
 {
     public long OrderId { get; init; }
     public long PlatformId { get; init; }

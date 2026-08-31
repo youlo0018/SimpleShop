@@ -3,6 +3,7 @@ using MediatR;
 
 namespace CartService.Application.Features.Cart.Add;
 
+/// <summary>加入购物车：同一用户+SKU 已存在则累加数量，否则新插入（购物车已迁移到 PostgreSQL 存储）。</summary>
 public sealed class AddCartItemHandler(ICartStore cartStore) : IRequestHandler<AddCartItemCommand, object>
 {
     public async Task<object> Handle(AddCartItemCommand request, CancellationToken cancellationToken)

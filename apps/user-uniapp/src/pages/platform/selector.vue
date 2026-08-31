@@ -35,14 +35,15 @@ onShow(async () => {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; background: #f5f7fb; padding: 48rpx 32rpx; }
+.page { min-height: 100vh; background: #f5f5f7; padding: 48rpx 32rpx; }
 .brand { margin: 20rpx 0 44rpx; }
-.title { font-size: 46rpx; font-weight: 800; }
-.desc { color: #6b7280; margin-top: 12rpx; }
-.empty { text-align: center; color: #667085; padding: 160rpx 0; }
+.title { font-size: 52rpx; font-weight: 800; letter-spacing: -.02em; color: #1d1d1f; }
+.desc { color: #86868b; margin-top: 12rpx; }
+.empty { text-align: center; color: #86868b; padding: 160rpx 0; }
 .list { display: grid; gap: 24rpx; }
-.platform { display: flex; align-items: center; gap: 24rpx; background: #fff; border-radius: 24rpx; padding: 28rpx; box-shadow: 0 8rpx 24rpx rgba(15,23,42,.06); }
-.logo { width: 90rpx; height: 90rpx; border-radius: 26rpx; display: grid; place-items: center; background: linear-gradient(135deg,#3b82f6,#8b5cf6); color: #fff; font-size: 38rpx; font-weight: 800; }
-.info { flex: 1; } .name { font-size: 32rpx; font-weight: 700; } .code { color: #8a94a6; font-size: 24rpx; margin-top: 8rpx; }
-.arrow { color: #c0c8d2; font-size: 40rpx; }
+.platform { display: flex; align-items: center; gap: 24rpx; background: #fff; border-radius: 28rpx; padding: 28rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .04); transition: transform .15s ease; }
+.platform:active { transform: scale(.98); }
+.logo { width: 92rpx; height: 92rpx; border-radius: 24rpx; display: grid; place-items: center; background: linear-gradient(135deg, #0a84ff, #5e5ce6); color: #fff; font-size: 38rpx; font-weight: 800; box-shadow: 0 4rpx 14rpx rgba(10, 132, 255, .3); }
+.info { flex: 1; } .name { font-size: 32rpx; font-weight: 700; letter-spacing: -.01em; } .code { color: #86868b; font-size: 24rpx; margin-top: 8rpx; }
+.arrow { color: #c7c7cc; font-size: 40rpx; font-weight: 500; }
 </style>

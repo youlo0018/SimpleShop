@@ -6,7 +6,7 @@
     </view>
 
     <template v-else>
-      <view class="header" :style="{ background: themeCss.primary }">
+      <view class="header">
         <view class="brand-row"><view><view class="app-name">{{ design.home.appName || platform?.platformName }}</view><view class="slogan">{{ design.home.slogan || platform?.platformCode }}</view></view><text class="switch" @tap="goSelector">切换</text></view>
         <view class="search"><input v-model="keyword" placeholder="搜索本平台商品" confirm-type="search" @confirm="search" /><text @tap="search">搜索</text></view>
       </view>
@@ -21,7 +21,7 @@
         <view v-if="module.title" class="block-title"><text>{{ module.title }}</text></view>
 
         <view v-if="module.type === 'quickNav'" class="quick">
-          <view v-for="item in module.items || []" :key="item.title" @tap="goLink(item)"><text class="icon">{{ item.icon || '🎁' }}</text><text>{{ item.title }}</text></view>
+          <view v-for="item in module.items || []" :key="item.title" @tap="goLink(item)"><text class="icon">{{ item.icon || '🎁' }}</text><text class="icon-label">{{ item.title }}</text></view>
         </view>
 
         <scroll-view v-if="module.type === 'categories'" scroll-x class="category-scroll">
@@ -32,10 +32,10 @@
           <view v-if="sectionLoading(module)" class="empty">加载中...</view>
           <view v-else-if="!sectionProducts(module).length" class="empty">本模块暂无商品</view>
           <scroll-view v-else-if="module.layout === 'list'" scroll-x class="list-scroll">
-            <view v-for="item in sectionProducts(module)" :key="`${module.key}-${item.id}`" class="product row" @tap="goProduct(item)"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="pinfo"><view class="pname">{{ item.name }}</view><view class="price">¥{{ minPrice(item) }}</view></view></view>
+            <view v-for="item in sectionProducts(module)" :key="`${module.key}-${item.id}`" class="product row" @tap="goProduct(item)"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="pinfo"><view class="pname">{{ item.name }}</view><view class="price"><text class="yen">¥</text>{{ minPrice(item) }}</view></view></view>
           </scroll-view>
           <view v-else class="grid">
-            <view v-for="item in sectionProducts(module)" :key="`${module.key}-${item.id}`" class="product" @tap="goProduct(item)"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="pinfo"><view class="pname">{{ item.name }}</view><view class="price">¥{{ minPrice(item) }}</view></view></view>
+            <view v-for="item in sectionProducts(module)" :key="`${module.key}-${item.id}`" class="product" @tap="goProduct(item)"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="pinfo"><view class="pname">{{ item.name }}</view><view class="price"><text class="yen">¥</text>{{ minPrice(item) }}</view></view></view>
           </view>
         </template>
       </view>
@@ -114,27 +114,34 @@ onShow(async () => {
 </script>
 
 <style scoped>
-.empty { text-align: center; color: #667085; padding: 100rpx 0; }
-.empty button { margin-top: 24rpx; width: 240rpx; color: #fff; background: #ff4d6d; }
-.header { padding: 38rpx 30rpx 34rpx; color: #fff; border-radius: 0 0 32rpx 32rpx; }
+.empty { text-align: center; color: #86868b; padding: 100rpx 0; }
+.empty button { margin-top: 24rpx; width: 240rpx; color: #fff; background: #0071e3; }
+/* Apple 风头部：白底大标题 + iOS 灰搜索框 */
+.header { padding: 38rpx 30rpx 30rpx; background: rgba(255, 255, 255, .86); backdrop-filter: blur(20px); }
 .brand-row { display: flex; align-items: flex-start; justify-content: space-between; }
-.app-name { font-size: 42rpx; font-weight: 800; } .slogan { opacity: .85; margin-top: 8rpx; font-size: 24rpx; }
-.switch { background: rgba(255,255,255,.2); padding: 8rpx 18rpx; border-radius: 28rpx; font-size: 24rpx; }
-.search { display: flex; align-items: center; background: #fff; color: #8a94a6; height: 76rpx; border-radius: 38rpx; padding: 0 26rpx; margin-top: 30rpx; }
-.search input { flex: 1; height: 100%; } .search text { color: #ff4d6d; font-weight: 700; }
-.notice { display: flex; gap: 12rpx; align-items: center; margin: 22rpx 24rpx 0; background: #fff; border-radius: 18rpx; padding: 18rpx 20rpx; color: #50607a; font-size: 24rpx; }
-.notice-tag { background: #fff1f3; color: #ff4d6d; padding: 4rpx 10rpx; border-radius: 8rpx; font-size: 20rpx; }
-.banners { height: 300rpx; margin: 22rpx 24rpx 0; border-radius: 24rpx; overflow: hidden; }
+.app-name { font-size: 46rpx; font-weight: 800; letter-spacing: -.02em; color: #1d1d1f; } .slogan { color: #86868b; margin-top: 8rpx; font-size: 24rpx; }
+.switch { background: #e9e9eb; color: #1d1d1f; padding: 10rpx 24rpx; border-radius: 980px; font-size: 24rpx; font-weight: 500; }
+.search { display: flex; align-items: center; background: #e9e9eb; color: #8e8e93; height: 72rpx; border-radius: 980px; padding: 0 28rpx; margin-top: 26rpx; }
+.search input { flex: 1; height: 100%; } .search text { color: #0071e3; font-weight: 600; }
+.notice { display: flex; gap: 12rpx; align-items: center; margin: 22rpx 24rpx 0; background: #fff; border-radius: 20rpx; padding: 20rpx 24rpx; color: #6e6e73; font-size: 24rpx; }
+.notice-tag { background: rgba(0, 113, 227, .1); color: #0071e3; padding: 4rpx 12rpx; border-radius: 980px; font-size: 20rpx; font-weight: 600; }
+.banners { height: 300rpx; margin: 22rpx 24rpx 0; border-radius: 24rpx; overflow: hidden; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .05); }
 .banners image { width: 100%; height: 100%; }
-.block { background: #fff; margin: 22rpx 24rpx; border-radius: 24rpx; padding: 24rpx; }
-.block-title { font-size: 32rpx; font-weight: 700; margin-bottom: 20rpx; }
+.block { background: #fff; margin: 22rpx 24rpx; border-radius: 28rpx; padding: 28rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .04); }
+.block-title { font-size: 34rpx; font-weight: 700; letter-spacing: -.01em; margin-bottom: 22rpx; }
 .quick { display: grid; grid-template-columns: repeat(4,1fr); gap: 22rpx; text-align: center; }
-.quick view { display: grid; gap: 8rpx; font-size: 24rpx; color: #50607a; } .icon { font-size: 42rpx; }
-.category-scroll { white-space: nowrap; } .category { display: inline-block; padding: 16rpx 24rpx; border-radius: 26rpx; margin-right: 16rpx; font-size: 24rpx; font-weight: 600; }
+.quick view { display: grid; justify-items: center; gap: 12rpx; font-size: 24rpx; color: #6e6e73; }
+/* 金刚区图标底座：iOS App 图标质感 */
+.quick .icon { width: 92rpx; height: 92rpx; display: grid; place-items: center; background: #f5f5f7; border-radius: 28rpx; font-size: 46rpx; }
+.icon-label { line-height: 1; }
+.category-scroll { white-space: nowrap; } .category { display: inline-block; padding: 16rpx 28rpx; border-radius: 980px; margin-right: 16rpx; font-size: 24rpx; font-weight: 600; }
 .grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 20rpx; }
-.product { background: #fff; border-radius: 18rpx; overflow: hidden; box-shadow: 0 6rpx 18rpx rgba(15,23,42,.05); }
-.product image { width: 100%; height: 300rpx; } .row image { width: 190rpx; height: 190rpx; }
-.pinfo { padding: 18rpx; } .pname { height: 74rpx; overflow: hidden; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.price { color: #ff4d6d; font-weight: 800; margin-top: 10rpx; }
+.product { background: #f5f5f7; border-radius: 20rpx; overflow: hidden; }
+.product image { width: 100%; height: 300rpx; } .row image { width: 190rpx; height: 190rpx; border-radius: 16rpx; }
+.pinfo { padding: 18rpx 20rpx 22rpx; } .pname { height: 74rpx; overflow: hidden; font-weight: 600; letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.price { color: #1d1d1f; font-weight: 700; margin-top: 10rpx; font-size: 32rpx; font-variant-numeric: tabular-nums; }
+.price .yen { font-size: 22rpx; font-weight: 600; margin-right: 2rpx; }
 .list-scroll { white-space: nowrap; } .list-scroll .product { display: inline-flex; width: 420rpx; margin-right: 18rpx; align-items: center; }
+/* 隐藏 H5 横向滚动条（小程序端本就没有） */
+.category-scroll::-webkit-scrollbar, .list-scroll::-webkit-scrollbar { display: none; }
 </style>

@@ -2,7 +2,7 @@
   <view class="page">
     <image class="cover" :src="selected?.image || product.mainImage || fallback" mode="aspectFill" />
     <view class="card">
-      <view class="price" :style="{ color: theme.primary }">¥{{ selected?.price || '--' }}</view>
+      <view class="price" :style="{ color: theme.primary }"><text class="yen">¥</text>{{ selected?.price || '--' }}<text class="stock">库存 {{ selected?.stock || 0 }}</text></view>
       <view class="name">{{ product.name }}</view>
       <view class="desc" v-html="product.description || '本平台精选商品'"></view>
     </view>
@@ -48,15 +48,20 @@ onLoad(async options => {
 </script>
 
 <style scoped>
-.cover { width: 750rpx; height: 750rpx; background: #edf2f7; }
-.card { background: #fff; border-radius: 20rpx; margin: 20rpx; padding: 26rpx; }
-.price { font-size: 42rpx; font-weight: 800; } .name { font-size: 34rpx; font-weight: 700; margin: 14rpx 0; }
-.desc { color: #667085; line-height: 1.55; }
-.section { font-weight: 700; margin-bottom: 18rpx; } .skus { display: grid; grid-template-columns: repeat(2,1fr); gap: 16rpx; margin-bottom: 30rpx; }
-.sku { padding: 18rpx; background: #f8fafc; border: 2rpx solid transparent; border-radius: 14rpx; display: grid; gap: 8rpx; font-size: 24rpx; }
-.sku.on { background: #fff5f6; font-weight: 700; } .spec { font-size: 26rpx; }
+.cover { width: 750rpx; height: 750rpx; background: #f5f5f7; }
+.card { background: #fff; border-radius: 28rpx; margin: 20rpx 24rpx; padding: 30rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, .04); }
+.price { font-size: 52rpx; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.price .yen { font-size: 30rpx; font-weight: 700; margin-right: 4rpx; }
+.price .stock { font-size: 22rpx; font-weight: 500; opacity: .55; margin-left: 14rpx; }
+.name { font-size: 36rpx; font-weight: 700; letter-spacing: -.01em; margin: 16rpx 0; }
+.desc { color: #6e6e73; line-height: 1.65; font-size: 27rpx; }
+.section { font-weight: 700; letter-spacing: -.01em; margin-bottom: 18rpx; } .skus { display: grid; grid-template-columns: repeat(2,1fr); gap: 16rpx; margin-bottom: 30rpx; }
+.sku { padding: 20rpx; background: #f5f5f7; border: 2rpx solid transparent; border-radius: 18rpx; display: grid; gap: 8rpx; font-size: 24rpx; }
+.sku.on { background: #fff; font-weight: 700; box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, .06); } .spec { font-size: 26rpx; }
 .qty { display: flex; justify-content: space-between; align-items: center; }
-.stepper { display: flex; align-items: center; border: 1px solid #dfe6ef; border-radius: 10rpx; } .stepper text { width: 64rpx; text-align: center; padding: 10rpx 0; } .stepper input { width: 82rpx; text-align: center; }
-.actions { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: #fff; padding-top: 16rpx; }
-.actions button { width: 50%; border-radius: 0; color: #fff; } .ghost { background: #ffa53d; } .primary { background: #ff4d6d; }
+.stepper { display: flex; align-items: center; background: #f5f5f7; border-radius: 980px; } .stepper text { width: 64rpx; text-align: center; padding: 10rpx 0; font-weight: 600; } .stepper input { width: 82rpx; text-align: center; }
+/* 底部操作条：毛玻璃 + 胶囊双按钮 */
+.actions { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 18rpx; background: rgba(255, 255, 255, .92); backdrop-filter: blur(20px); border-top: 1rpx solid rgba(0, 0, 0, .06); padding: 16rpx 24rpx; }
+.actions button { flex: 1; color: #fff; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 29rpx; }
+.ghost { background: #f5f5f7; } .actions .ghost { color: #1d1d1f; } .primary { background: #0071e3; box-shadow: 0 6rpx 18rpx rgba(0, 113, 227, .3); }
 </style>

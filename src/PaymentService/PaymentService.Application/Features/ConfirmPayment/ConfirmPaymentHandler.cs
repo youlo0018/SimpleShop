@@ -1,7 +1,9 @@
+using CommunalService.Domain;
+using Microsoft.AspNetCore.Http;
+using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Messaging;
-using Microsoft.AspNetCore.Http;
 using MediatR;
 using PaymentService.Domain.IRepository;
 
@@ -9,13 +11,14 @@ namespace PaymentService.Application.Features.ConfirmPayment;
 
 public sealed class ConfirmPaymentHandler(
     IPaymentOrderRepository repository,
+    TenantContext tenant,
     IDistributedLock distributedLock,
     IMessagePublisher messagePublisher,
     IHttpContextAccessor httpContextAccessor,
     IOperationLogger operationLogger)
-    : IRequestHandler<ConfirmPaymentCommand, object>
+    : IRequestHandler<ConfirmPaymentCommand, ApiResponse>
 {
-    public async Task<object> Handle(ConfirmPaymentCommand request, CancellationToken cancellationToken)
+    public async Task<ApiResponse> Handle(ConfirmPaymentCommand request, CancellationToken cancellationToken)
     {
         await using var lockHandle = await distributedLock.AcquireAsync(
             $"lock:payment:callback:{request.BizNo}",
@@ -25,13 +28,19 @@ public sealed class ConfirmPaymentHandler(
 
         if (lockHandle is null)
         {
-            return new { success = false, message = "支付回调处理中，请稍后重试" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付回调处理中，请稍后重试");
         }
 
         var payment = await repository.GetByBizNoAsync(request.BizNo, cancellationToken);
         if (payment is null)
         {
-            return new { success = false, message = "支付单不存在" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付单不存在");
+        }
+
+        // 客户只能确认自己的支付单；后台租户（平台/商户）不受此限制。
+        if (tenant.IsCustomer && payment.UserId != tenant.UserId)
+        {
+            return ApiResults.Fail(BaseApiResponseCode.Forbidden, "无权确认该支付单");
         }
 
         if (payment.Status == 20)
@@ -39,18 +48,18 @@ public sealed class ConfirmPaymentHandler(
             // 幂等确认不只是返回旧结果：如果上次“落库成功、发事件失败”，这里必须补发。
             // 订单和库存消费方都按状态/流水幂等，重复事件是安全的。
             await PublishSucceededAsync(payment, request.Items, cancellationToken);
-            return new { success = true, idempotent = true, payment.PaymentNo };
+            return ApiResults.Ok(new { success = true, idempotent = true, payment.PaymentNo });
         }
 
         if (payment.Status != 10)
         {
-            return new { success = false, message = "支付单状态不可确认" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付单状态不可确认");
         }
 
         var paid = await repository.MarkPaidAsync(payment.Id, cancellationToken);
         if (!paid)
         {
-            return new { success = false, message = "支付状态更新失败" };
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "支付状态更新失败");
         }
 
         // 支付成功是全链路的“发令枪”：订单、库存、履约都靠这个事件推进。
@@ -69,7 +78,7 @@ public sealed class ConfirmPaymentHandler(
                 cancellationToken);
         }
 
-        return new { success = true, payment.PaymentNo, status = 20 };
+        return ApiResults.Ok(new { success = true, payment.PaymentNo, status = 20 });
     }
 
     private async Task PublishSucceededAsync(

@@ -1,8 +1,9 @@
+using CommunalService.Domain;
 using MediatR;
 
 namespace PaymentService.Application.Features.CreatePayment;
 
-public sealed record CreatePaymentCommand : IRequest<object>
+public sealed record CreatePaymentCommand : IRequest<ApiResponse>
 {
     public string BizNo { get; init; } = string.Empty;
     public long PlatformId { get; init; }

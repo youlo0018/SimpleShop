@@ -42,10 +42,10 @@ onShow(async () => {
 
 <style scoped>
 .page { display: flex; height: 100vh; } .left { width: 198rpx; background: #fff; }
-.menu { padding: 32rpx 18rpx; text-align: center; font-size: 26rpx; border-left: 6rpx solid transparent; }
-.menu.on { background: #f8fafc; font-weight: 700; }
+.menu { padding: 32rpx 18rpx; text-align: center; font-size: 26rpx; color: #6e6e73; border-left: 6rpx solid transparent; }
+.menu.on { background: #f5f5f7; font-weight: 700; color: #1d1d1f; }
 .right { flex: 1; height: 100%; padding: 22rpx; box-sizing: border-box; }
-.card { display: flex; gap: 18rpx; background: #fff; border-radius: 18rpx; overflow: hidden; margin-bottom: 18rpx; }
-.card image { width: 170rpx; height: 170rpx; } .name { font-weight: 600; padding: 18rpx; min-height: 72rpx; } .price { padding: 0 18rpx; font-weight: 800; }
-.empty { text-align: center; color: #667085; padding-top: 80rpx; }
+.card { display: flex; gap: 18rpx; background: #fff; border-radius: 22rpx; overflow: hidden; margin-bottom: 18rpx; box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, .04); }
+.card image { width: 170rpx; height: 170rpx; background: #f5f5f7; } .name { font-weight: 600; letter-spacing: -.01em; padding: 18rpx; min-height: 72rpx; } .price { padding: 0 18rpx; font-weight: 700; font-variant-numeric: tabular-nums; }
+.empty { text-align: center; color: #86868b; padding-top: 80rpx; }
 </style>

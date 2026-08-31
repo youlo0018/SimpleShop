@@ -1,0 +1,121 @@
+# SimpleShop 业务文档
+
+> 更新：2026-08-31。本文描述"系统做了什么业务"，代码结构与规范见 `CODING_STANDARD.md`，链路细节与风险见 `REVIEW.md`。
+
+## 1. 系统定位
+
+**多平台（多租户）电商 MVP**，已跑通完整闭环：管理后台运营 + 用户商城购物（注册 → 浏览 → 加购 → 下单 → 支付 → 发货 → 签收 → 退款）。
+
+- **平台（Platform）**：入驻运营方，拥有独立商城（独立首页装修、主题色、入口）。
+- **商户（Merchant）**：挂靠在某平台下经营商品，发货与退款处理者。
+- **客户（Customer）**：C 端购物用户，可浏览所有启用平台，数据按归属隔离。
+
+## 2. 服务一览
+
+| 服务 | HTTP | gRPC | 数据库 | 职责 |
+|------|------|------|--------|------|
+| Gateway | 5008 | - | - | Ocelot 路由 + JWT 验签 + RBAC（权限点↔接口路径）+ 租户声明注入 |
+| Auth | 5019 | 5004 | simpleshopauth | OpenIddict 授权、令牌（EF Core，其余服务用 FreeSql） |
+| User | 5011 | 5003 | simpleshopuser | 注册/登录（JWT 签发）、地址簿、收藏 |
+| Permission | 5022 | 5023 | simpleshoppermission | 权限中心：角色/权限点/用户绑定；登录解析与后台管理 |
+| Product | 5058 | 5058 | simpleshopproduct | SPU/SKU、三级分类、审核上下架、图片上传 |
+| Cart | 5060 | 5060 | simpleshopcart | 购物车（PostgreSQL 存储） |
+| Inventory | 5062 | 5063 | simpleshopinventory | 库存锁定/扣减/释放 + 流水防重 |
+| Order | 5064 | 5002 | simpleshoporder | 幂等下单、订单查询、发货/签收/取消、报表 |
+| Payment | 5066 | 5066 | simpleshoppayment | 支付单、模拟确认、退款单与审批 |
+| MerchantPlatform | 5070 | 5070 | simpleshopmerchant | 商户/平台管理 + 小程序装修配置 |
+| Scheduled | - | - | simpleshopscheduled + simpleshoporder | 独立定时进程：支付超时关单 + 库存释放补偿 |
+| Log | 5088 | - | Elasticsearch | 消费 pv/operation/exception 日志 → ES（带 DLQ） |
+
+外部依赖：PostgreSQL `127.0.0.1:5432`（postgres/Aa123456..）、Redis `127.0.0.1:6379`、Consul `:8500`、RabbitMQ `localhost`（admin/admin123）、AgileConfig `:5000`（每服务独立应用配置）。
+
+## 3. 角色与权限（两层租户）
+
+权限按 `AllowedScopes` 分层：平台(1) / 商户(2) / 两者(3)。
+
+| 内置角色 | 范围 | 权限要点 |
+|----------|------|----------|
+| platform-admin | 平台 | `*`（全部） |
+| platform-operator | 平台 | 商品/分类/商户维护、退款审批、看板 |
+| platform-finance | 平台 | 只读订单/退款/报表 |
+| merchant-admin | 商户 | 本商户商品/订单/退款全权 |
+| merchant-operator | 商户 | 商品维护、发货 |
+| merchant-finance | 商户 | 只读订单/退款/报表 |
+
+- 支持自定义角色与权限点；权限点绑定 `/gateway/*` 接口路径，网关动态识别（30s 缓存）。
+- **数据隔离**：平台管理员看本平台，商户管理员只看本商户，客户只看自己——所有列表/详情查询按 `TenantContext` 裁剪。
+- JWT 内声明：`tenant_type / platform_id / merchant_id / permission×N / role×N`；网关验签后转为 `X-Claim-*` 头传给下游，下游只信任网关。
+
+## 4. 核心业务流程（摘要，逐步执行顺序见 REVIEW.md）
+
+### 4.1 购物主链路（C 端）
+```
+注册/登录 → 选平台（小程序按平台下发装修）→ 浏览/搜索 → 商品详情选 SKU
+→ 加购 → 结算（选地址）→ 下单（幂等+锁库存）→ 支付（模拟确认）
+→ 支付成功事件 → 订单已支付 + 库存扣减 → 商户发货 → 用户签收 → 完成
+```
+
+### 4.2 退款链路
+```
+客户申请退款（限已支付，金额累计不超实付）→ 退款单待审批(10)
+→ 平台/商户审批：同意 → 退款单已退款(20) + payment.refunded 事件 → 订单已退款(60) + 库存回补
+              拒绝 → 退款单拒绝(90)，无副作用
+```
+
+### 4.3 超时关单
+```
+定时任务每 30s：抢全局扫描锁 → 先重试上次失败的库存释放补偿 → 扫描支付超时订单
+→ 单订单锁 + 条件更新关单(91) → 释放库存（失败写入补偿表下轮重试）→ 发布 order.cancelled
+```
+
+### 4.4 商户入驻
+```
+平台创建商户（待审核）→ 平台审核通过/拒绝 → 商户账号可登录后台运营本商户商品/订单
+```
+
+## 5. 多平台小程序装修（凯德星模式）
+
+- 管理后台「小程序装修」按平台配置：主题色（primary/tabColor/background）、商城名称、公告、TabBar 文案、首页模块（品牌头/公告/轮播/金刚区/分类/商品推荐，可排序）。
+- 配置存 `platform_app_config`（发布版本号递增）；小程序启动按 `platformCode` 拉取已发布配置，动态渲染——**不同平台进入同一个小程序看到完全不同的商城**。
+
+## 6. 数据模型（核心表）
+
+| 服务 | 实体 | 说明 |
+|------|------|------|
+| User | User, Address, Favorite | 账号（customer/admin 两值 Role，真实角色在权限中心） |
+| Permission | Permission, Role, RolePermission, UserRole | 权限点/角色/映射/绑定（映射有唯一约束，重绑物理删除） |
+| Product | Product, Sku, Category, Brand, UploadedFile | SKU 按编码 Upsert；分类强制 ≤3 级 |
+| Cart | CartItem | 已从 Redis 迁移到 PostgreSQL |
+| Inventory | Stock, StockFlow | 流水按 BizNo+SKU+动作幂等；补偿表 pending_stock_release |
+| Order | Order, OrderItem, Shipment, ShipmentItem | 订单含收货快照与幂等键；状态机见 `OrderState` |
+| Payment | PaymentOrder, RefundOrder, RefundOrderItem | 支付单 BizNo 唯一；退款累计限额 |
+| MerchantPlatform | Platform, Merchant, PlatformConfig, PlatformAppConfig | 装修配置带发布版本 |
+
+## 7. 事件与锁（跨服务协同）
+
+### 7.1 MQ Topic
+
+| Topic | 生产者 | 消费者 |
+|-------|--------|--------|
+| `payment.succeeded` | 支付确认（幂等补发） | OrderService（标记已支付）、InventoryService（扣库存） |
+| `payment.refunded` | 退款审批 | OrderService（订单已退款）、InventoryService（回补库存） |
+| `order.created` / `order.cancelled` | 下单 / 超时关单 | 预留（暂无消费者） |
+| `product.created` | 创建商品 | InventoryService（初始化库存） |
+| `pv.log` / `operation.log` / `exception.log` | PV 中间件 / OperationLogger / 异常中间件 | LogService → ES |
+
+### 7.2 分布式锁键
+
+| 锁键 | 粒度 |
+|------|------|
+| `lock:order:create:{customerId}` | 下单（按用户） |
+| `lock:order:{orderId}` | 订单状态机互斥（支付消费/关单/发货/签收/取消/退款消费） |
+| `lock:payment:order|callback|refund:{bizNo}` | 支付创建/确认/退款（按业务单号） |
+| `lock:stock:{skuId}` | 库存（按 SKU） |
+| `lock:job:payment-timeout-scan` | 关单全局扫描（多实例互斥） |
+
+## 8. 前端
+
+- **管理后台** `apps/admin-vue/`（Vue3 + Element Plus，Apple 风格设计系统在 `src/styles.css`）：http://127.0.0.1:5173 ，账号 `codexadmin / Admin123456`。路由按 `meta.permission` 守卫。
+- **商城端** `apps/user-uniapp/`（UniApp，Apple 风格）：H5 http://127.0.0.1:5174 ，同源码构建微信小程序（`dist/build/mp-weixin`）。进入先选平台；主题按平台配置动态生效。
+- 雪花 ID 以字符串传输，前端禁止 `Number()` 转 ID。
+- 项目路径含 `#`：Vite dev-server 会白屏，必须构建 + preview。

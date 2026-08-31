@@ -173,9 +173,10 @@ onMounted(async () => {
 
 <style scoped>
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.rich-editor { width: 100%; border: 1px solid #dcdfe6; border-radius: 6px; overflow: hidden; }
-.editor-toolbar { display: flex; gap: 6px; padding: 7px; background: #f5f7fa; border-bottom: 1px solid #dcdfe6; }
-.editor-toolbar button { cursor: pointer; padding: 4px 9px; border: 0; background: white; }
+.rich-editor { width: 100%; border: 1px solid rgba(0, 0, 0, .08); border-radius: 10px; overflow: hidden; }
+.editor-toolbar { display: flex; gap: 6px; padding: 7px; background: var(--apple-bg, #f5f5f7); border-bottom: 1px solid rgba(0, 0, 0, .06); }
+.editor-toolbar button { cursor: pointer; padding: 4px 10px; border: 0; border-radius: 7px; background: white; transition: background .15s ease; }
+.editor-toolbar button:hover { background: #e8e8ed; }
 .editor-body { min-height: 180px; max-height: 320px; overflow-y: auto; padding: 12px; outline: none; }
 .spec-group { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .sku-table { margin-top: 12px; }

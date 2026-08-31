@@ -1,6 +1,7 @@
 using CommunalService.Domain.Logging;
 using Microsoft.AspNetCore.Http;
 using MediatR;
+using CommunalService.Domain;
 using MerchantPlatformService.Domain.Enums;
 using MerchantPlatformService.Domain.IRepository;
 
@@ -8,15 +9,16 @@ namespace MerchantPlatformService.Application.Features.Merchants.Review;
 
 public sealed class ReviewMerchantHandler(
     IMerchantRepository repository,
+    TenantContext tenant,
     IHttpContextAccessor httpContextAccessor,
     IOperationLogger operationLogger) : IRequestHandler<ReviewMerchantCommand, object>
 {
     public async Task<object> Handle(ReviewMerchantCommand request, CancellationToken cancellationToken)
     {
         var merchant = await repository.GetByIdAsync(request.Id);
-        if (merchant is null)
+        if (merchant is null || (tenant.IsPlatform && merchant.PlatformId != tenant.PlatformId) || (tenant.IsMerchant && merchant.Id != tenant.MerchantId))
         {
-            return new { success = false, message = "商户不存在" };
+            return new { success = false, message = "无权操作该商户" };
         }
 
         if (merchant.State != MerchantStatus.PendingReview)
