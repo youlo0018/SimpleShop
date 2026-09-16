@@ -43,6 +43,7 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { EMAIL_PATTERN, PHONE_PATTERN, optionalPattern, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const platforms = ref([]); const total = ref(0); const dialog = ref(false); const formRef = ref(null)
 const query = reactive({ keyword: '', status: null, page: 1, pageSize: 10 })
@@ -52,15 +53,15 @@ const rules = {
   platformId: [{ required: true, message: '请选择所属平台', trigger: 'change' }],
   merchantName: [{ required: true, min: 2, max: 64, message: '商户名称必须为2-64个字符', trigger: 'blur' }],
   contactName: [{ required: true, max: 32, message: '请输入联系人', trigger: 'blur' }],
-  contactPhone: [{ required: true, pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }],
-  contactEmail: [{ required: true, type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }, optionalPattern(PHONE_PATTERN, '手机号格式不正确')],
+  contactEmail: [{ required: true, message: '请输入联系邮箱', trigger: 'blur' }, optionalPattern(EMAIL_PATTERN, '邮箱格式不正确')],
   commissionRate: [{ required: true, message: '请输入佣金率', trigger: 'change' }]
 }
 const statusText = { 0: '草稿', 10: '待审核', 20: '已入驻', 30: '已拒绝', 40: '已停用' }
 
 const platformText = id => platforms.value.find(platform => String(platform.id) === String(id))?.platformName || id
 const loadRefs = async () => {
-  const data = await request.get('/platforms/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] }))
+  const data = await request.get('/platforms/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   platforms.value = data.items || []
 }
 const load = async () => { const data = await request.get('/merchants/List', { params: query }); rows.value = data.items || []; total.value = Number(data.total || 0) }
@@ -72,6 +73,7 @@ const setStatus = async (row, status) => { await request.post('/merchants/SetSta
 const save = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
+  trimForm(form)
   if (form.id) await request.post('/merchants/Update', form)
   else await request.post('/merchants/Create', form)
   ElMessage.success('已保存'); dialog.value = false; load()

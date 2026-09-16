@@ -31,23 +31,38 @@
       </el-card>
     </template>
 
-    <el-dialog v-model="rejectDialog" title="拒绝退款" width="420px" @closed="reason = ''"><el-input v-model="reason" type="textarea" placeholder="拒绝原因" /><template #footer><el-button @click="rejectDialog=false">取消</el-button><el-button type="danger" @click="reject">确认拒绝</el-button></template></el-dialog>
+    <el-dialog v-model="rejectDialog" title="拒绝退款" width="420px" @closed="resetReject">
+      <el-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules">
+        <el-form-item prop="reason"><el-input v-model="rejectForm.reason" type="textarea" maxlength="255" show-word-limit placeholder="拒绝原因" /></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="rejectDialog=false">取消</el-button><el-button type="danger" @click="reject">确认拒绝</el-button></template>
+    </el-dialog>
   </el-card>
 </template>
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import request from '@/api/request'
+import { maxLengthRule, requiredRule, trimForm } from '@/utils/validators'
 
-const route = useRoute(); const refund = ref(null); const items = ref([]); const allRefunds = ref([]); const order = ref(null); const rejectDialog = ref(false); const reason = ref('')
+const route = useRoute(); const refund = ref(null); const items = ref([]); const allRefunds = ref([]); const order = ref(null); const rejectDialog = ref(false)
+const rejectFormRef = ref(null); const rejectForm = reactive({ reason: '' })
+const rejectRules = { reason: [requiredRule('请输入拒绝原因'), maxLengthRule(255, '拒绝原因')] }
 const statusText = { 10: '待处理', 20: '已退款', 90: '已拒绝' }
 const orderStatus = { 10: '待支付', 20: '已支付', 40: '已发货', 50: '已完成', 60: '已退款', 90: '已取消', 91: '已关闭' }
 const canDecide = computed(() => !['customer'].includes(localStorage.getItem('admin_user') ? JSON.parse(localStorage.getItem('admin_user')).tenantType : 'customer'))
 
+const resetReject = () => { rejectForm.reason = ''; rejectFormRef.value?.clearValidate() }
 const approve = async () => { await request.post('/payments/ApproveRefund', { id: refund.value.id }); ElMessage.success('退款已同意'); load() }
-const reject = async () => { await request.post('/payments/RejectRefund', { id: refund.value.id, reason: reason.value || '审核不通过' }); ElMessage.success('退款已拒绝'); rejectDialog.value = false; load() }
+const reject = async () => {
+  const valid = await rejectFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  trimForm(rejectForm)
+  await request.post('/payments/RejectRefund', { id: refund.value.id, reason: rejectForm.reason })
+  ElMessage.success('退款已拒绝'); rejectDialog.value = false; load()
+}
 
 const load = async () => {
   const data = await request.get('/payments/RefundDetail', { params: { id: route.params.id } })

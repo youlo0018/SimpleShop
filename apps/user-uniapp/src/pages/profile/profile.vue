@@ -21,6 +21,14 @@
         <image class="cell-icon" src="/static/tabbar/cell-cart.png" mode="aspectFit" />
         <text class="cell-label">购物车</text><text class="chevron">›</text>
       </view>
+      <view class="cell cell-divider" @tap="go('/pages/coupon/center')">
+        <image class="cell-icon" src="/static/tabbar/cell-coupon.png" mode="aspectFit" />
+        <text class="cell-label">领券中心</text><text class="chevron">›</text>
+      </view>
+      <view class="cell cell-divider" @tap="go('/pages/coupon/mine')">
+        <image class="cell-icon" src="/static/tabbar/cell-coupon.png" mode="aspectFit" />
+        <text class="cell-label">我的券包</text><text class="chevron">›</text>
+      </view>
       <view class="cell cell-divider" @tap="refresh">
         <image class="cell-icon" src="/static/tabbar/cell-sync.png" mode="aspectFit" />
         <text class="cell-label">刷新资料</text><text class="chevron">›</text>

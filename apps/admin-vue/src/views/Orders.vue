@@ -26,9 +26,9 @@
     <el-pagination class="pager" v-model:current-page="query.page" :page-size="query.pageSize" :total="total" layout="total, prev, pager, next" @current-change="load" />
 
     <el-dialog v-model="shipDialog" title="订单发货" width="480px" @closed="resetShipForm">
-      <el-form label-width="90px">
-        <el-form-item label="物流公司"><el-input v-model="shipForm.logisticsCompany" /></el-form-item>
-        <el-form-item label="运单号"><el-input v-model="shipForm.trackingNo" /></el-form-item>
+      <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="90px">
+        <el-form-item label="物流公司" prop="logisticsCompany"><el-input v-model="shipForm.logisticsCompany" maxlength="64" /></el-form-item>
+        <el-form-item label="运单号" prop="trackingNo"><el-input v-model="shipForm.trackingNo" maxlength="64" /></el-form-item>
         <el-form-item label="发货明细"><div class="muted">将按订单全部商品明细发货</div></el-form-item>
       </el-form>
       <template #footer><el-button @click="shipDialog = false">取消</el-button><el-button type="primary" :loading="shipping" @click="ship">确认发货</el-button></template>
@@ -40,10 +40,16 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { maxLengthRule, requiredRule, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const total = ref(0); const shipDialog = ref(false); const shipping = ref(false)
+const shipFormRef = ref(null)
 const query = reactive({ keyword: '', page: 1, pageSize: 10, status: null })
 const shipForm = reactive({ orderId: '', logisticsCompany: '', trackingNo: '' })
+const shipRules = {
+  logisticsCompany: [requiredRule('请输入物流公司'), maxLengthRule(64, '物流公司')],
+  trackingNo: [requiredRule('请输入运单号'), maxLengthRule(64, '运单号')]
+}
 const statusText = { 10: '待支付', 20: '已支付', 40: '已发货', 50: '已完成', 60: '已退款', 90: '已取消', 91: '已关闭' }
 
 const load = async () => {
@@ -56,7 +62,9 @@ const openShip = async row => {
 }
 const canShip = row => Number(row.orderStatus) === 20 && Boolean(Number(row.isPayment))
 const ship = async () => {
-  if (!shipForm.logisticsCompany || !shipForm.trackingNo) { ElMessage.warning('请输入物流公司和运单号'); return }
+  const valid = await shipFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  trimForm(shipForm)
   shipping.value = true
   try {
     const detail = await request.get('/orders/Detail', { params: { id: shipForm.orderId } })

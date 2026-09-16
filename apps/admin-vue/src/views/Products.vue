@@ -49,7 +49,7 @@ const absoluteUrl = url => !url || /^https?:/.test(url) ? url : `${apiBase.split
 const loadRefs = async () => {
   const [categoryData, merchantData] = await Promise.all([
     request.get('/products/GetCategoryTree'),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] }))
+    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   categories.value = categoryData || []
   merchants.value = merchantData.items || []

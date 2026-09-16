@@ -80,6 +80,10 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 - `ValidationBehavior`（MediatR 管道）自动执行；失败抛 `ValidationException`，全局中间件统一转 `400 + { code, message, errors: { 字段: [消息] } }`——前端 `request.js` 依赖该结构做字段级提示。
 - 正则/长度/必填/范围写 Validator；需查库的校验（唯一性、存在性）写 Handler。
 - 服务必须注册管道：`builder.AddMediatRWithHandlers(typeof(Xxx.Application.*).Assembly, typeof(ValidationBehavior<,>).Assembly);`
+- **覆盖要求**：每个写入口（Create/Update/Delete/审批/状态变更）与列表查询都必须有对应 Validator；列表分页统一 `Page>=1`、`PageSize 1-100`。新增接口时 Validator 与 Command 同目录同批提交。
+- **字段规则口径**（前后端一致）：手机号 `^1[3-9]\d{9}$`；邮箱 `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$`（或 `EmailAddress()`）；金额 `>0` 且最多两位小数；数量 `1-99`（交易链路）或 `1-10000`（库存明细）；字符串长度对齐实体 `[Column(StringLength = N)]`；原价 `0` 或 `>= 售价`。
+- **前端同步**：admin-vue 用 `src/utils/validators.js`、user-uniapp 用 `src/common/validators.js`（正则与规则工厂集中维护，禁止在页面里重复写正则）；提交前必须 `trim` 字符串字段，纯空格不得通过必填。
+- **两种 400 形态**：Validator 失败是 HTTP 400 + `errors`；控制器内联 `Error(BaseApiResponseCode.BadRequest, ...)` 是 HTTP 200 + `body.code=400`（用于无字段归属的守卫，如"缺平台/缺审核结论"）。
 
 ## 4. 仓储模式
 
@@ -137,6 +141,7 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 4. `IRequest<T>` 与 Handler 泛型必须一致（改返回类型时两处同步，否则 CS0311）。
 5. `IBaseRepository.UpdateAsync(entity)` 单参；带 CancellationToken 的重载是部分服务自定义接口才有的。
 
-## 7. 分层迁移完成度（2026-08-31）
+## 7. 分层迁移完成度（2026-09-16）
 
-UserService / PaymentService / OrderService / ProductService / MerchantPlatformService / PermissionService ✅ 已全部迁移；CustomerService ✅ 基准；保留例外：文件上传、AuthService（EF Core + OpenIddict）、`PlatformAppConfigController` 纯查询转发。
+UserService / PaymentService / OrderService / ProductService / MerchantPlatformService / PermissionService ✅ 已全部迁移；CustomerService ✅ 基准；MarketingService ✅ 新服务按四层落地（优惠计算集中在 `Application/Services/DiscountEngine`，跨服务调用走 gRPC + Consul）。
+保留例外：文件上传、AuthService（EF Core + OpenIddict）、`PlatformAppConfigController` 纯查询转发、Merchant/Platform 列表直查（控制器内联分页兜底）。

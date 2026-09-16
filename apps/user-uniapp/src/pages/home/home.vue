@@ -80,7 +80,11 @@ const goProduct = item => {
   if (!item.skus?.length) return uni.showToast({ title: '商品缺少SKU', icon: 'none' })
   uni.navigateTo({ url: `/pages/product/detail?id=${item.id}` })
 }
-const search = () => uni.navigateTo({ url: `/pages/category/category?keyword=${encodeURIComponent(keyword.value)}` })
+const search = () => {
+  const text = String(keyword.value || '').trim()
+  if (!text) return uni.showToast({ title: '请输入搜索关键词', icon: 'none' })
+  uni.navigateTo({ url: `/pages/category/category?keyword=${encodeURIComponent(text)}` })
+}
 
 const loadModules = async () => {
   for (const module of modules.value) {

@@ -24,7 +24,7 @@
           <el-col :span="12"><el-form-item label="名称" prop="name"><el-input v-model="roleForm.name" /></el-form-item></el-col>
         </el-row>
         <el-form-item label="范围"><el-radio-group v-model="roleForm.tenantType" :disabled="!!roleForm.id"><el-radio-button :value="1">平台</el-radio-button><el-radio-button :value="2">商户</el-radio-button></el-radio-group></el-form-item>
-        <el-form-item label="说明"><el-input v-model="roleForm.description" /></el-form-item>
+        <el-form-item label="说明" prop="description"><el-input v-model="roleForm.description" maxlength="255" show-word-limit /></el-form-item>
         <el-form-item label="全部权限"><el-checkbox v-model="allSelected" @change="toggleAll">选择当前范围内全部权限</el-checkbox></el-form-item>
         <el-form-item label="权限树"><el-tree ref="permissionTreeRef" :data="permissionTree" node-key="value" show-checkbox default-expand-all style="width:100%" @check="syncAllState" /></el-form-item>
       </el-form>
@@ -49,6 +49,7 @@
 import { ElMessage } from 'element-plus'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { maxLengthRule, trimForm } from '@/utils/validators'
 
 const permissions = ref([]); const roles = ref([])
 const roleDialog = ref(false); const permissionDialog = ref(false)
@@ -58,7 +59,8 @@ const roleForm = reactive({ id: 0, code: '', name: '', tenantType: 1, descriptio
 const permissionForm = reactive({ code: '', name: '', resource: '', action: '', interfacePath: '', allowedScopes: 3 })
 const roleRules = {
   code: [{ required: true, pattern: /^[a-z][a-z0-9-]{2,79}$/, message: '3-80位小写字母开头编码', trigger: 'blur' }],
-  name: [{ required: true, min: 2, max: 64, message: '角色名称必须为2-64个字符', trigger: 'blur' }]
+  name: [{ required: true, min: 2, max: 64, message: '角色名称必须为2-64个字符', trigger: 'blur' }],
+  description: [maxLengthRule(255, '角色说明')]
 }
 const permissionRules = {
   code: [{ required: true, pattern: /^[a-z][a-z0-9:-]{2,79}$/, message: '3-80位权限编码', trigger: 'blur' }],
@@ -124,6 +126,7 @@ const openEditRole = async row => {
 const saveRole = async () => {
   const valid = await roleFormRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
+  trimForm(roleForm)
   const selectedKeys = permissionTreeRef.value?.getCheckedKeys(false) || []
   roleForm.permissions = [...new Set(selectedKeys.map(String).filter(value => /^\d:/.test(value)).map(value => value.split(':').slice(1).join(':')))]
   if (formEditable.value && roleForm.id) await request.put(`/permissions/Roles/${roleForm.id}/Permissions`, roleForm)
@@ -135,6 +138,7 @@ const formEditable = computed(() => true)
 const createPermission = async () => {
   const valid = await permissionFormRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
+  trimForm(permissionForm)
   await request.post('/permissions/CreatePermission', permissionForm)
   ElMessage.success('权限已创建'); permissionDialog.value = false; load()
 }

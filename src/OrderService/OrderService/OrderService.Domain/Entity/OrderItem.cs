@@ -29,6 +29,17 @@ public sealed class OrderItem : BaseEntity
 
     [Description("购买数量")] public int Quantity { get; set; }
 
+    [Description("本行优惠金额（活动或券）")] public decimal DiscountAmount { get; set; }
+
+    [Description("命中营销类型 0无 1活动 2券")] public int MarketingType { get; set; }
+
+    [Description("活动ID或用户券ID")] public long MarketingId { get; set; }
+
+    [Column(StringLength = 64), Description("营销名称快照")]
+    public string MarketingName { get; set; } = string.Empty;
+
+    [Description("使用的用户券ID")] public long UserCouponId { get; set; }
+
     [Description("小计金额")] public decimal SubtotalAmount => Price * Quantity;
 }
 

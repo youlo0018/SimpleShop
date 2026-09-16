@@ -24,6 +24,9 @@ public sealed record CreateOrderCommand : IRequest<object>
     public string ReceiverAddress { get; init; } = string.Empty;
     public List<CreateOrderItem> Items { get; init; } = [];
     public List<OrderStockItem> StockItems { get; init; } = [];
+
+    /// <summary>提交页用户勾选使用的用户券；null=自动全部可用券，[]=不使用券。</summary>
+    public List<long>? SelectedUserCouponIds { get; init; }
 }
 
 public sealed record OrderStockItem

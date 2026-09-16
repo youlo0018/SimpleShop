@@ -39,7 +39,7 @@ onMounted(async () => {
   const [detail, categoryData, merchantData] = await Promise.all([
     request.get('/products/AdminDetail', { params: { id: route.params.id } }),
     request.get('/products/GetCategoryTree'),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] }))
+    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   product.value = detail.product; skus.value = detail.skus || []
   categories.value = categoryData || []; merchants.value = merchantData.items || []

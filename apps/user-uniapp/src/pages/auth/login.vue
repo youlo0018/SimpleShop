@@ -3,18 +3,25 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { post } from '@/common/request'
 import { setSession } from '@/common/store'
+import { trimStrings, validateLogin } from '@/common/validators'
 
 const form = reactive({ userName: '', password: '' })
+const submitting = ref(false)
 const goRegister = () => uni.navigateTo({ url: '/pages/auth/register' })
 const submit = async () => {
-  if (!form.userName || !form.password) return uni.showToast({ title: '请输入账号密码', icon: 'none' })
-  const data = await post('/users/Login', form)
-  setSession(data.token, data.user)
-  uni.showToast({ title: '登录成功' })
-  setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/profile/profile' }) }), 500)
+  if (submitting.value) return
+  trimStrings(form)
+  if (!validateLogin(form)) return
+  submitting.value = true
+  try {
+    const data = await post('/users/Login', form)
+    setSession(data.token, data.user)
+    uni.showToast({ title: '登录成功' })
+    setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/profile/profile' }) }), 500)
+  } finally { submitting.value = false }
 }
 </script>
 

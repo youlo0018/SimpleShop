@@ -75,13 +75,18 @@ static async Task SeedAsync(WebApplication app)
         ("platform:read", "查询平台", "platform", "read", 1),
         ("platform:create", "创建平台", "platform", "create", 1),
         ("report:read", "查看业务报表", "report", "read", 3),
+        ("marketing:read", "查看营销活动", "marketing", "read", 3),
+        ("marketing:create", "管理营销活动", "marketing", "create", 3),
         ("permission:manage", "管理角色权限", "permission", "manage", 1)
     };
 
-    var existingPermissionCodes = (await freeSql.Select<Permission>().ToListAsync()).Select(item => item.Code).ToHashSet();
-    var permissionEntities = permissions.Where(item => !existingPermissionCodes.Contains(item.Code)).Select((item, index) => new Permission
+    var existingPermissions = await freeSql.Select<Permission>().ToListAsync();
+    var existingPermissionCodes = existingPermissions.Select(item => item.Code).ToHashSet();
+    // 主键从当前最大 Id 递增：种子阶段雪花生成器尚未就绪，不能依赖 AOP 自动 Id（曾导致新增权限撞主键）。
+    var nextPermissionId = existingPermissions.Count == 0 ? 1 : existingPermissions.Max(item => item.Id) + 1;
+    var permissionEntities = permissions.Where(item => !existingPermissionCodes.Contains(item.Code)).Select(item => new Permission
     {
-        Id = index + 1, Code = item.Code, Name = item.Name, Resource = item.Resource, Action = item.Action, AllowedScopes = item.AllowedScopes
+        Id = nextPermissionId++, Code = item.Code, Name = item.Name, Resource = item.Resource, Action = item.Action, AllowedScopes = item.AllowedScopes
     }).ToList();
     if (permissionEntities.Count > 0) await freeSql.Insert(permissionEntities).ExecuteAffrowsAsync();
     var scopeMap = permissions.ToDictionary(item => item.Code, item => item.AllowedScopes);
@@ -98,11 +103,11 @@ static async Task SeedAsync(WebApplication app)
     var roleSeeds = new (string Code, string Name, TenantType Type, string Description, string[] Codes)[]
     {
         ("platform-admin", "平台管理员", TenantType.Platform, "拥有平台内全部权限", ["*"]),
-        ("platform-operator", "平台业务员", TenantType.Platform, "维护商品、商户并审批退款", ["dashboard:view", "product:read", "product:create", "product:publish", "category:read", "category:create", "merchant:read", "merchant:create", "merchant:review", "refund:read", "refund:approve"]),
-        ("platform-finance", "平台财务", TenantType.Platform, "只读订单、退款和经营报表", ["dashboard:view", "order:read", "refund:read", "report:read"]),
-        ("merchant-admin", "商户管理员", TenantType.Merchant, "管理本商户商品、订单和退款", ["dashboard:view", "product:read", "product:create", "product:publish", "order:read", "order:ship", "refund:read", "refund:approve"]),
-        ("merchant-operator", "商户业务员", TenantType.Merchant, "维护本商户商品和订单", ["product:read", "product:create", "product:publish", "order:read", "order:ship"]),
-        ("merchant-finance", "商户财务", TenantType.Merchant, "只读本商户订单、退款和报表", ["dashboard:view", "order:read", "refund:read", "report:read"])
+        ("platform-operator", "平台业务员", TenantType.Platform, "维护商品、商户并审批退款", ["dashboard:view", "product:read", "product:create", "product:publish", "category:read", "category:create", "merchant:read", "merchant:create", "merchant:review", "refund:read", "refund:approve", "marketing:read", "marketing:create"]),
+        ("platform-finance", "平台财务", TenantType.Platform, "只读订单、退款和经营报表", ["dashboard:view", "order:read", "refund:read", "report:read", "marketing:read"]),
+        ("merchant-admin", "商户管理员", TenantType.Merchant, "管理本商户商品、订单和退款", ["dashboard:view", "product:read", "product:create", "product:publish", "order:read", "order:ship", "refund:read", "refund:approve", "marketing:read", "marketing:create"]),
+        ("merchant-operator", "商户业务员", TenantType.Merchant, "维护本商户商品和订单", ["product:read", "product:create", "product:publish", "order:read", "order:ship", "marketing:read"]),
+        ("merchant-finance", "商户财务", TenantType.Merchant, "只读本商户订单、退款和报表", ["dashboard:view", "order:read", "refund:read", "report:read", "marketing:read"])
     };
     var existingRoles = await freeSql.Select<Role>().ToListAsync();
     var permissionMap = (await freeSql.Select<Permission>().ToListAsync()).ToDictionary(item => item.Code, item => item.Id);

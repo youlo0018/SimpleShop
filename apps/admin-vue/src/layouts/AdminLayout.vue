@@ -34,6 +34,11 @@
             <el-menu-item v-if="allow('platform:update')" index="/app-design"><el-icon><Cellphone /></el-icon><span>小程序装修</span></el-menu-item>
           </template>
 
+          <template v-if="allow('marketing:read')">
+            <p class="menu-group">营销</p>
+            <el-menu-item index="/marketing"><el-icon><PriceTag /></el-icon><span>营销管理</span></el-menu-item>
+          </template>
+
           <template v-if="allow('permission:manage')">
             <p class="menu-group">系统</p>
             <el-menu-item index="/permissions"><el-icon><Key /></el-icon><span>角色权限</span></el-menu-item>
@@ -67,7 +72,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Cellphone, Collection, Goods, Key, List, Odometer, OfficeBuilding,
-  RefreshLeft, Shop, SwitchButton, User
+  PriceTag, RefreshLeft, Shop, SwitchButton, User
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { hasPermission as allow } from '@/utils/permission'

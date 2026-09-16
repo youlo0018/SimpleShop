@@ -31,6 +31,8 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
     {
         if (string.IsNullOrWhiteSpace(platformCode))
             return Error(BaseApiResponseCode.BadRequest, "缺少平台编码");
+        if (platformCode.Trim().Length > 64)
+            return Error(BaseApiResponseCode.BadRequest, "平台编码过长");
 
         var code = platformCode.Trim();
         var platform = await freeSql.Select<Platform>()
@@ -76,6 +78,12 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
     [HttpPost]
     public async Task<ApiResponse> Save([FromBody] SavePlatformAppConfigRequest request)
     {
+        // 配置为空会让 JsonDocument.Parse 抛 ArgumentNullException 变 500；大小上限防止超大 JSON 落库。
+        if (string.IsNullOrWhiteSpace(request.ConfigJson))
+            return Error(BaseApiResponseCode.BadRequest, "页面配置不能为空");
+        if (request.ConfigJson.Length > 100 * 1024)
+            return Error(BaseApiResponseCode.BadRequest, "页面配置不能超过100KB");
+
         JsonDocument parsed;
         try
         {

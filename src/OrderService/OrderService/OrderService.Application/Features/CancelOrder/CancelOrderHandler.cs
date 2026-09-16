@@ -1,6 +1,7 @@
 using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
+using CommunalService.Domain.Messaging;
 using MediatR;
 using OrderService.Domain.Entity;
 using OrderService.Domain.IRepository;
@@ -10,7 +11,8 @@ namespace OrderService.Application.Features.CancelOrder;
 public sealed class CancelOrderHandler(
     IOrderRepository repository,
     TenantContext tenant,
-    IDistributedLock distributedLock)
+    IDistributedLock distributedLock,
+    IMessagePublisher messagePublisher)
     : IRequestHandler<CancelOrderCommand, ApiResponse>
 {
     public async Task<ApiResponse> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
@@ -55,8 +57,25 @@ public sealed class CancelOrderHandler(
             requireCustomerId: !request.OverrideCustomerScope,
             cancellationToken);
 
-        return cancelled
-            ? ApiResults.Ok(new { success = true, orderId = order.Id, status = (int)OrderState.Cancelled })
-            : ApiResults.Fail(BaseApiResponseCode.BadRequest, "当前订单状态不可取消");
+        if (!cancelled)
+            return ApiResults.Fail(BaseApiResponseCode.BadRequest, "当前订单状态不可取消");
+
+        // 发布取消事件：营销服务据此回退券占用（营销侧幂等，重复投递无副作用）。
+        await messagePublisher.PublishAsync(
+            "order.cancelled",
+            order.OrderNo,
+            new MessageEnvelope<object>(
+                Guid.NewGuid(),
+                "order.cancelled",
+                DateTimeOffset.UtcNow,
+                Guid.NewGuid().ToString("N"),
+                order.PlatformId,
+                order.MerchantId,
+                order.CustomerId,
+                1,
+                new { orderId = order.Id, orderNo = order.OrderNo, reason = request.Reason }),
+            cancellationToken);
+
+        return ApiResults.Ok(new { success = true, orderId = order.Id, status = (int)OrderState.Cancelled });
     }
 }

@@ -1,11 +1,11 @@
 <template>
   <div class="login-page">
-    <el-form class="login-card" @submit.prevent="submit">
+    <el-form ref="formRef" class="login-card" :model="form" :rules="rules" @submit.prevent="submit">
       <div class="login-mark">S</div>
       <h1>SimpleShop 运营后台</h1>
       <p class="login-sub">登录以管理平台、商户与订单</p>
-      <el-form-item><el-input v-model="form.userName" placeholder="用户名" size="large" autocomplete="username" /></el-form-item>
-      <el-form-item><el-input v-model="form.password" type="password" placeholder="密码" size="large" show-password autocomplete="current-password" /></el-form-item>
+      <el-form-item prop="userName"><el-input v-model="form.userName" placeholder="用户名" size="large" autocomplete="username" /></el-form-item>
+      <el-form-item prop="password"><el-input v-model="form.password" type="password" placeholder="密码" size="large" show-password autocomplete="current-password" /></el-form-item>
       <el-button type="primary" size="large" :loading="loading" native-type="submit">登 录</el-button>
       <p class="login-foot">© 2026 SimpleShop</p>
     </el-form>
@@ -13,19 +13,26 @@
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/api/request'
 import { useAuthStore } from '@/stores/auth'
+import { requiredRule, lengthRule, trimForm } from '@/utils/validators'
 
 const form = reactive({ userName: '', password: '' })
 const loading = ref(false)
 const router = useRouter()
 const auth = useAuthStore()
+const formRef = ref(null)
+const rules = {
+  userName: [requiredRule('请输入用户名'), lengthRule(3, 64, '用户名')],
+  password: [requiredRule('请输入密码')]
+}
 
 async function submit() {
-  if (!form.userName || !form.password) return ElMessage.warning('请输入账号密码')
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+  trimForm(form)
   loading.value = true
   try {
     const data = await request.post('/users/Login', form)

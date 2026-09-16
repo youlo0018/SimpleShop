@@ -23,6 +23,9 @@ public class MerchantController(IMediator mediator, IFreeSql freeSql, TenantCont
     [HttpGet]
     public async Task<ApiResponse> List([FromQuery] MerchantListQuery query)
     {
+        // 该控制器为分页直查例外，分页参数在此兜底，避免一次拉取过大结果集。
+        if (query.Page < 1 || query.PageSize < 1 || query.PageSize > 100)
+            return Error(BaseApiResponseCode.BadRequest, "分页参数不正确（页码≥1，每页1-100）");
         var selection = freeSql.Select<Merchant>()
             .Where(merchant => !merchant.IsDeleted)
             .WhereIf(!string.IsNullOrWhiteSpace(query.Keyword), merchant =>
@@ -52,6 +55,10 @@ public class MerchantController(IMediator mediator, IFreeSql freeSql, TenantCont
     [HttpPost]
     public async Task<ApiResponse> Review([FromBody] MerchantReviewRequest request)
     {
+        // 审核结论必须显式给出，避免两个字段都缺省时被当成"拒绝"误处理；其余字段由 ReviewMerchantValidator 校验。
+        if (request.Id <= 0) return Error(BaseApiResponseCode.BadRequest, "商户不能为空");
+        if (request.Approved is null && request.Status is null)
+            return Error(BaseApiResponseCode.BadRequest, "请提交审核结论");
         // 兼容旧前端传状态数字；新前端可以只传 Approved，最终都转为明确审核结论。
         var approved = request.Approved ?? request.Status == (int)MerchantStatus.Approved;
         return Ok(await mediator.Send(new ReviewMerchantCommand { Id = request.Id, Approved = approved, Reason = request.Reason }, CancellationToken.None));

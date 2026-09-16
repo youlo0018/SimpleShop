@@ -10,7 +10,15 @@
     <view v-if="detail" class="mask" @tap="detail = null"><view class="sheet safe-bottom" @tap.stop>
       <view class="title">订单详情</view>
       <view class="kv"><text>订单号</text><b>{{ detail.orderNo }}</b></view><view class="kv"><text>状态</text><b>{{ status(detail) }}</b></view>
-      <view v-for="item in detail.items || []" :key="item.id" class="goods"><text>{{ item.productName }} ×{{ item.quantity }}</text><b>¥{{ item.subtotalAmount }}</b></view>
+      <view v-for="item in detail.items || []" :key="item.id" class="goods">
+        <view class="goods-main"><text>{{ item.productName }} ×{{ item.quantity }}</text><b>¥{{ Number(item.price * item.quantity).toFixed(2) }}</b></view>
+        <view v-if="Number(item.discountAmount) > 0" class="goods-promo">
+          <text class="promo-type">{{ Number(item.marketingType) === 2 ? '券' : '活动' }}：{{ item.marketingName }}</text>
+          <text class="promo-cut">-¥{{ Number(item.discountAmount).toFixed(2) }}</text>
+        </view>
+      </view>
+      <view v-if="Number(detail.allDiscountPrice) > 0" class="kv discount-total"><text>优惠合计</text><b class="promo-cut">-¥{{ Number(detail.allDiscountPrice).toFixed(2) }}</b></view>
+      <view class="kv"><text>实付金额</text><b>¥{{ Number(detail.paymentPrice).toFixed(2) }}</b></view>
       <view class="kv"><text>收货人</text><b>{{ detail.receiverName }} {{ detail.receiverPhone }}</b></view><view class="addr">{{ detail.receiverAddress }}</view>
       <button v-if="[20,40,50].includes(Number(detail.orderStatus))" class="submit" @tap.stop="refund">申请退款</button>
     </view></view>
@@ -44,8 +52,16 @@ const show = async order => {
   detail.value = { ...result.order, items: result.items || [] }
 }
 const refund = async () => {
+  const amount = Number(detail.value.paymentPrice)
+  if (!Number.isFinite(amount) || amount <= 0) return uni.showToast({ title: '退款金额不正确', icon: 'none' })
+  if (!(detail.value.items || []).length) return uni.showToast({ title: '订单明细为空', icon: 'none' })
+  const confirmed = await new Promise(resolve => uni.showModal({
+    title: '申请退款', content: `确认申请退款 ¥${amount.toFixed(2)}？`,
+    success: result => resolve(result.confirm), fail: () => resolve(false)
+  }))
+  if (!confirmed) return
   await post('/payments/Refund', {
-    bizNo: detail.value.orderNo, amount: Number(detail.value.paymentPrice), reason: '用户申请退款',
+    bizNo: detail.value.orderNo, amount, reason: '用户申请退款',
     items: (detail.value.items || []).map(item => ({ skuId: item.skuId, quantity: Number(item.quantity) }))
   })
   uni.showToast({ title: '退款申请已提交' }); detail.value = null; load()
@@ -64,4 +80,9 @@ onShow(load)
 .foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18rpx; font-variant-numeric: tabular-nums; } .foot b { color: #1d1d1f; font-size: 32rpx; font-weight: 700; }
 .mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; } .sheet { width: 100%; background: #fff; border-radius: 32rpx 32rpx 0 0; padding: 38rpx; line-height: 2; }
 .title { font-size: 34rpx; font-weight: 700; letter-spacing: -.01em; text-align: center; margin-bottom: 20rpx; } .kv { display: flex; justify-content: space-between; } .kv text { color: #86868b; } .goods { display: flex; justify-content: space-between; margin: 16rpx 0; }
-.addr { color: #86868b; } .submit { margin-top: 22rpx; background: #0071e3; color: #fff; }</style>
+.addr { color: #86868b; }
+.goods-main { display: flex; justify-content: space-between; }
+.goods-promo { display: flex; justify-content: space-between; font-size: 22rpx; margin-top: 4rpx; }
+.promo-type { color: #86868b; }
+.promo-cut { color: #ff3b30; font-weight: 600; }
+.discount-total b { color: #ff3b30; } .submit { margin-top: 22rpx; background: #0071e3; color: #fff; }</style>

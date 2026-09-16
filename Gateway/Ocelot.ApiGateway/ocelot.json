@@ -99,6 +99,14 @@
       "DownstreamPathTemplate": "/api/log/{everything}",
       "ServiceName": "LogService"
     }
+    ,
+    {
+      "UpstreamPathTemplate": "/gateway/marketing/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamPathTemplate": "/api/Marketing/{everything}",
+      "ServiceName": "MarketingService"
+    }
   ],
   "GlobalConfiguration": {
     "BaseUrl": "http://localhost:5008",

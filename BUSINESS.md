@@ -23,6 +23,7 @@
 | Inventory | 5062 | 5063 | simpleshopinventory | 库存锁定/扣减/释放 + 流水防重 |
 | Order | 5064 | 5002 | simpleshoporder | 幂等下单、订单查询、发货/签收/取消、报表 |
 | Payment | 5066 | 5066 | simpleshoppayment | 支付单、模拟确认、退款单与审批 |
+| Marketing | 5072 | 5073 | simpleshopmarketing | 活动（满减/满折/满赠）、券模板/券活动/领券中心/券包、优惠计算、效果报表 |
 | MerchantPlatform | 5070 | 5070 | simpleshopmerchant | 商户/平台管理 + 小程序装修配置 |
 | Scheduled | - | - | simpleshopscheduled + simpleshoporder | 独立定时进程：支付超时关单 + 库存释放补偿 |
 | Log | 5088 | - | Elasticsearch | 消费 pv/operation/exception 日志 → ES（带 DLQ） |
@@ -51,9 +52,25 @@
 ### 4.1 购物主链路（C 端）
 ```
 注册/登录 → 选平台（小程序按平台下发装修）→ 浏览/搜索 → 商品详情选 SKU
-→ 加购 → 结算（选地址）→ 下单（幂等+锁库存）→ 支付（模拟确认）
-→ 支付成功事件 → 订单已支付 + 库存扣减 → 商户发货 → 用户签收 → 完成
+→ 加购（展示自动最优优惠金额）→ 结算（选地址 + 勾选用券，金额随优惠浮动）
+→ 下单（幂等 → 营销结算占券 → 锁库存 → 落单 → 写营销记录）→ 支付（模拟确认，按实付金额）
+→ 支付成功事件 → 订单已支付 + 库存扣减 + 满赠发券 → 商户发货 → 用户签收 → 完成
 ```
+
+### 4.5 营销优惠（活动 + 券）
+```
+运营配置：平台/商户活动（满减/满折/满赠）、平台/商户券模板、券活动（可领/满赠）、
+         营销配置（活动优先 / 券优先，默认券优先）
+用户：领券中心领券 → 券包（领取后 N 天有效）
+结算：逐商品贪心取最优优惠；每个商品只能命中一个活动或一张券（互斥）；
+      优先级按平台配置：券优先=先取最优券，无券才活动；活动优先反之；
+      满赠折扣为 0，只在无任何折扣可用时命中（满 1 元赠券等）；
+      0元减：优惠额必须小于商品行金额（券后价 > 0）；单行最多抵扣到 0.01 元
+下单：以服务端结算结果为准写订单（总价/活动折扣/券折扣/实付 + 明细营销快照），
+      支付成功后退款上限按实付；订单取消/关单回退券占用
+报表：活动/券效果（参与订单数、折扣总额、赠券数）与订单/商品下钻明细
+```
+
 
 ### 4.2 退款链路
 ```
@@ -90,6 +107,7 @@
 | Order | Order, OrderItem, Shipment, ShipmentItem | 订单含收货快照与幂等键；状态机见 `OrderState` |
 | Payment | PaymentOrder, RefundOrder, RefundOrderItem | 支付单 BizNo 唯一；退款累计限额 |
 | MerchantPlatform | Platform, Merchant, PlatformConfig, PlatformAppConfig | 装修配置带发布版本 |
+| Marketing | MarketingActivity(+Target), CouponTemplate, CouponActivity(+Target), UserCoupon, MarketingActivityRecord(+Item), CouponRecord(+Item), MarketingConfig | 活动范围/参与记录、券包与核销记录、每平台优惠优先级 |
 
 ## 7. 事件与锁（跨服务协同）
 
@@ -97,9 +115,9 @@
 
 | Topic | 生产者 | 消费者 |
 |-------|--------|--------|
-| `payment.succeeded` | 支付确认（幂等补发） | OrderService（标记已支付）、InventoryService（扣库存） |
 | `payment.refunded` | 退款审批 | OrderService（订单已退款）、InventoryService（回补库存） |
-| `order.created` / `order.cancelled` | 下单 / 超时关单 | 预留（暂无消费者） |
+| `order.created` / `order.cancelled` | 下单 / 超时关单 + 主动取消 | MarketingService（cancelled：回退券占用；created 仍无消费者） |
+| `payment.succeeded` | 支付确认（幂等补发） | OrderService（标记已支付）、InventoryService（扣库存）、MarketingService（满赠发券） |
 | `product.created` | 创建商品 | InventoryService（初始化库存） |
 | `pv.log` / `operation.log` / `exception.log` | PV 中间件 / OperationLogger / 异常中间件 | LogService → ES |
 
@@ -116,6 +134,6 @@
 ## 8. 前端
 
 - **管理后台** `apps/admin-vue/`（Vue3 + Element Plus，Apple 风格设计系统在 `src/styles.css`）：http://127.0.0.1:5173 ，账号 `codexadmin / Admin123456`。路由按 `meta.permission` 守卫。
-- **商城端** `apps/user-uniapp/`（UniApp，Apple 风格）：H5 http://127.0.0.1:5174 ，同源码构建微信小程序（`dist/build/mp-weixin`）。进入先选平台；主题按平台配置动态生效。
+- **商城端** `apps/user-uniapp/`（UniApp，Apple 风格）：H5 http://127.0.0.1:5174 ，同源码构建微信小程序（`dist/build/mp-weixin`）。进入先选平台；主题按平台配置动态生效；「我的」含领券中心/我的券包，购物车与提交页展示优惠与券勾选。
 - 雪花 ID 以字符串传输，前端禁止 `Number()` 转 ID。
 - 项目路径含 `#`：Vite dev-server 会白屏，必须构建 + preview。

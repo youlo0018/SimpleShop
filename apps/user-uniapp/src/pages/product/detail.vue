@@ -6,22 +6,45 @@
       <view class="name">{{ product.name }}</view>
       <view class="desc" v-html="product.description || '本平台精选商品'"></view>
     </view>
-    <view class="card"><view class="section">选择规格</view><view class="skus"><view v-for="sku in product.skus || []" :key="sku.id" :class="['sku', selected?.id === sku.id && 'on']" :style="selected?.id === sku.id && { color: theme.primary, borderColor: theme.primary }" @tap="selected = sku"><text class="spec">{{ sku.specName || '规格' }}：{{ sku.specValue || sku.skuCode }}</text><text>¥{{ sku.price }} / 库存{{ sku.stock }}</text></view></view><view class="qty"><text>数量</text><view class="stepper"><text @tap="quantity > 1 && quantity--">-</text><input v-model="quantity" type="number" /><text @tap="quantity++">+</text></view></view></view>
+    <view class="card"><view class="section">选择规格</view><view class="skus"><view v-for="sku in product.skus || []" :key="sku.id" :class="['sku', selected?.id === sku.id && 'on']" :style="selected?.id === sku.id && { color: theme.primary, borderColor: theme.primary }" @tap="selected = sku"><text class="spec">{{ sku.specName || '规格' }}：{{ sku.specValue || sku.skuCode }}</text><text>¥{{ sku.price }} / 库存{{ sku.stock }}</text></view></view><view class="qty"><text>数量</text><view class="stepper"><text @tap="stepDown">-</text><input v-model="quantity" type="number" @blur="normalizeQuantity" /><text @tap="stepUp">+</text></view></view></view>
     <view class="actions safe-bottom"><button class="ghost" @tap="addToCart">加入购物车</button><button class="primary" :style="{ background: theme.primary }" @tap="buyNow">立即购买</button></view>
   </view>
 </template>
 
 <script setup>
 import { onLoad } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { get, post } from '@/common/request'
 import { getTheme, requireLogin } from '@/common/store'
+import { toast, validateQuantity } from '@/common/validators'
 
 const fallback = 'https://dummyimage.com/750x750/edf2f7/94a3b8&text=Product'
 const theme = ref(getTheme()); const product = ref({}); const selected = ref(null); const quantity = ref(1)
 
+// 购买数量上限 = min(库存, 99)：99 与下单/支付/库存链路的后端上限一致。
+const maxQuantity = computed(() => Math.min(99, Number(selected.value?.stock || 0)))
+const stepDown = () => { if (Number(quantity.value) > 1) quantity.value = Number(quantity.value) - 1 }
+const stepUp = () => {
+  const next = Number(quantity.value || 0) + 1
+  if (!validateQuantity(next)) return
+  if (next > maxQuantity.value) return uni.showToast({ title: `不能超过库存 ${maxQuantity.value}`, icon: 'none' })
+  quantity.value = next
+}
+const normalizeQuantity = () => {
+  const value = Math.floor(Number(quantity.value) || 1)
+  quantity.value = Math.max(1, Math.min(maxQuantity.value || 1, value))
+}
+const checkQuantity = () => {
+  if (!selected.value) return toast('请选择规格')
+  if (Number(selected.value.stock) <= 0) return toast('该规格库存不足')
+  if (!validateQuantity(quantity.value)) return false
+  if (Number(quantity.value) > maxQuantity.value) return toast(`数量不能超过库存 ${maxQuantity.value}`)
+  return true
+}
+
 const addToCart = async () => {
-  if (!requireLogin() || !selected.value) return
+  if (!requireLogin()) return
+  if (!checkQuantity()) return
   await post('/carts/Add', {
     userId: 0, productId: product.value.id, skuId: selected.value.id, merchantId: selected.value.merchantId,
     platformId: selected.value.platformId, productName: product.value.name,
@@ -30,7 +53,8 @@ const addToCart = async () => {
   uni.showToast({ title: '已加入购物车' })
 }
 const buyNow = () => {
-  if (!requireLogin() || !selected.value) return
+  if (!requireLogin()) return
+  if (!checkQuantity()) return
   uni.setStorageSync('checkout', [{
     skuId: selected.value.id, productId: product.value.id, merchantId: selected.value.merchantId,
     platformId: selected.value.platformId, productName: product.value.name, mainImage: product.value.mainImage,

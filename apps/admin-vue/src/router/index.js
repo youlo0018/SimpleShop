@@ -22,6 +22,7 @@ const routes = [
       { path: 'merchants', component: () => import('@/views/Merchants.vue'), meta: { title: '商户管理', permission: 'merchant:read' } },
       { path: 'platforms', component: () => import('@/views/Platforms.vue'), meta: { title: '平台管理', permission: 'platform:read' } },
       { path: 'app-design', component: () => import('@/views/AppDesign.vue'), meta: { title: '小程序装修', permission: 'platform:update' } },
+      { path: 'marketing', component: () => import('@/views/Marketing.vue'), meta: { title: '营销管理', permission: 'marketing:read' } },
       { path: 'permissions', component: () => import('@/views/Permissions.vue'), meta: { title: '角色权限', permission: 'permission:manage' } }
     ]
   }
@@ -29,9 +30,28 @@ const routes = [
 
 const router = createRouter({ history: createWebHashHistory(), routes })
 
+const isTokenExpired = (token) => {
+  try {
+    const part = token.split('.')[1] || ''
+    const bytes = Uint8Array.from(atob(part.replace(/-/g, '+').replace(/_/g, '/')), (char) => char.charCodeAt(0))
+    const payload = JSON.parse(new TextDecoder().decode(bytes))
+    return payload.exp ? payload.exp * 1000 <= Date.now() : false
+  } catch {
+    return true
+  }
+}
+
 router.beforeEach((to) => {
   document.title = `${to.meta.title || 'SimpleShop'} - 运营后台`
-  if (to.path !== '/login' && !localStorage.getItem('admin_token')) return '/login'
+  if (to.path !== '/login') {
+    const token = localStorage.getItem('admin_token')
+    if (!token) return '/login'
+    if (isTokenExpired(token)) {
+      localStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_user')
+      return '/login'
+    }
+  }
   if (to.meta.permission && !hasPermission(to.meta.permission)) return '/dashboard'
 })
 

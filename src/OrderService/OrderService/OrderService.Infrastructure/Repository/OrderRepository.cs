@@ -1,10 +1,11 @@
 ﻿using OrderService.Domain.Entity;
 using OrderService.Domain.IRepository;
+using CommunalService.Domain.Contracts.Messages;
 using OrderService.Infrastructure.ExternalServices;
 
 namespace OrderService.Infrastructure.Repository;
 
-public class OrderRepository(IFreeSql freeSql, InventoryClient inventoryClient) : IOrderRepository
+public class OrderRepository(IFreeSql freeSql, InventoryClient inventoryClient, MarketingClient marketingClient) : IOrderRepository
 {
     public async Task<bool> LockStockAsync(string orderNo, IReadOnlyCollection<OrderStockRequestItem> items, CancellationToken cancellationToken = default)
     {
@@ -148,4 +149,13 @@ public class OrderRepository(IFreeSql freeSql, InventoryClient inventoryClient) 
             .Page(Math.Max(page, 1), pageSize).ToListAsync();
         return (items, total);
     }
+
+    public async Task<MarketingSettleResponse?> SettleMarketingAsync(MarketingSettleRequest request, CancellationToken cancellationToken = default)
+        => await marketingClient.SettleAsync(request, cancellationToken);
+
+    public async Task<bool> CommitMarketingAsync(MarketingCommitRequest request, CancellationToken cancellationToken = default)
+        => await marketingClient.CommitAsync(request, cancellationToken);
+
+    public async Task ReleaseMarketingAsync(string orderNo, CancellationToken cancellationToken = default)
+        => await marketingClient.ReleaseAsync(orderNo, cancellationToken);
 }

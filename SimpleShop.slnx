@@ -39,6 +39,12 @@
   <Folder Name="/src/LogService/">
     <Project Path="src/LogService/LogService.Api/LogService.Api.csproj" />
   </Folder>
+  <Folder Name="/src/MarketingService/">
+    <Project Path="src/MarketingService/MarketingService.Api/MarketingService.Api.csproj" />
+    <Project Path="src/MarketingService/MarketingService.Application/MarketingService.Application.csproj" />
+    <Project Path="src/MarketingService/MarketingService.Domain/MarketingService.Domain.csproj" />
+    <Project Path="src/MarketingService/MarketingService.Infrastructure/MarketingService.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/MerchantPlatformService/">
     <Project Path="src/MerchantPlatformService/MerchantPlatformService.Api/MerchantPlatformService.Api.csproj" />
     <Project Path="src/MerchantPlatformService/MerchantPlatformService.Application/MerchantPlatformService.Application.csproj" />

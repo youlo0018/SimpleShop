@@ -33,15 +33,16 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { EMAIL_PATTERN, PLATFORM_CODE_PATTERN, optionalPattern, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const total = ref(0); const dialog = ref(false); const formRef = ref(null)
 const query = reactive({ keyword: '', page: 1, pageSize: 10 })
 const emptyForm = () => ({ id: 0, platformCode: '', platformName: '', contactEmail: '', defaultCommissionRate: 5 })
 const form = reactive(emptyForm())
 const rules = {
-  platformCode: [{ required: true, pattern: /^[a-zA-Z][a-zA-Z0-9_-]{2,31}$/, message: '3-32位字母开头，可用数字、横线、下划线', trigger: 'blur' }],
+  platformCode: [{ required: true, message: '请输入平台编码', trigger: 'blur' }, optionalPattern(PLATFORM_CODE_PATTERN, '3-32位字母开头，可用数字、横线、下划线')],
   platformName: [{ required: true, min: 2, max: 64, message: '平台名称必须为2-64个字符', trigger: 'blur' }],
-  contactEmail: [{ required: true, type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  contactEmail: [{ required: true, message: '请输入联系邮箱', trigger: 'blur' }, optionalPattern(EMAIL_PATTERN, '邮箱格式不正确')],
   defaultCommissionRate: [{ required: true, message: '请输入佣金率', trigger: 'change' }]
 }
 
@@ -53,6 +54,7 @@ const toggle = async row => { await request.post('/platforms/SetEnabled', { id: 
 const save = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
+  trimForm(form)
   if (form.id) await request.put(`/platforms/Edit/${form.id}`, form)
   else await request.post('/platforms/Create', form)
   ElMessage.success('已保存'); dialog.value = false; load()

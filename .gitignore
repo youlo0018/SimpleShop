@@ -139,3 +139,6 @@ _NCrunch*s
 # Frontend dependencies and generated bundles
 node_modules/
 dist/
+
+# 运行时日志与进程 pid（不入库）
+logs/runtime/

@@ -48,11 +48,20 @@ def draw_sync(d):
     d.polygon([(34, 76), (20, 66), (36, 58)], fill="white")
 
 
+def draw_coupon(d):
+    """优惠券：票券轮廓 + 中间虚线 + 两侧缺口"""
+    d.rounded_rectangle((14, 30, 82, 68), radius=10, width=W, outline="white")
+    d.line([(48, 32), (48, 66)], fill="white", width=4)
+    d.ellipse((44, 24, 52, 32), fill=(0, 0, 0, 0))
+    d.ellipse((44, 66, 52, 74), fill=(0, 0, 0, 0))
+
+
 ICONS = {
     "order": ("#0071e3", draw_order),   # 蓝
     "pin": ("#ff3b30", draw_pin),       # 红（类地图）
     "cart": ("#ff9500", draw_cart),     # 橙
     "sync": ("#34c759", draw_sync),     # 绿
+    "coupon": ("#5e5ce6", draw_coupon), # 紫（营销）
 }
 
 for name, (color, painter) in ICONS.items():

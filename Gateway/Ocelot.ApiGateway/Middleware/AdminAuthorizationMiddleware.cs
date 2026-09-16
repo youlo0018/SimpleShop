@@ -50,7 +50,14 @@ public sealed class AdminAuthorizationMiddleware(
         ["/gateway/platform-configs/Save"] = "platform:update",
         ["/gateway/users/Create"] = "user:create",
         ["/gateway/users/Update"] = "user:update-status",
-        ["/gateway/users/UpdateStatus"] = "user:update-status"
+        ["/gateway/users/UpdateStatus"] = "user:update-status",
+        ["/gateway/marketing/SaveActivity"] = "marketing:create",
+        ["/gateway/marketing/SetActivityEnabled"] = "marketing:create",
+        ["/gateway/marketing/SaveCouponTemplate"] = "marketing:create",
+        ["/gateway/marketing/SetCouponTemplateEnabled"] = "marketing:create",
+        ["/gateway/marketing/SaveCouponActivity"] = "marketing:create",
+        ["/gateway/marketing/SetCouponActivityEnabled"] = "marketing:create",
+        ["/gateway/marketing/SaveConfig"] = "marketing:create"
     };
 
     private const string CatalogCacheKey = "permission-interface-catalog";
@@ -122,6 +129,8 @@ public sealed class AdminAuthorizationMiddleware(
             return "permission:manage";
         if (context.Request.Path.Equals("/gateway/logs", StringComparison.OrdinalIgnoreCase))
             return "report:read";
+        if (context.Request.Path.StartsWithSegments("/gateway/reports"))
+            return "dashboard:view";
         if (ProtectedActions.TryGetValue(context.Request.Path.Value?.TrimEnd('/') ?? "", out var action))
             return action;
 
@@ -134,6 +143,7 @@ public sealed class AdminAuthorizationMiddleware(
             if (context.Request.Path.StartsWithSegments("/gateway/platforms")) return "platform:read";
             if (context.Request.Path.StartsWithSegments("/gateway/permissions")) return "permission:manage";
             if (context.Request.Path.StartsWithSegments("/gateway/logs")) return "report:read";
+            if (context.Request.Path.StartsWithSegments("/gateway/marketing")) return "marketing:read";
         }
         return null;
 
@@ -178,10 +188,18 @@ public sealed class AdminAuthorizationMiddleware(
              context.Request.Path.StartsWithSegments("/gateway/payments/Refunds")))
             return true;
 
+        // 营销用户自助接口：领券中心/我的券包/领券/结算预览，登录后放行，权限校验在服务内部按登录态兜底。
+        if (HttpMethods.IsGet(context.Request.Method) &&
+            (context.Request.Path.StartsWithSegments("/gateway/marketing/ClaimableCoupons") ||
+             context.Request.Path.StartsWithSegments("/gateway/marketing/MyCoupons")))
+            return true;
+
         return context.Request.Method == HttpMethods.Post &&
                (context.Request.Path.StartsWithSegments("/gateway/payments/Refund") ||
                 context.Request.Path.StartsWithSegments("/gateway/orders/Receive") ||
-                context.Request.Path.StartsWithSegments("/gateway/orders/Cancel"));
+                context.Request.Path.StartsWithSegments("/gateway/orders/Cancel") ||
+                context.Request.Path.StartsWithSegments("/gateway/marketing/ClaimCoupon") ||
+                context.Request.Path.StartsWithSegments("/gateway/marketing/SettlePreview"));
     }
 
     private async Task<ClaimsPrincipal?> ValidateTokenAsync(string authorizationHeader)
@@ -207,7 +225,7 @@ public sealed class AdminAuthorizationMiddleware(
         {
             return handler.ValidateToken(authorizationHeader["Bearer ".Length..].Trim(), parameters, out _);
         }
-        catch (SecurityTokenException)
+        catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
         {
             return null;
         }

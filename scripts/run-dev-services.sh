@@ -23,6 +23,7 @@ start_service Inventory src/InventoryService/InventoryService.Api 5062
 start_service Order src/OrderService/OrderService/OrderService.Api 5064
 start_service Payment src/PaymentService/PaymentService.Api 5066
 start_service Log src/LogService/LogService.Api 5088
+start_service Marketing src/MarketingService/MarketingService.Api 5072
 start_service Gateway Gateway/Ocelot.ApiGateway 5008
 
 env DOTNET_ENVIRONMENT=Development dotnet run --project src/ScheduledService/ScheduledService --no-build \

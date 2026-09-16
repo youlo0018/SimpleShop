@@ -20,8 +20,8 @@
     </el-table>
 
     <el-dialog v-model="dialog" :title="form.id ? '修改分类' : '新增分类'" width="480px" @closed="resetForm">
-      <el-form label-width="90px">
-        <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="名称" prop="name"><el-input v-model="form.name" maxlength="64" show-word-limit /></el-form-item>
         <el-form-item label="父级分类">
           <el-tree-select
             v-model="form.parentId"
@@ -34,7 +34,7 @@
             style="width:100%"
           />
         </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
+        <el-form-item label="排序" prop="sort"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
       </el-form>
       <template #footer><el-button @click="dialog = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
     </el-dialog>
@@ -45,9 +45,14 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { integerRule, requiredRule, trimForm } from '@/utils/validators'
 
-const rows = ref([]); const dialog = ref(false)
+const rows = ref([]); const dialog = ref(false); const formRef = ref(null)
 const form = reactive({ id: 0, name: '', parentId: '0', sort: 0 })
+const rules = {
+  name: [requiredRule('请输入分类名称'), { max: 64, message: '分类名称不能超过64个字符', trigger: 'blur' }],
+  sort: [integerRule(0, 9999, '排序')]
+}
 const parentOptions = computed(() => [
   { id: '0', label: '顶层分类', level: 0 },
   ...buildParentOptions(rows.value, [], 1)
@@ -111,7 +116,9 @@ const openEdit = row => {
 }
 
 const save = async () => {
-  if (!form.name.trim()) { ElMessage.warning('请输入分类名称'); return }
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+  trimForm(form)
   const parentId = form.parentId || '0'
   if (form.id) await request.put(`/products/UpdateCategory/${form.id}`, { name: form.name, parentId, sort: form.sort })
   else await request.post('/products/CreateCategory', { name: form.name, parentId, sort: form.sort })

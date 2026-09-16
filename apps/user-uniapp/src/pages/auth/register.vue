@@ -1,19 +1,27 @@
 <template>
-  <view class="box"><view class="mark">S</view><view class="title">创建账号</view><view class="subtitle">注册后即可下单购物</view><input v-model="form.userName" placeholder="用户名" /><input v-model="form.password" type="password" placeholder="密码" /><input v-model="form.email" placeholder="邮箱" /><input v-model="form.phone" placeholder="手机号" /><button class="submit" @tap="submit">注册并登录</button></view>
+  <view class="box"><view class="mark">S</view><view class="title">创建账号</view><view class="subtitle">注册后即可下单购物</view><input v-model="form.userName" placeholder="用户名（3-64位）" /><input v-model="form.password" type="password" placeholder="密码（至少8位含字母和数字）" /><input v-model="form.confirmPassword" type="password" placeholder="确认密码" /><input v-model="form.email" placeholder="邮箱" /><input v-model="form.phone" placeholder="手机号" /><button class="submit" :disabled="submitting" @tap="submit">注册并登录</button></view>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { post } from '@/common/request'
 import { setSession } from '@/common/store'
+import { trimStrings, validateRegister } from '@/common/validators'
 
-const form = reactive({ userName: '', password: '', email: '', phone: '', role: 'customer' })
+const form = reactive({ userName: '', password: '', confirmPassword: '', email: '', phone: '' })
+const submitting = ref(false)
 const submit = async () => {
-  if (!form.userName || !form.password || !form.phone) return uni.showToast({ title: '请完善账号信息', icon: 'none' })
-  const data = await post('/users/Register', form)
-  setSession(data.token, data.user)
-  uni.showToast({ title: '注册成功' })
-  setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/profile/profile' }) }), 500)
+  if (submitting.value) return
+  trimStrings(form)
+  if (!validateRegister(form)) return
+  submitting.value = true
+  try {
+    const payload = { userName: form.userName, password: form.password, email: form.email, phone: form.phone, role: 'customer' }
+    const data = await post('/users/Register', payload)
+    setSession(data.token, data.user)
+    uni.showToast({ title: '注册成功' })
+    setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/profile/profile' }) }), 500)
+  } finally { submitting.value = false }
 }
 </script>
 

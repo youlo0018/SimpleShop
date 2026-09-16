@@ -3,7 +3,18 @@
     <view v-if="!items.length" class="empty"><text>购物车空空如也</text><button :style="{ background: theme.primary }" @tap="goHome">去逛逛</button></view>
     <view v-else class="body">
       <view v-for="item in items" :key="item.skuId" class="card"><image :src="item.mainImage || fallback" mode="aspectFill" /><view class="info"><view class="name">{{ item.productName }}</view><view class="price" :style="{ color: theme.primary }">¥{{ item.price }}</view><view class="qty"><view class="stepper"><text @tap="change(item, -1)">-</text><text>{{ item.quantity }}</text><text @tap="change(item, 1)">+</text></view><text class="remove" @tap="remove(item)">删除</text></view></view></view>
-      <view class="bar safe-bottom"><view class="bar-total">合计：<text class="amount" :style="{ color: theme.primary }"><text class="yen">¥</text>{{ total }}</text></view><button :style="{ background: theme.primary }" @tap="checkout">去结算({{ count }})</button></view>
+      <view v-if="settle && Number(settle.totalDiscount) > 0" class="promo">
+        <text class="promo-tag">已优惠 ¥{{ Number(settle.totalDiscount).toFixed(2) }}</text>
+        <text v-for="item in (settle.activities || []).slice(0, 2)" :key="'a' + item.activityId" class="promo-item">{{ item.name }}</text>
+        <text v-for="item in (settle.coupons || []).slice(0, 2)" :key="'c' + item.userCouponId" class="promo-item">券：{{ item.name }}</text>
+      </view>
+      <view class="bar safe-bottom">
+        <view class="bar-total">
+          <text v-if="settle && Number(settle.totalDiscount) > 0" class="origin">¥{{ total }}</text>
+          合计：<text class="amount" :style="{ color: theme.primary }"><text class="yen">¥</text>{{ payable }}</text>
+        </view>
+        <button :style="{ background: theme.primary }" @tap="checkout">去结算({{ count }})</button>
+      </view>
     </view>
   </view>
 </template>
@@ -12,21 +23,41 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { get, post } from '@/common/request'
-import { getTheme, requireLogin } from '@/common/store'
+import { getTheme, isLogin, requireLogin } from '@/common/store'
+import { validateQuantity } from '@/common/validators'
 
 const fallback = 'https://dummyimage.com/300x300/edf2f7/94a3b8&text=SKU'
-const theme = ref(getTheme()); const items = ref([])
+const theme = ref(getTheme()); const items = ref([]); const settle = ref(null)
 const total = computed(() => items.value.filter(item => item.checked).reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2))
+const payable = computed(() => {
+  const amount = Number(total.value) - Number(settle.value?.totalDiscount || 0)
+  return amount.toFixed(2)
+})
 const count = computed(() => items.value.filter(item => item.checked).reduce((sum, item) => sum + item.quantity, 0))
+
+// 购物车展示后端自动结算的最优优惠：金额随优惠浮动，实际以提交页用户勾选为准。
+const preview = async () => {
+  const selected = items.value.filter(item => item.checked)
+  if (!selected.length || !isLogin()) { settle.value = null; return }
+  try {
+    settle.value = await post('/marketing/SettlePreview', {
+      platformId: selected[0].platformId,
+      items: selected.map(item => ({ skuId: item.skuId, platformId: item.platformId, merchantId: item.merchantId, productName: item.productName, price: Number(item.price), quantity: Number(item.quantity) }))
+    })
+  } catch { settle.value = null }
+}
 
 const load = async () => {
   if (!requireLogin()) return
   const data = await get('/carts/Get')
   items.value = (data.items || []).map(item => ({ ...item, checked: true, quantity: Number(item.quantity), price: Number(item.price) }))
+  preview()
 }
 const change = async (item, delta) => {
   const quantity = item.quantity + delta
   if (quantity < 1) return remove(item)
+  // 购物车数量与下单参数（1-99）保持一致，避免加购成功但结算时被后端拒绝。
+  if (!validateQuantity(quantity)) return
   await post('/carts/Add', { ...item, quantity, checked: undefined })
   load()
 }
@@ -52,6 +83,9 @@ onShow(() => { theme.value = getTheme(); load() })
 .stepper { display: flex; align-items: center; background: #f5f5f7; border-radius: 980px; } .stepper text { width: 60rpx; text-align: center; padding: 8rpx 0; font-weight: 600; } .stepper text:nth-child(2) { min-width: 48rpx; font-weight: 500; }
 .remove { color: #86868b; font-size: 24rpx; }
 .bar { position: fixed; left: 0; right: 0; bottom: 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, .92); backdrop-filter: blur(20px); border-top: 1rpx solid rgba(0, 0, 0, .06); padding: 18rpx 26rpx; }
-.bar-total { color: #86868b; font-size: 26rpx; }
+.bar-total { color: #86868b; font-size: 26rpx; } .origin { text-decoration: line-through; color: #a1a1a6; margin-right: 10rpx; }
+.promo { display: flex; flex-wrap: wrap; gap: 10rpx; align-items: center; padding: 14rpx 26rpx; background: rgba(255, 59, 48, .06); }
+.promo-tag { color: #ff3b30; font-size: 24rpx; font-weight: 600; }
+.promo-item { color: #6e6e73; font-size: 22rpx; background: #fff; border-radius: 980px; padding: 4rpx 14rpx; }
 .amount { font-weight: 800; font-size: 38rpx; font-variant-numeric: tabular-nums; } .bar button { width: 240rpx; color: #fff; }
 </style>

@@ -6,6 +6,20 @@ const request = axios.create({
   timeout: 15000
 })
 
+const onLoginPage = () => window.location.hash.startsWith('#/login')
+
+let lastUnauthorizedAt = 0
+const redirectToLogin = () => {
+  if (Date.now() - lastUnauthorizedAt < 3000) return
+  lastUnauthorizedAt = Date.now()
+  localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_user')
+  if (!onLoginPage()) {
+    ElMessage.warning('登录已过期，请重新登录')
+    window.location.hash = '#/login'
+  }
+}
+
 request.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -15,6 +29,10 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use((response) => {
   const body = response.data
   if (body && Number(body.code) !== 200) {
+    if (Number(body.code) === 401 && !onLoginPage()) {
+      redirectToLogin()
+      return Promise.reject(new Error(body.message || '请先登录'))
+    }
     const validation = body.errors || body.data?.errors || null
     const details = Object.values(validation || {}).flat().filter(Boolean).join('；')
     const message = details ? `${body.message || '输入验证失败'}：${details}` : body.message || '请求失败'
@@ -27,6 +45,11 @@ request.interceptors.response.use((response) => {
   return body?.data ?? body
 }, (error) => {
   const body = error.response?.data || {}
+  if (error.response?.status === 401 && !onLoginPage()) {
+    redirectToLogin()
+    error.validation = null
+    return Promise.reject(error)
+  }
   const validation = body.errors || null
   if (validation) {
     const details = Object.values(validation).flat().filter(Boolean).join('；')

@@ -94,9 +94,10 @@
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, ref } from 'vue'
 import request from '@/api/request'
+import { isHexColor } from '@/utils/validators'
 
 const platforms = ref([]); const platformId = ref(''); const saving = ref(false)
 const rawJson = ref('')
@@ -145,13 +146,55 @@ const load = async () => {
 }
 
 const applyRawJson = () => {
-  try { design.value = JSON.parse(rawJson.value); ElMessage.success('JSON已应用') }
-  catch { ElMessage.error('JSON格式不正确') }
+  try {
+    const parsed = JSON.parse(rawJson.value)
+    // 结构校验：缺 theme/home/tabs 会让小程序端渲染报错，而不是在此静默通过。
+    if (!parsed?.theme || !parsed?.home || !parsed?.tabs) throw new Error('missing sections')
+    design.value = parsed
+    ElMessage.success('JSON已应用')
+  }
+  catch { ElMessage.error('JSON格式不正确或缺少 theme/home/tabs 结构') }
+}
+
+// 装修配置强校验：前端拦截必填/长度/颜色/链接参数，后端只兜底 JSON 语法与大小。
+const validateDesign = () => {
+  const home = design.value.home || {}
+  const tabs = design.value.tabs || {}
+  const theme = design.value.theme || {}
+  if (!String(home.appName || '').trim()) return '请填写商城名称'
+  if (String(home.appName).length > 20) return '商城名称不能超过20个字符'
+  if (String(home.slogan || '').length > 40) return '副标题不能超过40个字符'
+  if (String(home.notice || '').length > 200) return '公告不能超过200个字符'
+  if (![theme.primary, theme.background, theme.tabColor].every(isHexColor)) return '主题颜色必须是 #RRGGBB 格式'
+  if (['home', 'category', 'cart', 'profile'].some(key => !String(tabs[key] || '').trim() || String(tabs[key]).length > 8))
+    return '底部标签文案必填且不超过8个字符'
+  for (const module of home.modules || []) {
+    if (module.type === 'banners') {
+      if (!(module.items || []).length) return '轮播图模块至少添加一张图片'
+      if (module.items.some(item => !String(item.image || '').trim())) return '轮播图图片地址不能为空'
+      if (module.items.some(item => item.linkType === 'category' && !String(item.linkValue || '').trim())) return '轮播图选择分类页时必须填写分类参数'
+    }
+    if (module.type === 'quickNav' && (module.items || []).some(item => !String(item.title || '').trim())) return '快捷入口名称不能为空'
+    if (module.type === 'quickNav' && (module.items || []).some(item => item.linkType === 'category' && !String(item.linkValue || '').trim())) return '快捷入口选择分类时必须填写分类ID'
+    if (module.type === 'categories' && !(Number(module.limit) >= 1 && Number(module.limit) <= 20)) return '分类模块数量必须为1-20'
+    if (module.type === 'products' && !(Number(module.limit) >= 1 && Number(module.limit) <= 30)) return '商品模块数量必须为1-30'
+  }
+  return ''
 }
 
 const save = async publish => {
-  await request.post('/platform-configs/Save', { platformId: platformId.value, configJson: JSON.stringify(design.value), publish })
-  ElMessage.success(publish ? '已发布' : '已保存'); load()
+  if (!platformId.value) return ElMessage.warning('请先选择平台')
+  const error = validateDesign()
+  if (error) return ElMessage.warning(error)
+  if (publish) {
+    const confirmed = await ElMessageBox.confirm('发布后小程序端将立即生效，确认发布？', '发布确认', { type: 'warning' }).then(() => true).catch(() => false)
+    if (!confirmed) return
+  }
+  saving.value = true
+  try {
+    await request.post('/platform-configs/Save', { platformId: platformId.value, configJson: JSON.stringify(design.value), publish })
+    ElMessage.success(publish ? '已发布' : '已保存'); load()
+  } finally { saving.value = false }
 }
 
 onMounted(async () => { await loadPlatforms(); load() })

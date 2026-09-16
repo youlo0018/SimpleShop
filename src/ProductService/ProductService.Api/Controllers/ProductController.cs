@@ -77,6 +77,9 @@ public class ProductController(
     public Task<ApiResponse> DeleteCategory([FromRoute] long id)
         => mediator.Send(new DeleteCategoryCommand(id), CancellationToken.None);
 
+    // 图片上传属 Api 层协议职责例外：仅接受白名单扩展名，且以文件头魔数判定真实类型，防止伪造 Content-Type/扩展名。
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
     [HttpPost]
     public async Task<ApiResponse> Upload(IFormFile file)
     {
@@ -85,11 +88,33 @@ public class ProductController(
         if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             return Error(BaseApiResponseCode.BadRequest, "仅支持上传图片");
 
+        var fileName = Path.GetFileName(file.FileName ?? string.Empty);
+        if (!AllowedImageExtensions.Contains(Path.GetExtension(fileName)))
+            return Error(BaseApiResponseCode.BadRequest, "仅支持 jpg/jpeg/png/gif/webp 图片");
+        if (fileName.Length > 255)
+            return Error(BaseApiResponseCode.BadRequest, "文件名不能超过255个字符");
+
         using var stream = new MemoryStream();
         await file.CopyToAsync(stream);
-        var uploaded = new UploadedFile { ContentType = file.ContentType, FileName = file.FileName, Bytes = stream.ToArray() };
+        var bytes = stream.ToArray();
+        var contentType = DetectImageContentType(bytes);
+        if (contentType is null)
+            return Error(BaseApiResponseCode.BadRequest, "图片内容无效");
+
+        var uploaded = new UploadedFile { ContentType = contentType, FileName = fileName, Bytes = bytes };
         await freeSql.Insert(uploaded).ExecuteAffrowsAsync();
         return Ok(new { url = $"/gateway/products/File/{uploaded.Id}" });
+    }
+
+    private static string? DetectImageContentType(byte[] bytes)
+    {
+        if (bytes.Length < 12) return null;
+        if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return "image/jpeg";
+        if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return "image/png";
+        if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) return "image/gif";
+        if (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+            bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return "image/webp";
+        return null;
     }
 
     [HttpGet("{id}")]

@@ -44,22 +44,24 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { EMAIL_PATTERN, PHONE_PATTERN, isStrongPassword, lengthRule, optionalPattern, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const bindings = ref([]); const total = ref(0); const dialog = ref(false)
 const roles = ref([]); const platforms = ref([]); const merchants = ref([]); const formRef = ref(null)
 const query = reactive({ keyword: '', page: 1, pageSize: 10 })
 const emptyForm = () => ({ id: 0, userName: '', password: '', phone: '', email: '', role: 'customer', platformId: '', merchantId: '' })
 const form = reactive(emptyForm())
-const phonePattern = /^1[3-9]\d{9}$/
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const rules = {
-  userName: [{ required: true, min: 3, max: 64, message: '用户名必须为3-64个字符', trigger: 'blur' }],
+  userName: [lengthRule(3, 64, '用户名')],
   password: [{
-    validator: (rule, value, callback) => !form.id && (!value || value.length < 8 || !/[A-Za-z]/.test(value) || !/\d/.test(value))
-      ? callback(new Error('密码至少8位且包含字母和数字')) : callback(), trigger: 'blur'
+    validator: (rule, value, callback) => {
+      // 新建必填；编辑留空表示不改密码，但一旦填写就与后端同样要求强度。
+      if (!value) return form.id ? callback() : callback(new Error('请输入密码'))
+      return isStrongPassword(value) ? callback() : callback(new Error('密码至少8位且包含字母和数字'))
+    }, trigger: 'blur'
   }],
-  phone: [{ validator: (rule, value, callback) => value && !phonePattern.test(value) ? callback(new Error('手机号格式不正确')) : callback(), trigger: 'blur' }],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  phone: [optionalPattern(PHONE_PATTERN, '手机号格式不正确')],
+  email: [optionalPattern(EMAIL_PATTERN, '邮箱格式不正确')],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   platformId: [{ required: true, message: '请选择所属平台', trigger: 'change' }],
   merchantId: [{ required: true, message: '请选择所属商户', trigger: 'change' }]
@@ -91,6 +93,7 @@ const toggle = async row => { await request.post('/users/UpdateStatus', { id: ro
 const save = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
+  trimForm(form)
   const payload = { ...form, platformId: form.platformId || 0, merchantId: form.merchantId || 0 }
   if (form.id) await request.post('/users/Update', payload)
   else await request.post('/users/Create', payload)
@@ -110,8 +113,8 @@ const load = async () => {
 onMounted(async () => {
   await load()
   const [platformData, merchantData] = await Promise.all([
-    request.get('/platforms/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] })),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] }))
+    request.get('/platforms/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] })),
+    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   platforms.value = platformData.items || []; merchants.value = merchantData.items || []
 })

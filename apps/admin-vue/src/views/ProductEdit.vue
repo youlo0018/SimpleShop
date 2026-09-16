@@ -3,7 +3,7 @@
     <div class="header-row"><h3>{{ form.id ? '编辑商品' : '添加商品' }}</h3><el-button @click="$router.push('/products')">返回列表</el-button></div>
 
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" class="edit-form">
-      <el-form-item label="商品名称" prop="name"><el-input v-model="form.name" maxlength="128" show-word-limit /></el-form-item>
+      <el-form-item label="商品名称" prop="name"><el-input v-model="form.name" maxlength="40" show-word-limit /></el-form-item>
       <el-form-item label="分类" prop="categoryId">
         <el-cascader v-model="categoryPath" :options="categoryOptions" :props="{ value: 'id', label: 'label', emitPath: true, checkStrictly: true }" style="width:420px" placeholder="选择分类" @change="selectCategory" />
       </el-form-item>
@@ -21,13 +21,14 @@
           <small class="muted">支持 JPG / PNG / WebP，最大 2MB</small>
         </div>
       </el-form-item>
-      <el-form-item label="描述">
+      <el-form-item label="描述" prop="description">
         <div class="rich-editor">
           <div class="editor-toolbar">
             <button type="button" @click="exec('bold')"><b>B</b></button>
             <button type="button" @click="exec('italic')"><i>I</i></button>
             <button type="button" @click="exec('underline')"><u>U</u></button>
             <button type="button" @click="exec('insertUnorderedList')">列表</button>
+            <small class="muted">{{ descriptionLength }}/255</small>
           </div>
           <div ref="editorRef" contenteditable class="editor-body" @input="form.description = $event.target.innerHTML"></div>
         </div>
@@ -64,6 +65,7 @@ import { ElMessage } from 'element-plus'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/api/request'
+import { maxLengthRule } from '@/utils/validators'
 
 const route = useRoute(); const router = useRouter()
 const apiBase = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5008/gateway'
@@ -74,11 +76,13 @@ const saving = ref(false); const skuError = ref('')
 const form = reactive({ id: '0', platformId: 0, merchantId: '', categoryId: '', name: '', mainImage: '', description: '', skus: [] })
 const specGroups = reactive([{ name: '', values: '' }])
 const rules = {
-  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }, { max: 40, message: '商品名称不能超过40个字符', trigger: 'blur' }],
   categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }],
   merchantId: [{ required: true, message: '请选择商户', trigger: 'change' }],
-  mainImage: [{ required: true, message: '请上传商品主图', trigger: 'change' }]
+  mainImage: [{ required: true, message: '请上传商品主图', trigger: 'change' }],
+  description: [maxLengthRule(255, '商品描述')]
 }
+const descriptionLength = computed(() => (form.description || '').length)
 
 const buildCategories = items => items.map(item => ({
   id: String(item.id), label: item.name,
@@ -122,7 +126,7 @@ const generateSkus = () => {
 const loadReferences = async () => {
   const [categoryData, merchantData] = await Promise.all([
     request.get('/products/GetCategoryTree'),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 200 } }).catch(() => ({ items: [] }))
+    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   categoryTree.value = categoryData || []; merchants.value = merchantData.items || []
 }
@@ -130,8 +134,12 @@ const loadReferences = async () => {
 const validateSkus = () => {
   if (!form.skus.length) return '请添加规格名和规格值以生成SKU'
   if (form.skus.some(sku => !sku.skuCode?.trim())) return 'SKU编码不能为空'
-  if (form.skus.some(sku => Number(sku.price) <= 0)) return 'SKU售价必须大于0'
-  if (form.skus.some(sku => Number(sku.stock) <= 0)) return 'SKU库存必须大于0'
+  if (form.skus.some(sku => sku.skuCode.trim().length > 40)) return 'SKU编码不能超过40个字符'
+  if (form.skus.some(sku => !Number.isFinite(Number(sku.price)) || Number(sku.price) <= 0)) return 'SKU售价必须大于0'
+  if (form.skus.some(sku => Math.round(Number(sku.price) * 100) !== Number(sku.price) * 100)) return 'SKU售价格式不正确（最多两位小数）'
+  if (form.skus.some(sku => Number(sku.originalPrice) > 0 && Number(sku.originalPrice) < Number(sku.price))) return 'SKU原价不能低于售价'
+  if (form.skus.some(sku => !Number.isInteger(Number(sku.stock)) || Number(sku.stock) <= 0)) return 'SKU库存必须为大于0的整数'
+  if (form.skus.some(sku => (sku.specName || '').length > 40 || (sku.specValue || '').length > 120)) return '规格名/规格值过长'
   const codes = form.skus.map(sku => sku.skuCode.trim())
   if (new Set(codes.map(code => code.toLowerCase())).size !== codes.length) return 'SKU编码不能重复'
   return ''
@@ -143,7 +151,7 @@ const save = async () => {
   if (!valid || skuError.value) return ElMessage.warning('请按红色提示修正输入')
   saving.value = true
   try {
-    form.platformId = merchants.value.find(item => String(item.id) === String(form.merchantId))?.platformId || ''
+    form.platformId = merchants.value.find(item => String(item.id) === String(form.merchantId))?.platformId || 0
     const payload = { ...form, skus: form.skus.map(sku => ({ ...sku, skuCode: sku.skuCode.trim() })) }
     if (form.id && form.id !== '0') await request.post('/products/Update', payload)
     else await request.post('/products/CreateProduct', payload)

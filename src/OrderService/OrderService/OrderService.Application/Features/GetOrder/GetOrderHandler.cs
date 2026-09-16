@@ -22,6 +22,8 @@ public sealed class GetOrderHandler(IOrderRepository repository)
             order.PaymentStatus,
             order.TotalPrice,
             order.AllDiscountPrice,
+            order.CouponDiscountPrice,
+            order.ActivityDiscountPrice,
             order.PaymentPrice,
             order.IsPayment,
             order.PaymentAt,

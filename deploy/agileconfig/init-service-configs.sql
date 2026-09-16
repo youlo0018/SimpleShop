@@ -269,4 +269,23 @@ SELECT pg_temp.seed_agile_config('PermissionService', $$
   {"g":"Basic:port","k":"grpcport","v":"5023","d":"独立 gRPC 端口，明文 HTTP/2"}
 ]$$);
 
+SELECT pg_temp.seed_agile_config('MarketingService', $$
+[
+  {"g":"Basic","k":"sqlConnectionString","v":"Host=127.0.0.1;Port=5432;Database=simpleshopmarketing;Username=postgres;Password=Aa123456..;Ssl Mode=Disable;","d":"营销库（活动/券/使用记录）"},
+  {"g":"Basic","k":"redisDb","v":"6","d":"Redis库"},
+  {"g":"Basic:port","k":"httpport","v":"5072","d":"REST 端口"},
+  {"g":"Basic:port","k":"grpcport","v":"5073","d":"独立 gRPC 端口，明文 HTTP/2"},
+  {"g":"Basic:Consul","k":"Enabled","v":"true","d":"启用服务注册"},
+  {"g":"Basic:Consul","k":"ServiceName","v":"MarketingService","d":"服务发现名称"},
+  {"g":"Basic:Consul","k":"ServiceAddress","v":"172.18.0.1","d":"注册地址"},
+  {"g":"Basic:Consul","k":"ServicePort","v":"5072","d":"HTTP 健康检查与路由端口"},
+  {"g":"Basic:Consul","k":"MetaData:GrpcPort","v":"5073","d":"Consul 服务间 gRPC 发现元数据"},
+  {"g":"Basic:Consul","k":"HealthCheckEndpoint","v":"/health","d":"健康检查端点"},
+  {"g":"Basic","k":"redisConnectionString","v":"localhost:6379,password=Aa123456..,defaultDatabase=6","d":"Redis 连接"},
+  {"g":"RabbitMQ","k":"HostName","v":"localhost","d":"消息队列"},
+  {"g":"RabbitMQ","k":"UserName","v":"admin","d":"消息队列账号"},
+  {"g":"RabbitMQ","k":"Password","v":"admin123","d":"消息队列密码"},
+  {"g":"RabbitMQ","k":"Exchange","v":"simpleshop.events","d":"事件交换机"}
+]$$);
+
 DROP FUNCTION pg_temp.seed_agile_config(text, jsonb, boolean);

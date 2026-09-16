@@ -47,6 +47,7 @@ public sealed class Order : BaseEntity
     [Description("优惠总金额")] public decimal AllDiscountPrice { get; set; }
     [Description("支付金额")] public decimal PaymentPrice { get; set; }
     [Description("卡券优惠金额")] public decimal CouponDiscountPrice { get; set; }
+    [Description("活动折扣金额")] public decimal ActivityDiscountPrice { get; set; }
     [Description("积分优惠金额")] public decimal PointDiscountPrice { get; set; }
     [Description("订单状态")] public int OrderStatus { get; set; }
 

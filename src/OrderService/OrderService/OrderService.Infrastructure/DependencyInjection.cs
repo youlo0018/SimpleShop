@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IShipmentRepository, ShipmentRepository>();
         services.AddSingleton<InventoryClient>();
+        services.AddSingleton<MarketingClient>();
         return services;
     }
 }
