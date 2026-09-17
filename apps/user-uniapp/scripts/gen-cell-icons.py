@@ -56,12 +56,22 @@ def draw_coupon(d):
     d.ellipse((44, 66, 52, 74), fill=(0, 0, 0, 0))
 
 
+def draw_gift(d):
+    """礼盒：盒盖 + 盒身 + 缎带"""
+    d.rounded_rectangle((18, 40, 78, 78), radius=8, width=W, outline="white")
+    d.rounded_rectangle((14, 26, 82, 46), radius=7, width=W, outline="white")
+    d.line([(48, 26), (48, 78)], fill="white", width=W)
+    d.arc((30, 12, 48, 30), start=0, end=250, fill="white", width=W)
+    d.arc((48, 12, 66, 30), start=290, end=180, fill="white", width=W)
+
+
 ICONS = {
     "order": ("#0071e3", draw_order),   # 蓝
     "pin": ("#ff3b30", draw_pin),       # 红（类地图）
     "cart": ("#ff9500", draw_cart),     # 橙
     "sync": ("#34c759", draw_sync),     # 绿
     "coupon": ("#5e5ce6", draw_coupon), # 紫（营销）
+    "gift": ("#ff9500", draw_gift),     # 橙（领券）
 }
 
 for name, (color, painter) in ICONS.items():

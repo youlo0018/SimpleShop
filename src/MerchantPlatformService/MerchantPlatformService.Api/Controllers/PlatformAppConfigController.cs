@@ -157,12 +157,13 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
 
     private static object DefaultDesign(string code, string name)
     {
-        var primary = code.Contains("life", StringComparison.OrdinalIgnoreCase) ? "#0f766e"
-            : code.Contains("mall", StringComparison.OrdinalIgnoreCase) ? "#7c3aed" : "#ff4d6d";
+        // 默认主题用 Apple 蓝，避免未装修平台落到高饱和随机色；平台仍可在装修里覆盖。
+        var primary = code.Contains("life", StringComparison.OrdinalIgnoreCase) ? "#30b0c7"
+            : code.Contains("mall", StringComparison.OrdinalIgnoreCase) ? "#5e5ce6" : "#0071e3";
         return new
         {
             schemaVersion = 1,
-            theme = new { primary, background = "#f5f7fb", tabColor = primary },
+            theme = new { primary, background = "#f5f5f7", tabColor = primary },
             home = new
             {
                 appName = name,
@@ -171,9 +172,45 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
                 banners = Array.Empty<object>(),
                 modules = new object[]
                 {
-                    new { type = "quickNav", title = "快捷入口" },
+                    // 金刚区默认四项，后台装修可按平台增删/改图标与跳转。
+                    new
+                    {
+                        type = "quickNav", title = "快捷入口",
+                        items = new object[]
+                        {
+                            new { icon = "/static/line/gift.png", title = "领券中心", linkType = "coupon-center", linkValue = "" },
+                            new { icon = "/static/line/order.png", title = "我的订单", linkType = "orders", linkValue = "" },
+                            new { icon = "/static/line/cart.png", title = "购物车", linkType = "cart", linkValue = "" },
+                            new { icon = "/static/line/pin.png", title = "收货地址", linkType = "address", linkValue = "" }
+                        }
+                    },
                     new { type = "categories", title = "精选分类", limit = 8 },
                     new { type = "products", key = "recommend", title = "为你推荐", layout = "grid", limit = 10 }
+                }
+            },
+            // 我的服务：profile 页功能宫格，后台可按平台配置（icon/title/linkType/linkValue）。
+            // icon 支持线性图标路径（/static/line/*.png）或 emoji；参考凯德星会员中心样式。
+            profile = new
+            {
+                benefits = new object[]
+                {
+                    new { icon = "/static/line/points.png", title = "积分回馈", linkType = "coupons", linkValue = "" },
+                    new { icon = "/static/line/benefit.png", title = "专属活动", linkType = "coupon-center", linkValue = "" },
+                    new { icon = "/static/line/star.png", title = "我的收藏", linkType = "favorites", linkValue = "" },
+                    new { icon = "/static/line/card.png", title = "更多权益", linkType = "service", linkValue = "" }
+                },
+                services = new object[]
+                {
+                    new { icon = "/static/line/order.png", title = "我的订单", linkType = "orders", linkValue = "" },
+                    new { icon = "/static/line/cart.png", title = "购物车", linkType = "cart", linkValue = "" },
+                    new { icon = "/static/line/record.png", title = "消费记录", linkType = "orders", linkValue = "" },
+                    new { icon = "/static/line/gift.png", title = "领券中心", linkType = "coupon-center", linkValue = "" },
+                    new { icon = "/static/line/service.png", title = "客服帮助", linkType = "service", linkValue = "" },
+                    new { icon = "/static/line/heart.png", title = "我的收藏", linkType = "favorites", linkValue = "" },
+                    new { icon = "/static/line/card.png", title = "我的券包", linkType = "coupons", linkValue = "" },
+                    new { icon = "/static/line/pin.png", title = "收货地址", linkType = "address", linkValue = "" },
+                    new { icon = "/static/line/invoice.png", title = "发票信息", linkType = "service", linkValue = "" },
+                    new { icon = "/static/line/info.png", title = "关于我们", linkType = "service", linkValue = "" }
                 }
             },
             tabs = new { home = "首页", category = "分类", cart = "购物车", profile = "我的" }

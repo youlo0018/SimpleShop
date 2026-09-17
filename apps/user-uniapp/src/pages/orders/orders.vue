@@ -3,8 +3,8 @@
     <view class="tabs"><view v-for="(text, value) in tabs" :key="value" :class="['tab', statusFilter === Number(value) && 'on']" @tap="filter(value)">{{ text }}</view></view>
     <view v-if="!orders.length" class="empty">暂无订单</view>
     <view v-for="order in orders" :key="order.id" class="card" @tap="show(order)">
-      <view class="head"><text>{{ order.orderNo }}</text><text class="status" :style="{ color: statusColor(order) }">{{ status(order) }}</text></view>
-      <view class="foot"><text>{{ formatTime(order.createdAt) }}</text><b>¥{{ order.paymentPrice }}</b></view>
+      <view class="head"><text>{{ order.orderNo }}</text><text class="status" :style="{ color: statusColor(order), background: statusColor(order) + '14' }">{{ status(order) }}</text></view>
+      <view class="foot"><text>{{ formatTime(order.createdAt) }}</text><b>¥{{ Number(order.paymentPrice).toFixed(2) }}</b></view>
     </view>
 
     <view v-if="detail" class="mask" @tap="detail = null"><view class="sheet safe-bottom" @tap.stop>
@@ -75,9 +75,10 @@ onShow(load)
 .tab { background: transparent; padding: 12rpx 26rpx; border-radius: 980px; font-size: 24rpx; color: #6e6e73; font-weight: 500; white-space: nowrap; transition: all .15s ease; }
 .tab.on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, .1); }
 .empty { text-align: center; color: #86868b; padding: 140rpx 0; }
-.card { background: #fff; border-radius: 24rpx; margin: 20rpx 24rpx; padding: 26rpx 28rpx; box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, .04); }
-.head { display: flex; justify-content: space-between; color: #86868b; font-size: 24rpx; font-variant-numeric: tabular-nums; } .status { font-weight: 600; }
-.foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18rpx; font-variant-numeric: tabular-nums; } .foot b { color: #1d1d1f; font-size: 32rpx; font-weight: 700; }
+.card { background: #fff; border-radius: 26rpx; margin: 22rpx 24rpx; padding: 28rpx; box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, .05); }
+.head { display: flex; justify-content: space-between; align-items: center; color: #86868b; font-size: 24rpx; font-variant-numeric: tabular-nums; }
+.status { font-weight: 600; padding: 6rpx 18rpx; border-radius: 980px; font-size: 22rpx; }
+.foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 20rpx; font-variant-numeric: tabular-nums; } .foot b { color: #1d1d1f; font-size: 34rpx; font-weight: 700; }
 .mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; } .sheet { width: 100%; background: #fff; border-radius: 32rpx 32rpx 0 0; padding: 38rpx; line-height: 2; }
 .title { font-size: 34rpx; font-weight: 700; letter-spacing: -.01em; text-align: center; margin-bottom: 20rpx; } .kv { display: flex; justify-content: space-between; } .kv text { color: #86868b; } .goods { display: flex; justify-content: space-between; margin: 16rpx 0; }
 .addr { color: #86868b; }

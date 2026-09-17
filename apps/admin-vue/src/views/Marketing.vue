@@ -16,7 +16,7 @@
         </div>
         <el-table :data="activities" border>
           <el-table-column prop="name" label="活动名称" min-width="160" />
-          <el-table-column label="类型" width="90"><template #default="{ row }">{{ activityTypeText[row.activityType] }}</template></el-table-column>
+          <el-table-column label="类型" width="90"><template #default="{ row }">{{ activityTypeText[n(row.activityType)] }}</template></el-table-column>
           <el-table-column label="门槛/优惠" min-width="150"><template #default="{ row }">{{ activityBenefit(row) }}</template></el-table-column>
           <el-table-column label="范围" min-width="120"><template #default="{ row }">{{ scopeText(row.scopeType, row.merchantId) }}</template></el-table-column>
           <el-table-column label="有效期" min-width="210"><template #default="{ row }">{{ row.startAt?.slice(0, 10) }} ~ {{ row.endAt ? row.endAt.slice(0, 10) : '长期' }}</template></el-table-column>
@@ -40,7 +40,7 @@
           <el-table-column prop="name" label="模板名称" min-width="160" />
           <el-table-column label="类型" width="90"><template #default="{ row }">{{ couponTypeText[row.couponType] }}</template></el-table-column>
           <el-table-column label="门槛/优惠" min-width="150"><template #default="{ row }">{{ couponBenefit(row) }}</template></el-table-column>
-          <el-table-column label="归属" min-width="130"><template #default="{ row }">{{ row.merchantId > 0 ? '商户券' : '平台券' }}</template></el-table-column>
+          <el-table-column label="归属" min-width="130"><template #default="{ row }">{{ n(row.merchantId) > 0 ? '商户券' : '平台券' }}</template></el-table-column>
           <el-table-column label="有效天数" width="90"><template #default="{ row }">{{ row.validDays }} 天</template></el-table-column>
           <el-table-column label="启用" width="80"><template #default="{ row }"><el-switch :model-value="row.isEnabled" :disabled="!editable" @change="toggleTemplate(row)" /></template></el-table-column>
           <el-table-column label="操作" width="110" fixed="right"><template #default="{ row }"><el-button v-if="editable" link type="primary" @click="openTemplate(row)">编辑</el-button></template></el-table-column>
@@ -61,7 +61,7 @@
         <el-table :data="couponActivities" border>
           <el-table-column prop="name" label="券活动" min-width="150" />
           <el-table-column prop="templateName" label="券模板" min-width="140" />
-          <el-table-column label="门槛/优惠" min-width="140"><template #default="{ row }">{{ couponBenefit(row) }}</template></el-table-column>
+          <el-table-column label="门槛/优惠" min-width="140"><template #default="{ row }">{{ couponActivityBenefit(row) }}</template></el-table-column>
           <el-table-column label="范围" min-width="110"><template #default="{ row }">{{ scopeText(row.scopeType, row.merchantId) }}</template></el-table-column>
           <el-table-column label="发行/已发" width="110"><template #default="{ row }">{{ row.issuedCount }} / {{ row.totalStock }}</template></el-table-column>
           <el-table-column label="限领" width="80"><template #default="{ row }">{{ row.perUserLimit }} 张</template></el-table-column>
@@ -84,7 +84,7 @@
               <template #header><div class="report-head"><span>活动效果（订单数 / 折扣总额 / 赠券）</span><b>合计 {{ Number(activityReport.totalDiscount || 0).toFixed(2) }} 元</b></div></template>
               <el-table :data="activityReport.summary || []" border @row-click="row => drillActivity(row)">
                 <el-table-column prop="activityName" label="活动" min-width="140" />
-                <el-table-column label="类型" width="80"><template #default="{ row }">{{ activityTypeText[row.activityType] }}</template></el-table-column>
+                <el-table-column label="类型" width="80"><template #default="{ row }">{{ activityTypeText[n(row.activityType)] }}</template></el-table-column>
                 <el-table-column prop="orderCount" label="订单数" width="90" />
                 <el-table-column label="折扣总额" width="110"><template #default="{ row }">¥{{ Number(row.discountAmount).toFixed(2) }}</template></el-table-column>
                 <el-table-column prop="giftCouponCount" label="赠券" width="80" />
@@ -132,7 +132,7 @@
       <el-form ref="activityFormRef" :model="activityForm" :rules="activityRules" label-width="110px">
         <el-form-item label="活动名称" prop="name"><el-input v-model="activityForm.name" maxlength="64" show-word-limit /></el-form-item>
         <el-form-item label="归属" prop="merchantId">
-          <el-select v-model="activityForm.merchantId" style="width:100%">
+          <el-select v-model="activityForm.merchantId" style="width:100%" @change="onActivityMerchantChange">
             <el-option :value="0" label="平台活动（全平台生效）" />
             <el-option v-for="item in merchants" :key="item.id" :value="item.id" :label="`商户活动：${item.merchantName}`" />
           </el-select>
@@ -273,17 +273,27 @@ import { trimForm } from '@/utils/validators'
 
 const tab = ref('activities')
 const editable = computed(() => allow('marketing:create'))
+// 全局数字序列化为字符串：API 回填与比较必须先 Number()，否则 el-radio/el-select 严格比较不回显。
+const n = value => Number(value || 0)
 const user = JSON.parse(localStorage.getItem('admin_user') || 'null')
 const canChoosePlatform = computed(() => (user?.permissions || []).includes('*'))
 const platforms = ref([]); const merchants = ref([]); const productOptions = ref([])
 const templateOptions = ref([]); const couponActivityOptions = ref([])
-const platformId = ref(user?.platformId && Number(user.platformId) > 0 ? user.platformId : '')
+const platformId = ref(user?.platformId && n(user.platformId) > 0 ? user.platformId : '')
 
 const activityTypeText = { 1: '满减', 2: '满折', 3: '满赠' }
 const couponTypeText = { 1: '满减', 2: '满折', 3: '0元减' }
-const scopeText = (scopeType, merchantId) => scopeType === 2 ? '指定商户' : scopeType === 3 ? '指定商品' : (merchantId > 0 ? '本商户全部商品' : '全平台')
-const activityBenefit = row => row.activityType === 1 ? `满${row.threshold}减${row.discountValue}` : row.activityType === 2 ? `满${row.threshold}打${(row.discountValue * 10).toFixed(1)}折` : `满${row.threshold}赠券`
-const couponBenefit = row => row.couponType === 1 ? `满${row.threshold}减${row.discountValue}` : row.couponType === 2 ? `满${row.threshold}打${(row.discountValue * 10).toFixed(1)}折` : `0元减${row.discountValue}`
+const scopeText = (scopeType, merchantId) => n(scopeType) === 2 ? '指定商户' : n(scopeType) === 3 ? '指定商品' : (n(merchantId) > 0 ? '本商户全部商品' : '全平台')
+const activityBenefit = row => n(row.activityType) === 1
+  ? `满${n(row.threshold)}减${n(row.discountValue)}`
+  : n(row.activityType) === 2 ? `满${n(row.threshold)}打${(n(row.discountValue) * 10).toFixed(1)}折` : `满${n(row.threshold)}赠券`
+const couponBenefit = row => n(row.couponType) === 1
+  ? `满${n(row.threshold)}减${n(row.discountValue)}`
+  : n(row.couponType) === 2 ? `满${n(row.threshold)}打${(n(row.discountValue) * 10).toFixed(1)}折` : `0元减${n(row.discountValue)}`
+// 券活动列表用的是模板快照字段（TemplateType/TemplateThreshold/TemplateDiscountValue）。
+const couponActivityBenefit = row => n(row.templateType) === 1
+  ? `满${n(row.templateThreshold)}减${n(row.templateDiscountValue)}`
+  : n(row.templateType) === 2 ? `满${n(row.templateThreshold)}打${(n(row.templateDiscountValue) * 10).toFixed(1)}折` : `0元减${n(row.templateDiscountValue)}`
 
 const activities = ref([]); const activityTotal = ref(0)
 const activityQuery = reactive({ keyword: '', activityType: null, page: 1, pageSize: 10 })
@@ -303,6 +313,7 @@ const loadReferences = async () => {
     request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] })),
     request.get('/products/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
+  // 雪花 ID 必须保持字符串（Number 会丢精度）；只有枚举/金额/数量才转数字。
   platforms.value = platformData.items || []
   merchants.value = merchantData.items || []
   productOptions.value = (productData.items || []).flatMap(product => (product.skus || []).map(sku => ({
@@ -329,7 +340,7 @@ const loadOptionLists = async () => {
     request.get('/marketing/CouponTemplateList', { params: { page: 1, pageSize: 100, ...baseParams() } }).catch(() => ({ items: [] })),
     request.get('/marketing/CouponActivityList', { params: { page: 1, pageSize: 100, ...baseParams() } }).catch(() => ({ items: [] }))
   ])
-  templateOptions.value = templateData.items || []
+  templateOptions.value = (templateData.items || []).map(item => ({ ...item, couponType: n(item.couponType), threshold: n(item.threshold), discountValue: n(item.discountValue) }))
   couponActivityOptions.value = couponData.items || []
 }
 const loadReports = async () => {
@@ -366,15 +377,17 @@ const openActivity = async row => {
     const detail = await request.get('/marketing/ActivityDetail', { params: { id: row.id } })
     const item = detail.activity
     Object.assign(activityForm, {
-      id: item.id, name: item.name, merchantId: item.merchantId, activityType: item.activityType,
-      threshold: Number(item.threshold), discountValue: Number(item.discountValue),
-      giftCouponActivityId: item.giftCouponActivityId && Number(item.giftCouponActivityId) > 0 ? item.giftCouponActivityId : '',
-      scopeType: item.scopeType, description: item.description, isEnabled: item.isEnabled,
+      id: item.id, name: item.name,
+      merchantId: n(item.merchantId) === 0 ? 0 : item.merchantId,
+      activityType: n(item.activityType),
+      threshold: n(item.threshold), discountValue: n(item.discountValue),
+      giftCouponActivityId: n(item.giftCouponActivityId) > 0 ? item.giftCouponActivityId : '',
+      scopeType: n(item.scopeType), description: item.description, isEnabled: item.isEnabled,
       range: [item.startAt?.slice(0, 19), item.endAt ? item.endAt.slice(0, 19) : null].filter(Boolean)
     })
     const targets = detail.targets || []
-    activityForm.targetMerchantIds = targets.filter(t => Number(t.targetType) === 1).map(t => t.targetId)
-    activityForm.targetSkuIds = targets.filter(t => Number(t.targetType) === 2).map(t => t.targetId)
+    activityForm.targetMerchantIds = targets.filter(t => n(t.targetType) === 1).map(t => t.targetId)
+    activityForm.targetSkuIds = targets.filter(t => n(t.targetType) === 2).map(t => t.targetId)
   }
   activityDialog.value = true
 }
@@ -385,11 +398,11 @@ const saveActivity = async () => {
   trimForm(activityForm)
   await request.post('/marketing/SaveActivity', {
     id: activityForm.id, platformId: platformId.value, merchantId: activityForm.merchantId,
-    name: activityForm.name, description: activityForm.description, activityType: activityForm.activityType,
-    threshold: activityForm.threshold,
-    discountValue: activityForm.activityType === 3 ? 0 : activityForm.discountValue,
-    giftCouponActivityId: activityForm.activityType === 3 ? activityForm.giftCouponActivityId : 0,
-    scopeType: activityForm.scopeType, targetMerchantIds: activityForm.targetMerchantIds,
+    name: activityForm.name, description: activityForm.description, activityType: n(activityForm.activityType),
+    threshold: n(activityForm.threshold),
+    discountValue: n(activityForm.activityType) === 3 ? 0 : n(activityForm.discountValue),
+    giftCouponActivityId: n(activityForm.activityType) === 3 ? activityForm.giftCouponActivityId : 0,
+    scopeType: n(activityForm.scopeType), targetMerchantIds: activityForm.targetMerchantIds,
     targetProducts: activityForm.targetSkuIds.map(skuId => ({ skuId, merchantId: productOptions.value.find(item => item.skuId === skuId)?.merchantId || 0 })),
     startAt: activityForm.range?.[0] || new Date().toISOString().slice(0, 19),
     endAt: activityForm.range?.[1] || null, isEnabled: activityForm.isEnabled
@@ -397,12 +410,16 @@ const saveActivity = async () => {
   ElMessage.success('活动已保存'); activityDialog.value = false; loadActivities()
 }
 const validateActivityForm = () => {
-  if (activityForm.activityType === 1 && !(Number(activityForm.discountValue) > 0)) return '满减活动减免金额必须大于0'
-  if (activityForm.activityType === 2 && !(Number(activityForm.discountValue) > 0 && Number(activityForm.discountValue) < 1)) return '满折活动折扣率必须在0.01-0.99之间'
-  if (activityForm.activityType === 3 && !activityForm.giftCouponActivityId) return '满赠活动必须选择赠品券活动'
-  if (activityForm.scopeType === 2 && !activityForm.targetMerchantIds.length) return '请选择参与商户'
-  if (activityForm.scopeType === 3 && !activityForm.targetSkuIds.length) return '请选择参与商品'
+  if (n(activityForm.activityType) === 1 && !(n(activityForm.discountValue) > 0)) return '满减活动减免金额必须大于0'
+  if (n(activityForm.activityType) === 2 && !(n(activityForm.discountValue) > 0 && n(activityForm.discountValue) < 1)) return '满折活动折扣率必须在0.01-0.99之间'
+  if (n(activityForm.activityType) === 3 && !activityForm.giftCouponActivityId) return '满赠活动必须选择赠品券活动'
+  if (n(activityForm.scopeType) === 2 && !activityForm.targetMerchantIds.length) return '请选择参与商户'
+  if (n(activityForm.scopeType) === 3 && !activityForm.targetSkuIds.length) return '请选择参与商品'
   return ''
+}
+// 切换为商户活动后不能再用"指定商户"范围（商户活动只支持本商户全部/指定商品）。
+const onActivityMerchantChange = value => {
+  if (n(value) > 0 && n(activityForm.scopeType) === 2) activityForm.scopeType = 1
 }
 const toggleActivity = async row => { await request.post('/marketing/SetActivityEnabled', { id: row.id, isEnabled: !row.isEnabled }); loadActivities() }
 
@@ -414,8 +431,8 @@ const templateRules = { name: [{ required: true, message: '请输入模板名称
 const openTemplate = row => {
   Object.assign(templateForm, emptyTemplate())
   if (row) Object.assign(templateForm, {
-    id: row.id, name: row.name, merchantId: row.merchantId, couponType: row.couponType,
-    threshold: Number(row.threshold), discountValue: Number(row.discountValue), validDays: row.validDays,
+    id: row.id, name: row.name, merchantId: n(row.merchantId) === 0 ? 0 : row.merchantId, couponType: n(row.couponType),
+    threshold: n(row.threshold), discountValue: n(row.discountValue), validDays: n(row.validDays) || 7,
     description: row.description, isEnabled: row.isEnabled
   })
   templateDialog.value = true
@@ -423,14 +440,14 @@ const openTemplate = row => {
 const saveTemplate = async () => {
   const valid = await templateFormRef.value?.validate().catch(() => false)
   if (!valid) return
-  if (templateForm.couponType !== 2 && !(Number(templateForm.discountValue) > 0)) return ElMessage.warning('优惠金额必须大于0')
-  if (templateForm.couponType === 2 && !(Number(templateForm.discountValue) > 0 && Number(templateForm.discountValue) < 1)) return ElMessage.warning('折扣率必须在0.01-0.99之间')
+  if (n(templateForm.couponType) !== 2 && !(n(templateForm.discountValue) > 0)) return ElMessage.warning('优惠金额必须大于0')
+  if (n(templateForm.couponType) === 2 && !(n(templateForm.discountValue) > 0 && n(templateForm.discountValue) < 1)) return ElMessage.warning('折扣率必须在0.01-0.99之间')
   trimForm(templateForm)
   await request.post('/marketing/SaveCouponTemplate', {
     id: templateForm.id, platformId: platformId.value, merchantId: templateForm.merchantId,
-    name: templateForm.name, description: templateForm.description, couponType: templateForm.couponType,
-    threshold: templateForm.couponType === 3 ? 0 : templateForm.threshold,
-    discountValue: templateForm.discountValue, validDays: templateForm.validDays, isEnabled: templateForm.isEnabled
+    name: templateForm.name, description: templateForm.description, couponType: n(templateForm.couponType),
+    threshold: n(templateForm.couponType) === 3 ? 0 : n(templateForm.threshold),
+    discountValue: n(templateForm.discountValue), validDays: n(templateForm.validDays), isEnabled: templateForm.isEnabled
   })
   ElMessage.success('券模板已保存'); templateDialog.value = false; loadTemplates()
 }
@@ -451,29 +468,31 @@ const openCouponActivity = async row => {
     const detail = await request.get('/marketing/CouponActivityDetail', { params: { id: row.id } })
     const item = detail.activity
     Object.assign(couponActivityForm, {
-      id: item.id, name: item.name, merchantId: item.merchantId, couponTemplateId: item.couponTemplateId,
-      scopeType: item.scopeType, totalStock: item.totalStock, perUserLimit: item.perUserLimit,
+      id: item.id, name: item.name,
+      merchantId: n(item.merchantId) === 0 ? 0 : item.merchantId,
+      couponTemplateId: item.couponTemplateId,
+      scopeType: n(item.scopeType), totalStock: n(item.totalStock), perUserLimit: n(item.perUserLimit),
       isClaimable: item.isClaimable, isEnabled: item.isEnabled,
       range: [item.startAt?.slice(0, 19), item.endAt ? item.endAt.slice(0, 19) : null].filter(Boolean)
     })
     const targets = detail.targets || []
-    couponActivityForm.targetMerchantIds = targets.filter(t => Number(t.targetType) === 1).map(t => t.targetId)
-    couponActivityForm.targetSkuIds = targets.filter(t => Number(t.targetType) === 2).map(t => t.targetId)
+    couponActivityForm.targetMerchantIds = targets.filter(t => n(t.targetType) === 1).map(t => t.targetId)
+    couponActivityForm.targetSkuIds = targets.filter(t => n(t.targetType) === 2).map(t => t.targetId)
   }
   couponActivityDialog.value = true
 }
 const saveCouponActivity = async () => {
   const valid = await couponActivityFormRef.value?.validate().catch(() => false)
   if (!valid) return
-  if (couponActivityForm.scopeType === 2 && !couponActivityForm.targetMerchantIds.length) return ElMessage.warning('请选择参与商户')
-  if (couponActivityForm.scopeType === 3 && !couponActivityForm.targetSkuIds.length) return ElMessage.warning('请选择参与商品')
+  if (n(couponActivityForm.scopeType) === 2 && !couponActivityForm.targetMerchantIds.length) return ElMessage.warning('请选择参与商户')
+  if (n(couponActivityForm.scopeType) === 3 && !couponActivityForm.targetSkuIds.length) return ElMessage.warning('请选择参与商品')
   trimForm(couponActivityForm)
   await request.post('/marketing/SaveCouponActivity', {
     id: couponActivityForm.id, platformId: platformId.value, merchantId: couponActivityForm.merchantId,
     name: couponActivityForm.name, couponTemplateId: couponActivityForm.couponTemplateId,
-    scopeType: couponActivityForm.scopeType, targetMerchantIds: couponActivityForm.targetMerchantIds,
+    scopeType: n(couponActivityForm.scopeType), targetMerchantIds: couponActivityForm.targetMerchantIds,
     targetProducts: couponActivityForm.targetSkuIds.map(skuId => ({ skuId, merchantId: productOptions.value.find(item => item.skuId === skuId)?.merchantId || 0 })),
-    totalStock: couponActivityForm.totalStock, perUserLimit: couponActivityForm.perUserLimit,
+    totalStock: n(couponActivityForm.totalStock), perUserLimit: n(couponActivityForm.perUserLimit),
     isClaimable: couponActivityForm.isClaimable,
     startAt: couponActivityForm.range?.[0] || new Date().toISOString().slice(0, 19),
     endAt: couponActivityForm.range?.[1] || null, isEnabled: couponActivityForm.isEnabled

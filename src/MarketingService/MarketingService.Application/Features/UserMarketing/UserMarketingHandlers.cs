@@ -14,6 +14,7 @@ namespace MarketingService.Application.Features.UserMarketing;
 public class ClaimableCouponsHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<ClaimableCouponsQuery, ApiResponse>
 {
+    /// <summary>领券中心列表：筛选有效期内、启用且可领取的券活动，计算剩余库存与当前用户可领状态（限领/库存）。</summary>
     public async Task<ApiResponse> Handle(ClaimableCouponsQuery request, CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
@@ -61,6 +62,7 @@ public class ClaimableCouponsHandler(IMarketingCouponRepository repository, Tena
 public class ClaimCouponHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<ClaimCouponCommand, ApiResponse>
 {
+    /// <summary>领取优惠券：登录校验 → 活动/模板有效性与每人限领校验 → 库存条件自增（防超发）→ 生成用户券（领取后 N 天有效）。</summary>
     public async Task<ApiResponse> Handle(ClaimCouponCommand request, CancellationToken cancellationToken)
     {
         if (tenant.UserId <= 0) return ApiResults.Fail(BaseApiResponseCode.Unauthorized, "请先登录");
@@ -104,6 +106,7 @@ public class ClaimCouponHandler(IMarketingCouponRepository repository, TenantCon
 public class MyCouponsHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<MyCouponsQuery, ApiResponse>
 {
+    /// <summary>我的券包：组装券活动/模板展示信息；未使用但已过期按"已过期"展示；按状态过滤。</summary>
     public async Task<ApiResponse> Handle(MyCouponsQuery request, CancellationToken cancellationToken)
     {
         if (tenant.UserId <= 0) return ApiResults.Fail(BaseApiResponseCode.Unauthorized, "请先登录");
@@ -149,10 +152,54 @@ public class MyCouponsHandler(IMarketingCouponRepository repository, TenantConte
     }
 }
 
+/// <summary>
+/// 进行中活动：返回当前平台有效期内、启用的活动与可领取券活动，供首页优惠专区/活动卡展示。
+/// 活动卡展示"满X减Y / 满X打Y折 / 满X赠券"，券卡展示剩余库存，两者都可点击进入对应页面。
+/// </summary>
+public class ActiveActivitiesHandler(IMarketingActivityRepository activityRepository, IMarketingCouponRepository couponRepository)
+    : IRequestHandler<ActiveActivitiesQuery, ApiResponse>
+{
+    /// <summary>规则：平台下启用且在有效期内的活动；MerchantId&gt;0 时只看该商户的活动。</summary>
+    public async Task<ApiResponse> Handle(ActiveActivitiesQuery request, CancellationToken cancellationToken)
+    {
+        var now = DateTime.Now;
+        var activities = (await activityRepository.ListEnabledAsync(request.PlatformId, now))
+            .Where(item => request.MerchantId <= 0 || item.MerchantId == request.MerchantId)
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                ActivityType = item.ActivityType,
+                Threshold = item.Threshold,
+                DiscountValue = item.DiscountValue,
+                ScopeType = item.ScopeType,
+                item.MerchantId,
+                item.StartAt,
+                item.EndAt
+            }).ToList();
+
+        var coupons = (await couponRepository.ListEnabledActivitiesAsync(request.PlatformId, now))
+            .Where(item => item.IsClaimable && (request.MerchantId <= 0 || item.MerchantId == request.MerchantId))
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                item.CouponTemplateId,
+                item.TotalStock,
+                RemainingStock = Math.Max(0, item.TotalStock - item.IssuedCount),
+                item.MerchantId,
+                item.EndAt
+            }).ToList();
+
+        return ApiResults.Ok(new { activities, coupons });
+    }
+}
+
 /// <summary>购物车/提交页结算预览：调用优惠引擎，返回逐商品优惠与可用券/活动清单。</summary>
 public class SettlePreviewHandler(DiscountEngine engine, TenantContext tenant)
     : IRequestHandler<SettlePreviewCommand, ApiResponse>
 {
+    /// <summary>结算预览：调用优惠引擎计算逐商品优惠与可用券/活动（无副作用，不占用券）。</summary>
     public async Task<ApiResponse> Handle(SettlePreviewCommand request, CancellationToken cancellationToken)
     {
         var userId = tenant.UserId > 0 ? tenant.UserId : 0;

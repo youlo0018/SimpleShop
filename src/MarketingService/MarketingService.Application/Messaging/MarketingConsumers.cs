@@ -18,9 +18,12 @@ public sealed class PaymentSucceededMarketingConsumer(
     MarketingCommitService commitService,
     ILogger<PaymentSucceededMarketingConsumer> logger) : BackgroundService
 {
+    /// <summary>RabbitMQ 连接（StopAsync 关闭）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道（声明队列与 Ack/Nack 使用）。</summary>
     private IChannel? _channel;
 
+    /// <summary>后台循环启动消费者；RabbitMQ 未就绪时每 10 秒重试，不拖垮服务本身。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -38,6 +41,7 @@ public sealed class PaymentSucceededMarketingConsumer(
         }
     }
 
+    /// <summary>建立连接、声明交换机/队列/绑定并注册消费回调（各消费者独立队列，互不影响）。</summary>
     private async Task StartAsync(CancellationToken cancellationToken)
     {
         var section = configuration.GetSection("RabbitMQ");
@@ -72,6 +76,7 @@ public sealed class PaymentSucceededMarketingConsumer(
         await _channel.BasicConsumeAsync("marketing.payment.succeeded", autoAck: false, consumer, cancellationToken: cancellationToken);
     }
 
+    /// <summary>解析 payment.succeeded 信封取订单号，触发满赠发券（落账已在订单创建时完成）。</summary>
     private async Task HandlePaymentSucceededAsync(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
@@ -81,6 +86,7 @@ public sealed class PaymentSucceededMarketingConsumer(
         await commitService.IssueGiftCouponsAsync(bizNo, cancellationToken);
     }
 
+    /// <summary>优雅关闭：先关 Channel 再关 Connection，避免遗留未确认消息。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_channel is not null) await _channel.CloseAsync(cancellationToken);
@@ -117,6 +123,7 @@ public sealed class OrderCancelledMarketingConsumer(
         }
     }
 
+    /// <summary>建立连接、声明交换机/队列/绑定并注册消费回调（各消费者独立队列，互不影响）。</summary>
     private async Task StartAsync(CancellationToken cancellationToken)
     {
         var section = configuration.GetSection("RabbitMQ");
@@ -151,6 +158,7 @@ public sealed class OrderCancelledMarketingConsumer(
         await _channel.BasicConsumeAsync("marketing.order.cancelled", autoAck: false, consumer, cancellationToken: cancellationToken);
     }
 
+    /// <summary>解析 order.cancelled 信封取订单号，回退该订单占用的券。</summary>
     private async Task HandleOrderCancelledAsync(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
@@ -160,6 +168,7 @@ public sealed class OrderCancelledMarketingConsumer(
         await commitService.ReleaseAsync(orderNo, cancellationToken);
     }
 
+    /// <summary>优雅关闭：先关 Channel 再关 Connection，避免遗留未确认消息。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_channel is not null) await _channel.CloseAsync(cancellationToken);

@@ -140,5 +140,5 @@ _NCrunch*s
 node_modules/
 dist/
 
-# 运行时日志与进程 pid（不入库）
-logs/runtime/
+# 运行时日志与进程 pid（整个 logs 目录不入库）
+logs/

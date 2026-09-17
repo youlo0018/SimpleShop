@@ -31,8 +31,8 @@
           <el-col :span="12"><el-form-item label="手机号" prop="phone"><el-input v-model="form.phone" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="邮箱" prop="email"><el-input v-model="form.email" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="角色" prop="role"><el-select v-model="form.role" style="width:100%"><el-option v-for="role in roleOptions" :key="role.code" :value="role.code" :label="`${role.name}（${scopeText(role.tenantType)}）`" /></el-select></el-form-item></el-col>
-          <el-col v-if="selectedRole?.tenantType === 1" :span="12"><el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item></el-col>
-          <el-col v-if="selectedRole?.tenantType === 2" :span="12"><el-form-item label="所属商户" prop="merchantId"><el-select v-model="form.merchantId" filterable style="width:100%"><el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" /></el-select></el-form-item></el-col>
+          <el-col v-if="Number(selectedRole?.tenantType) === 1" :span="12"><el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item></el-col>
+          <el-col v-if="Number(selectedRole?.tenantType) === 2" :span="12"><el-form-item label="所属商户" prop="merchantId"><el-select v-model="form.merchantId" filterable style="width:100%"><el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" /></el-select></el-form-item></el-col>
         </el-row>
       </el-form>
       <template #footer><el-button @click="dialog = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>

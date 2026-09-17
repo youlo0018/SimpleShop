@@ -66,7 +66,8 @@ public class OrderController(IMediator mediator, TenantContext tenant) : BaseCon
     public async Task<ApiResponse> Cancel([FromBody] CancelOrderCommand command)
     {
         // 与确认收货一致：客户只能取消本人订单，后台按租户范围；Override 由网关可信身份决定，禁止请求体伪造。
+        // Handler 已返回完整 ApiResponse：直接返回，禁止再包 Ok()（会形成双层信封，前端读不到 success/code）。
         command = command with { CustomerId = tenant.UserId, OverrideCustomerScope = !tenant.IsCustomer };
-        return Ok(await mediator.Send(command, CancellationToken.None));
+        return await mediator.Send(command, CancellationToken.None);
     }
 }

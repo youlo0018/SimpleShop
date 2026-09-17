@@ -125,6 +125,11 @@ public sealed class AdminAuthorizationMiddleware(
 
     private string? ResolveRequiredPermission(HttpContext context, List<PermissionCatalogItem> catalog)
     {
+        // 商城公开接口：活动专区与店铺信息允许游客浏览（下单/用券仍要求登录）。
+        if (context.Request.Path.Equals("/gateway/marketing/ActiveActivities", StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.Equals("/gateway/merchants/Shop", StringComparison.OrdinalIgnoreCase))
+            return null;
+
         if (context.Request.Path.StartsWithSegments("/gateway/permissions"))
             return "permission:manage";
         if (context.Request.Path.Equals("/gateway/logs", StringComparison.OrdinalIgnoreCase))

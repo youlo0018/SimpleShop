@@ -14,6 +14,7 @@ namespace MarketingService.Application.Features.Activities;
 public class ListActivitiesHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<ListActivitiesQuery, ApiResponse>
 {
+    /// <summary>活动分页：按当前租户（平台=本平台全部活动；商户=本商户活动）裁剪后查询，返回 items/total/分页信息。</summary>
     public async Task<ApiResponse> Handle(ListActivitiesQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : tenant.HasWildcard ? 0 : 0;
@@ -24,9 +25,11 @@ public class ListActivitiesHandler(IMarketingActivityRepository repository, Tena
     }
 }
 
+/// <summary>活动详情：校验租户归属后返回活动与范围明细，供后台编辑回显。</summary>
 public class GetActivityHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<GetActivityQuery, ApiResponse>
 {
+    /// <summary>活动详情：返回活动实体与范围明细；跨租户访问返回 403。</summary>
     public async Task<ApiResponse> Handle(GetActivityQuery request, CancellationToken cancellationToken)
     {
         var activity = await repository.GetByIdAsync(request.Id);
@@ -45,12 +48,14 @@ public class GetActivityHandler(IMarketingActivityRepository repository, TenantC
     }
 }
 
+/// <summary>保存活动：租户回填、满赠券活动归属校验、范围整组替换；新增与编辑共用。</summary>
 public class SaveActivityHandler(
     IMarketingActivityRepository repository,
     IMarketingCouponRepository couponRepository,
     TenantContext tenant)
     : IRequestHandler<SaveActivityCommand, ApiResponse>
 {
+    /// <summary>保存活动：租户回填 → 校验满赠券活动归属 → 落库 → 整组替换范围；Id=0 新增，否则编辑（越权返回 403）。</summary>
     public async Task<ApiResponse> Handle(SaveActivityCommand request, CancellationToken cancellationToken)
     {
         if (!tenant.HasWildcard && !tenant.IsPlatform && !tenant.IsMerchant)
@@ -136,9 +141,11 @@ public class SaveActivityHandler(
     }
 }
 
+/// <summary>活动启停：校验租户归属后更新 IsEnabled。</summary>
 public class SetActivityEnabledHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<SetActivityEnabledCommand, ApiResponse>
 {
+    /// <summary>活动启停：校验租户归属后条件更新 IsEnabled（停用不影响历史订单记录）。</summary>
     public async Task<ApiResponse> Handle(SetActivityEnabledCommand request, CancellationToken cancellationToken)
     {
         var activity = await repository.GetByIdAsync(request.Id);
@@ -156,6 +163,7 @@ public class SetActivityEnabledHandler(IMarketingActivityRepository repository, 
 public class ListCouponTemplatesHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<ListCouponTemplatesQuery, ApiResponse>
 {
+    /// <summary>券模板分页：按租户裁剪（平台=本平台模板，商户=本商户模板）。</summary>
     public async Task<ApiResponse> Handle(ListCouponTemplatesQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : 0;
@@ -166,9 +174,11 @@ public class ListCouponTemplatesHandler(IMarketingCouponRepository repository, T
     }
 }
 
+/// <summary>保存券模板：租户回填、0元减强制门槛 0；新增与编辑共用。</summary>
 public class SaveCouponTemplateHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<SaveCouponTemplateCommand, ApiResponse>
 {
+    /// <summary>保存券模板：租户回填 → 0元减强制门槛为 0 → 落库；返回模板 ID。</summary>
     public async Task<ApiResponse> Handle(SaveCouponTemplateCommand request, CancellationToken cancellationToken)
     {
         if (!tenant.HasWildcard && !tenant.IsPlatform && !tenant.IsMerchant)
@@ -208,9 +218,11 @@ public class SaveCouponTemplateHandler(IMarketingCouponRepository repository, Te
     }
 }
 
+/// <summary>券模板启停：校验归属后更新。</summary>
 public class SetCouponTemplateEnabledHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<SetCouponTemplateEnabledCommand, ApiResponse>
 {
+    /// <summary>券模板启停：校验归属后更新；停用只影响新领取/发放。</summary>
     public async Task<ApiResponse> Handle(SetCouponTemplateEnabledCommand request, CancellationToken cancellationToken)
     {
         var template = await repository.GetByIdAsync(request.Id);
@@ -228,6 +240,7 @@ public class SetCouponTemplateEnabledHandler(IMarketingCouponRepository reposito
 public class ListCouponActivitiesHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<ListCouponActivitiesQuery, ApiResponse>
 {
+    /// <summary>券活动分页：按租户裁剪，附带模板名称与优惠信息（templateType/templateThreshold/templateDiscountValue）便于后台直接展示。</summary>
     public async Task<ApiResponse> Handle(ListCouponActivitiesQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : 0;
@@ -262,9 +275,11 @@ public class ListCouponActivitiesHandler(IMarketingCouponRepository repository, 
     }
 }
 
+/// <summary>券活动详情：返回券活动、范围与模板，供后台编辑回显。</summary>
 public class GetCouponActivityHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<GetCouponActivityQuery, ApiResponse>
 {
+    /// <summary>券活动详情：返回券活动、范围明细与模板；跨租户访问返回 403。</summary>
     public async Task<ApiResponse> Handle(GetCouponActivityQuery request, CancellationToken cancellationToken)
     {
         var activity = await repository.GetActivityByIdAsync(request.Id);
@@ -279,9 +294,11 @@ public class GetCouponActivityHandler(IMarketingCouponRepository repository, Ten
     }
 }
 
+/// <summary>保存券活动：模板归属校验、租户回填、范围整组替换；新增与编辑共用。</summary>
 public class SaveCouponActivityHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<SaveCouponActivityCommand, ApiResponse>
 {
+    /// <summary>保存券活动：校验模板归属 → 租户回填 → 落库 → 整组替换范围；返回券活动 ID。</summary>
     public async Task<ApiResponse> Handle(SaveCouponActivityCommand request, CancellationToken cancellationToken)
     {
         if (!tenant.HasWildcard && !tenant.IsPlatform && !tenant.IsMerchant)
@@ -359,9 +376,11 @@ public class SaveCouponActivityHandler(IMarketingCouponRepository repository, Te
     }
 }
 
+/// <summary>券活动启停：校验归属后更新。</summary>
 public class SetCouponActivityEnabledHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<SetCouponActivityEnabledCommand, ApiResponse>
 {
+    /// <summary>券活动启停：校验归属后更新；停用后不再发券，已发用户券仍可使用。</summary>
     public async Task<ApiResponse> Handle(SetCouponActivityEnabledCommand request, CancellationToken cancellationToken)
     {
         var activity = await repository.GetActivityByIdAsync(request.Id);
@@ -379,6 +398,7 @@ public class SetCouponActivityEnabledHandler(IMarketingCouponRepository reposito
 public class GetMarketingConfigHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<GetMarketingConfigQuery, ApiResponse>
 {
+    /// <summary>读取平台营销配置：不存在时返回默认值（券优先），前端据此渲染单选项。</summary>
     public async Task<ApiResponse> Handle(GetMarketingConfigQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : request.PlatformId;
@@ -391,9 +411,11 @@ public class GetMarketingConfigHandler(IMarketingActivityRepository repository, 
     }
 }
 
+/// <summary>保存平台营销配置：仅平台账号，存在则更新否则新增。</summary>
 public class SaveMarketingConfigHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<SaveMarketingConfigCommand, ApiResponse>
 {
+    /// <summary>保存平台营销配置：不存在则新增、存在则更新优先级；仅平台账号可操作。</summary>
     public async Task<ApiResponse> Handle(SaveMarketingConfigCommand request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : request.PlatformId;

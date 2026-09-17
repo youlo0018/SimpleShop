@@ -12,6 +12,7 @@ namespace MarketingService.Application.Features.Reports;
 public class ActivityReportHandler(IMarketingActivityRepository repository, TenantContext tenant)
     : IRequestHandler<ActivityReportQuery, ApiResponse>
 {
+    /// <summary>活动效果报表：按活动聚合参与订单数/折扣总额/赠券数；传 ActivityId 时下钻该活动的订单记录与商品明细。</summary>
     public async Task<ApiResponse> Handle(ActivityReportQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : 0;
@@ -40,6 +41,7 @@ public class ActivityReportHandler(IMarketingActivityRepository repository, Tena
 public class CouponReportHandler(IMarketingCouponRepository repository, TenantContext tenant)
     : IRequestHandler<CouponReportQuery, ApiResponse>
 {
+    /// <summary>券效果报表：按券活动聚合核销笔数/抵扣总额；传 CouponActivityId 时下钻用券记录与商品明细。</summary>
     public async Task<ApiResponse> Handle(CouponReportQuery request, CancellationToken cancellationToken)
     {
         var platformId = tenant.IsPlatform ? tenant.PlatformId : 0;

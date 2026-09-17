@@ -44,7 +44,10 @@ public enum MarketingScopeType
 /// <summary>参与范围目标类型。</summary>
 public enum MarketingTargetType
 {
+    /// <summary>商户目标：TargetId 为商户 ID（范围=指定商户）。</summary>
     Merchant = 1,
+
+    /// <summary>商品目标：TargetId 为 SKU ID（范围=指定商户商品）。</summary>
     Product = 2
 }
 
@@ -61,8 +64,13 @@ public enum DiscountPriority
 /// <summary>用户券状态。</summary>
 public enum UserCouponStatus
 {
+    /// <summary>未使用：可用于结算；是否已过期另按 ExpireAt 判断。</summary>
     Unused = 1,
+
+    /// <summary>已使用：被某订单占用（UsedOrderNo 记录订单号），取消时可回退。</summary>
     Used = 2,
+
+    /// <summary>已过期：仅用于券包展示（当前不落库，查询时按 ExpireAt 计算得出）。</summary>
     Expired = 3
 }
 
@@ -79,7 +87,12 @@ public enum UserCouponSource
 /// <summary>单商品命中的营销类型（用于订单明细快照）。</summary>
 public enum MarketingHitType
 {
+    /// <summary>未命中任何优惠。</summary>
     None = 0,
+
+    /// <summary>命中活动（含满赠，此时折扣为 0）。</summary>
     Activity = 1,
+
+    /// <summary>命中用户券（已占用，DiscountAmount 为该券带来的抵扣）。</summary>
     Coupon = 2
 }

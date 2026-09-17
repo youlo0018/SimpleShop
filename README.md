@@ -25,7 +25,8 @@ SimpleShop 是一个基于 **.NET 10 微服务** 与 **Vue 3 / UniApp** 的全�
 |------|------|
 | 交易闭环 | 幂等下单、库存锁定/扣减/释放、模拟支付、支付超时关单、发货/签收/取消、退款申请与审批（累计限额） |
 | 营销中心 | 平台/商户活动（满减/满折/满赠）、券模板、券活动、领券中心与券包；逐商品贪心 + 券/活动互斥 + 平台优先级配置；订单优惠快照与效果报表 |
-| 多平台小程序 | 按平台配置主题色、公告、TabBar、首页模块（凯德星模式），同一小程序按平台动态渲染 |
+| 多平台小程序 | 按平台配置主题色、公告、TabBar、首页轮播、金刚区（快捷入口）、首页模块与「我的服务」宫格（凯德星模式），同一小程序按平台动态渲染 |
+| 会员与活动专区 | 首页会员问候卡（券/收藏/订单概览）、优惠专区（进行中活动与可领券卡）、店铺页（商品+店铺活动）、收藏页、商品图集与吸底购买栏（店铺/购物车角标/加购/立购） |
 | 权限中心 | 角色/权限点/用户绑定，平台与商户两层权限；网关 RBAC（权限点 ↔ 接口路径） |
 | 商品与库存 | SPU/SKU、三级分类、审核上下架、图片上传（魔数校验）、库存流水幂等与补偿 |
 | 报表与日志 | 工作台经营报表、活动/券效果报表；PV/操作/异常日志经 RabbitMQ 入 Elasticsearch |
@@ -108,12 +109,25 @@ SimpleShop/
 | `REVIEW.md` | 全链路执行顺序、风险审计与改进建议 |
 | `AI_HANDOFF.md` | 环境启动、协作约定、进度日志 |
 
-### 端到端验证
+### 测试与验证
+
+测试用例清单（按功能模块，含前置/步骤/期望/自动化对照）：`tests/TEST_CASES.md`
 
 ```bash
+bash tests/e2e/api-regression.sh   # API 回归：认证/鉴权/隔离/商品/购物车/订单/支付/退款/营销/装修/校验（98 项）
+node tests/e2e/ui-regression.js    # UI 回归：小程序（首页/商品/购物车/结算/券/店铺/我的/登录态）+ 后台（营销/装修/401）（25 项）
 bash tests/e2e/business-flow.sh    # 注册 → 下单 → 支付 → 发货 → 签收
-bash tests/e2e/marketing-flow.sh   # 建活动/券 → 领券 → 优先级 → 下单抵扣 → 报表 → 满赠
+bash tests/e2e/marketing-flow.sh   # 建活动/券 → 领券 → 优先级 → 下单抵扣 → 报表 → 满赠（26 项）
 ```
+
+### 演示数据
+
+```bash
+node scripts/seed-test-data.js                 # 从 dummyjson 拉取测试商品，建演示平台/商户/分类/商品/活动/券/用户/订单
+node scripts/seed-test-data.js --skip-orders   # 只补商品与营销配置
+```
+
+脚本可重复执行（平台/商户/分类/活动按名称复用、商品按 SKU 去重、订单追加），演示平台编码 `demo`，商户管理员 `demo-merchant / Demo123456`，演示用户 `demo_user_01..08 / Test123456`。
 
 ---
 
@@ -135,7 +149,8 @@ SimpleShop is a full-stack e-commerce MVP built on **.NET 10 microservices** and
 |------|-----------|
 | Commerce | Idempotent order placement, stock lock/deduct/release, simulated payment, payment-timeout close, shipping/receipt/cancel, refund apply & approval with cumulative limits |
 | Marketing | Platform/merchant campaigns (amount off / percentage off / free coupon gift), coupon templates & coupon activities, coupon center and wallet; greedy per-item discount with campaign/coupon exclusivity and a platform-level priority switch; discount snapshots on orders and effect reports |
-| Multi-platform Mini Program | Theme colors, notice, TabBar and home modules configured per platform (CapitaStar-style dynamic rendering) |
+| Multi-platform Mini Program | Theme colors, notice, TabBar, home banners, quick-nav grid, home modules and the "My Services" grid configured per platform (CapitaStar-style dynamic rendering) |
+| Member & Promotion Zone | Home member greeting card (coupons/favorites/orders), promotion zone (ongoing campaigns and claimable coupons), merchant shop page (products + shop campaigns), favorites page, product gallery with sticky buy bar (shop / cart badge / add-to-cart / buy-now) |
 | RBAC | Roles, permission points and user bindings for platform and merchant scopes; gateway RBAC mapping permission points to API paths |
 | Catalog & Stock | SPU/SKU, 3-level categories, publish/unpublish review, image upload with magic-byte checks, idempotent stock flows and compensation |
 | Reporting & Logs | Dashboard reports, campaign/coupon effect reports; PV/operation/exception logs shipped to Elasticsearch via RabbitMQ |
@@ -218,12 +233,25 @@ SimpleShop/
 | `REVIEW.md` | Full request-flow ordering, risk audit and improvement backlog |
 | `AI_HANDOFF.md` | Environment setup, collaboration rules, progress log |
 
-### End-to-End Checks
+### Tests & Checks
+
+Test case catalog by module (preconditions / steps / expected results / automation mapping): `tests/TEST_CASES.md`
 
 ```bash
+bash tests/e2e/api-regression.sh   # API regression: auth/RBAC/tenant isolation/catalog/cart/order/payment/refund/marketing/design/validation (98 checks)
+node tests/e2e/ui-regression.js    # UI regression: storefront (home/product/cart/checkout/coupons/shop/profile/login-state) + admin (marketing/design/401) (25 checks)
 bash tests/e2e/business-flow.sh    # register → order → pay → ship → receive
-bash tests/e2e/marketing-flow.sh   # campaigns/coupons → claim → priority → checkout discount → reports → gift coupon
+bash tests/e2e/marketing-flow.sh   # campaigns/coupons → claim → priority → checkout discount → reports → gift coupon (26 checks)
 ```
+
+### Demo Data
+
+```bash
+node scripts/seed-test-data.js                 # pull test products from dummyjson and seed platform/merchants/categories/products/campaigns/coupons/users/orders
+node scripts/seed-test-data.js --skip-orders   # catalog & marketing only
+```
+
+Re-runnable: platform/merchants/categories/campaigns are reused by name, products are de-duplicated by SKU code, orders are appended. Demo platform code `demo`, merchant admin `demo-merchant / Demo123456`, demo customers `demo_user_01..08 / Test123456`.
 
 ---
 

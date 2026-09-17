@@ -109,6 +109,7 @@ public sealed class DiscountEngine(
         return settle;
     }
 
+    /// <summary>逐商品计算优惠并应用互斥与优先级规则；applySideEffects 由调用方决定是否占用券。</summary>
     private MarketingSettleResponse Run(MarketingSettleRequest request, CalculationContext context)
     {
         if (request.Items.Count == 0) return Fail("结算商品不能为空");
@@ -244,6 +245,7 @@ public sealed class DiscountEngine(
         };
     }
 
+    /// <summary>加载配置、活动、用户券与范围快照，构建一次计算所需的不可变上下文。</summary>
     private async Task<CalculationContext> BuildContextAsync(MarketingSettleRequest request, CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
@@ -281,6 +283,7 @@ public sealed class DiscountEngine(
         };
     }
 
+    /// <summary>活动是否适用于该商品行：平台/商户归属 + 范围（全部/指定商户/指定商品）匹配。</summary>
     private static bool IsActivityApplicable(MarketingActivity activity, List<MarketingActivityTarget>? targets, MarketingSettleItem item)
     {
         if (activity.PlatformId != item.PlatformId) return false;
@@ -296,6 +299,7 @@ public sealed class DiscountEngine(
         };
     }
 
+    /// <summary>用户券是否适用于该商品行：平台一致 + 券活动归属 + 范围匹配。</summary>
     private static bool IsCouponApplicable(UserCoupon coupon, CouponActivity activity, List<CouponActivityTarget>? targets, MarketingSettleItem item)
     {
         if (coupon.PlatformId != item.PlatformId) return false;
@@ -311,6 +315,7 @@ public sealed class DiscountEngine(
         };
     }
 
+    /// <summary>活动优惠额：满减取金额上限；满折按折扣率；满赠恒为 0；均保证单行实付≥0.01。</summary>
     private static decimal ActivityDiscount(MarketingActivity activity, decimal amount) => activity.ActivityType switch
     {
         (int)ActivityType.FullReduce => Cap(activity.DiscountValue, amount),
@@ -318,6 +323,7 @@ public sealed class DiscountEngine(
         _ => 0m
     };
 
+    /// <summary>券优惠额：0元减必须小于行金额；满减/满折需过门槛并保证单行实付≥0.01。</summary>
     private static decimal CouponDiscount(UserCoupon coupon, CouponTemplate template, decimal amount)
         => template.CouponType switch
         {
@@ -328,23 +334,35 @@ public sealed class DiscountEngine(
             _ => 0m
         };
 
+    /// <summary>折扣封顶：单行最多抵扣到 0.01 元，避免零元或负价行进入支付链路。</summary>
     private static decimal Cap(decimal discount, decimal amount) => Round2(Math.Min(discount, Math.Max(amount - 0.01m, 0m)));
 
+    /// <summary>商品行小计（元，四舍五入到分）。</summary>
     private static decimal ItemAmount(MarketingSettleItem item) => Round2(item.Price * item.Quantity);
 
+    /// <summary>金额统一四舍五入到分（AwayFromZero，与财务口径一致）。</summary>
     private static decimal Round2(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
+    /// <summary>构造失败结果（Success=false + 可直接展示的原因）。</summary>
     private static MarketingSettleResponse Fail(string message) => new() { Success = false, Message = message };
 
     private sealed class CalculationContext
     {
+        /// <summary>平台配置的全局优先级（1 活动优先 / 2 券优先）。</summary>
         public int Priority { get; init; }
+        /// <summary>平台下当前有效的活动（按创建顺序）。</summary>
         public List<MarketingActivity> Activities { get; init; } = [];
+        /// <summary>活动 ID → 范围明细。</summary>
         public Dictionary<long, List<MarketingActivityTarget>> ActivityTargets { get; init; } = [];
+        /// <summary>按勾选过滤后的可用用户券。</summary>
         public List<UserCoupon> UsableCoupons { get; init; } = [];
+        /// <summary>用户券关联的券活动（券包/范围判定用）。</summary>
         public Dictionary<long, CouponActivity> CouponActivities { get; init; } = [];
+        /// <summary>券活动 ID → 范围明细。</summary>
         public Dictionary<long, List<CouponActivityTarget>> CouponTargets { get; init; } = [];
+        /// <summary>券模板（优惠规则来源）。</summary>
         public Dictionary<long, CouponTemplate> Templates { get; init; } = [];
+        /// <summary>本次结算商品行快照。</summary>
         public List<MarketingSettleItem> Items { get; init; } = [];
     }
 }

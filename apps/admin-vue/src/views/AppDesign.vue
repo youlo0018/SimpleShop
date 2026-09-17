@@ -37,6 +37,44 @@
           <el-input v-model="rawJson" type="textarea" :rows="10" />
           <el-button class="mt12" @click="applyRawJson">应用JSON</el-button>
         </el-card>
+
+        <!-- 首页轮播图：写入 design.home.banners，小程序首页顶部大图直接读取 -->
+        <el-card shadow="never" class="mt16">
+          <template #header>首页轮播图</template>
+          <div v-for="(banner, index) in design.home.banners" :key="index" class="line-block">
+            <div class="line"><el-input v-model="banner.image" placeholder="图片地址（https:// 或 /gateway/products/File/xxx）" /></div>
+            <div class="line">
+              <el-input v-model="banner.title" placeholder="标题（可选）" />
+              <el-select v-model="banner.linkType" style="width:140px"><el-option v-for="option in linkTypes" :key="option.value" :value="option.value" :label="option.label" /></el-select>
+              <el-input v-model="banner.linkValue" placeholder="参数（分类必填）" />
+              <el-button link type="danger" @click="design.home.banners.splice(index, 1)">删</el-button>
+            </div>
+          </div>
+          <el-button @click="design.home.banners.push({ image: '', title: '', linkType: 'products', linkValue: '' })">添加轮播图</el-button>
+        </el-card>
+
+        <!-- 我的服务：写入 design.profile.services，小程序"我的"页功能宫格按平台配置 -->
+        <el-card shadow="never" class="mt16">
+          <template #header>我的服务（我的页功能宫格）</template>
+          <div class="line"><span class="field-hint">权益行（会员卡下方 4 个权益）</span></div>
+          <div v-for="(item, index) in design.profile.benefits" :key="`b-${index}`" class="line">
+            <el-input v-model="item.icon" placeholder="图标路径/emoji" style="width:150px" maxlength="64" />
+            <el-input v-model="item.title" placeholder="名称（≤6字）" style="width:120px" maxlength="6" />
+            <el-select v-model="item.linkType" style="width:130px"><el-option v-for="option in linkTypes" :key="option.value" :value="option.value" :label="option.label" /></el-select>
+            <el-input v-model="item.linkValue" placeholder="参数" />
+            <el-button link type="danger" @click="design.profile.benefits.splice(index, 1)">删</el-button>
+          </div>
+          <el-button @click="design.profile.benefits.push({ icon: '/static/line/points.png', title: '', linkType: 'coupons', linkValue: '' })">添加权益</el-button>
+          <div class="line"><span class="field-hint">我的服务（功能宫格，每行 5 个）</span></div>
+          <div v-for="(item, index) in design.profile.services" :key="index" class="line">
+            <el-input v-model="item.icon" placeholder="图标路径/emoji" style="width:150px" maxlength="64" />
+            <el-input v-model="item.title" placeholder="名称（≤8字）" style="width:120px" maxlength="8" />
+            <el-select v-model="item.linkType" style="width:130px"><el-option v-for="option in linkTypes" :key="option.value" :value="option.value" :label="option.label" /></el-select>
+            <el-input v-model="item.linkValue" placeholder="参数（分类/商品必填）" />
+            <el-button link type="danger" @click="design.profile.services.splice(index, 1)">删</el-button>
+          </div>
+          <el-button @click="design.profile.services.push({ icon: '⭐', title: '', linkType: 'orders', linkValue: '' })">添加服务</el-button>
+        </el-card>
       </el-col>
 
       <el-col :span="16">
@@ -65,7 +103,7 @@
             <template v-if="module.type === 'banners'">
               <el-form-item v-for="(banner, bannerIndex) in module.items" :key="bannerIndex" :label="`图${bannerIndex + 1}`">
                 <div class="line"><el-input v-model="banner.image" placeholder="图片地址" /><el-button link type="danger" @click="module.items.splice(bannerIndex, 1)">删</el-button></div>
-                <div class="line"><el-input v-model="banner.title" placeholder="标题" /><el-select v-model="banner.linkType" style="width:130px"><el-option value="products" label="商品列表" /><el-option value="category" label="分类页" /><el-option value="cart" label="购物车" /></el-select><el-input v-model="banner.linkValue" placeholder="参数" /></div>
+                <div class="line"><el-input v-model="banner.title" placeholder="标题" /><el-select v-model="banner.linkType" style="width:130px"><el-option v-for="option in linkTypes" :key="option.value" :value="option.value" :label="option.label" /></el-select><el-input v-model="banner.linkValue" placeholder="参数" /></div>
               </el-form-item>
               <el-button @click="module.items.push({ image: '', title: '', linkType: 'products', linkValue: '' })">添加轮播图</el-button>
             </template>
@@ -73,7 +111,7 @@
             <template v-if="module.type === 'quickNav'">
               <el-form-item v-for="(item, itemIndex) in module.items" :key="itemIndex" :label="`入口${itemIndex + 1}`">
                 <div class="line"><el-input v-model="item.icon" placeholder="emoji" style="width:72px" /><el-input v-model="item.title" placeholder="名称" /></div>
-                <div class="line"><el-select v-model="item.linkType"><el-option value="category" label="分类" /><el-option value="cart" label="购物车" /><el-option value="orders" label="订单" /><el-option value="products" label="商品列表" /><el-option value="address" label="地址" /></el-select><el-input v-model="item.linkValue" placeholder="分类ID" /><el-button link type="danger" @click="module.items.splice(itemIndex, 1)">删</el-button></div>
+                <div class="line"><el-select v-model="item.linkType" style="width:150px"><el-option v-for="option in linkTypes" :key="option.value" :value="option.value" :label="option.label" /></el-select><el-input v-model="item.linkValue" placeholder="参数" /><el-button link type="danger" @click="module.items.splice(itemIndex, 1)">删</el-button></div>
               </el-form-item>
               <el-button @click="module.items.push({ icon: '🎁', title: '新品', linkType: 'products', linkValue: '' })">添加入口</el-button>
             </template>
@@ -81,7 +119,7 @@
             <template v-if="module.type === 'categories'"><el-form-item label="数量"><el-input-number v-model="module.limit" :min="1" :max="20" /></el-form-item></template>
 
             <template v-if="module.type === 'products'">
-              <el-form-item label="布局"><el-radio-group v-model="module.layout"><el-radio-button value="grid">两列</el-radio-button><el-radio-button value="list">横滑</el-radio-button></el-radio-group></el-form-item>
+              <el-form-item label="布局"><el-radio-group v-model="module.layout"><el-radio-button value="grid">两列</el-radio-button><el-radio-button value="grid3">三列</el-radio-button><el-radio-button value="list">横滑</el-radio-button></el-radio-group></el-form-item>
               <el-form-item label="分类ID"><el-input v-model="module.categoryId" placeholder="留空=全部" /></el-form-item>
               <el-form-item label="商户ID"><el-input v-model="module.merchantId" placeholder="留空=全部" /></el-form-item>
               <el-form-item label="数量"><el-input-number v-model="module.limit" :min="1" :max="30" /></el-form-item>
@@ -107,9 +145,44 @@ function emptyDesign() {
   return {
     theme: { primary: '#0071e3', background: '#f5f5f7', tabColor: '#0071e3' },
     home: { appName: '', slogan: '', notice: '', banners: [], modules: [] },
+    // 我的服务默认值：与后端 DefaultDesign 保持一致，未配置时也有完整入口。
+    profile: {
+      benefits: [
+        { icon: '/static/line/points.png', title: '积分回馈', linkType: 'coupons', linkValue: '' },
+        { icon: '/static/line/benefit.png', title: '专属活动', linkType: 'coupon-center', linkValue: '' },
+        { icon: '/static/line/star.png', title: '我的收藏', linkType: 'favorites', linkValue: '' },
+        { icon: '/static/line/card.png', title: '更多权益', linkType: 'service', linkValue: '' }
+      ],
+      services: [
+        { icon: '/static/line/order.png', title: '我的订单', linkType: 'orders', linkValue: '' },
+        { icon: '/static/line/cart.png', title: '购物车', linkType: 'cart', linkValue: '' },
+        { icon: '/static/line/record.png', title: '消费记录', linkType: 'orders', linkValue: '' },
+        { icon: '/static/line/gift.png', title: '领券中心', linkType: 'coupon-center', linkValue: '' },
+        { icon: '/static/line/service.png', title: '客服帮助', linkType: 'service', linkValue: '' },
+        { icon: '/static/line/heart.png', title: '我的收藏', linkType: 'favorites', linkValue: '' },
+        { icon: '/static/line/card.png', title: '我的券包', linkType: 'coupons', linkValue: '' },
+        { icon: '/static/line/pin.png', title: '收货地址', linkType: 'address', linkValue: '' },
+        { icon: '/static/line/invoice.png', title: '发票信息', linkType: 'service', linkValue: '' },
+        { icon: '/static/line/info.png', title: '关于我们', linkType: 'service', linkValue: '' }
+      ]
+    },
     tabs: { home: '首页', category: '分类', cart: '购物车', profile: '我的' }
   }
 }
+
+// 小程序端支持的跳转类型（快捷入口/轮播/我的服务共用）。
+const linkTypes = [
+  { value: 'products', label: '商品列表' },
+  { value: 'category', label: '分类页' },
+  { value: 'cart', label: '购物车' },
+  { value: 'orders', label: '我的订单' },
+  { value: 'address', label: '收货地址' },
+  { value: 'coupon-center', label: '领券中心' },
+  { value: 'coupons', label: '我的券包' },
+  { value: 'favorites', label: '我的收藏' },
+  { value: 'refresh', label: '刷新资料（仅我的服务）' },
+  { value: 'service', label: '联系客服（仅我的服务）' }
+]
 
 const moduleTitle = module => ({ hero: '品牌头', notice: '公告', banners: '轮播图', quickNav: '快捷入口', categories: '分类', products: '商品' }[module.type] || module.type)
 const makeModule = type => ({
@@ -140,8 +213,12 @@ const load = async () => {
   design.value = { ...emptyDesign(), ...(data.design || {}) }
   design.value.theme = { ...emptyDesign().theme, ...(data.design?.theme || {}) }
   design.value.home = { ...emptyDesign().home, ...(data.design?.home || {}) }
+  design.value.profile = { ...emptyDesign().profile, ...(data.design?.profile || {}) }
   design.value.tabs = { ...emptyDesign().tabs, ...(data.design?.tabs || {}) }
+  design.value.home.banners = data.design?.home?.banners || []
   design.value.home.modules = data.design?.home?.modules || [makeModule('quickNav'), makeModule('categories'), makeModule('products')]
+  if (!design.value.profile.services.length) design.value.profile.services = emptyDesign().profile.services
+  if (!design.value.profile.benefits.length) design.value.profile.benefits = emptyDesign().profile.benefits
   rawJson.value = JSON.stringify(design.value, null, 2)
 }
 
@@ -150,6 +227,8 @@ const applyRawJson = () => {
     const parsed = JSON.parse(rawJson.value)
     // 结构校验：缺 theme/home/tabs 会让小程序端渲染报错，而不是在此静默通过。
     if (!parsed?.theme || !parsed?.home || !parsed?.tabs) throw new Error('missing sections')
+    parsed.home.banners = parsed.home.banners || []
+    parsed.profile = { benefits: [], services: [], ...(parsed.profile || {}) }
     design.value = parsed
     ElMessage.success('JSON已应用')
   }
@@ -168,6 +247,14 @@ const validateDesign = () => {
   if (![theme.primary, theme.background, theme.tabColor].every(isHexColor)) return '主题颜色必须是 #RRGGBB 格式'
   if (['home', 'category', 'cart', 'profile'].some(key => !String(tabs[key] || '').trim() || String(tabs[key]).length > 8))
     return '底部标签文案必填且不超过8个字符'
+  const banners = home.banners || []
+  if (banners.some(item => !String(item.image || '').trim())) return '首页轮播图图片地址不能为空'
+  if (banners.some(item => ['category', 'products'].includes(item.linkType) && !String(item.linkValue || '').trim())) return '轮播图选择分类/商品列表时必须填写参数'
+  const services = design.value.profile?.services || []
+  if (services.some(item => !String(item.title || '').trim())) return '我的服务名称不能为空'
+  if (services.some(item => String(item.title).length > 8)) return '我的服务名称不能超过8个字'
+  if (services.some(item => String(item.icon || '').length > 64)) return '我的服务图标请使用 /static/line/*.png 路径或 1 个 emoji'
+  if (services.some(item => ['category', 'products'].includes(item.linkType) && !String(item.linkValue || '').trim())) return '我的服务跳分类/商品时必须填写参数'
   for (const module of home.modules || []) {
     if (module.type === 'banners') {
       if (!(module.items || []).length) return '轮播图模块至少添加一张图片'
@@ -206,4 +293,5 @@ onMounted(async () => { await loadPlatforms(); load() })
 .module-card { margin-bottom: 16px; }
 .line { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; width: 100%; }
 .mt12 { margin-top: 12px; }
+.field-hint { color: #86868b; font-size: 12px; }
 </style>

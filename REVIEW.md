@@ -100,6 +100,7 @@ Handler 构建仓储分页查询：`!IsDeleted` → `WhereIf` 业务过滤 → �
 - **满赠**：支付成功消费者（队列 `marketing.payment.succeeded`）按订单的活动记录找到满赠活动 → 向指定券活动领取一张券（条件自增防超发）→ 写 `GiftCouponCount`
 - **回退**：`order.cancelled` 消费者（队列 `marketing.order.cancelled`）把该订单占用的券恢复未使用
 - **报表**：`ActivityReport` / `CouponReport` 汇总（订单数/折扣额/赠券数）+ 订单/商品明细下钻
+- **公开接口**：`GET /gateway/marketing/ActiveActivities`（活动专区，游客可见）与 `GET /gateway/merchants/Shop`（店铺公开信息）在网关 `ResolveRequiredPermission` 中显式放行；只返回展示字段，下单/用券/收藏仍要求登录
 
 ### 链路 12：退款 `/payments/Refund` → `ApproveRefund` / `RejectRefund`
 
@@ -163,9 +164,11 @@ PV 中间件（`X-Gateway-PV` 防重复计数）/ OperationLogger（关键动作
 | 8 | 签收锁粒度 | ReceiveShipment 已按订单锁（历史问题已修复），但多包裹并发签收仍建议锁后复检包裹列表 |
 | 9 | 禁用账号的在线令牌 | UpdateStatus 只挡新登录，已签发 JWT 到期前仍有效（12h）；高危操作可考虑网关侧黑名单 |
 | 10 | 营销记录与订单非同事务 | 订单落库后 `CommitAsync` 失败只告警，记录可能缺失（优惠已生效）；可按 orderNo 对账补录 |
-| 11 | 满赠多活动命中取最早创建 | 同一商品满足多个满赠活动时取列表中第一个（当前按查询顺序）；如需"门槛最高优先"应显式排序 |
+| 11 | 满赠多活动命中取最早创建 | 同一商品满足多个满赠活动时取创建最早的一个（查询按 `CreatedAt,Id` 升序，结果确定）；如需"门槛最高优先"应显式调整排序 |
 | 12 | 退款不退券、部分退款不回补优惠 | 退款链路未联动营销；券核销后不返还，符合常见电商做法，但需在客服口径中说明 |
 | 13 | 报表内存聚合 | `SummarizeActivities/Coupons` 拉取区间内全部记录在内存 GroupBy；数据量大后应改为 SQL 聚合或汇总表 |
+| 14 | 公开接口无鉴权 | `ActiveActivities` / `merchants/Shop` 面向游客开放，仅返回展示字段；若后续加入敏感字段（联系方式等）必须重新加权限或改走登录态 |
+| 15 | 收藏页 N+1 查询 | 收藏只存商品 ID，页面逐个取详情（上限 20）；后续应在商品服务提供按 ID 批量查询接口 |
 
 ### review 方法建议
 

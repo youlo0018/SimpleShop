@@ -14,6 +14,7 @@ public class AddCartItemValidator : AbstractValidator<AddCartItemCommand>
         RuleFor(x => x.ProductName)
             .NotEmpty().WithMessage("商品名称不能为空")
             .MaximumLength(128).WithMessage("商品名称不能超过128个字符");
+        RuleFor(x => x.Image).MaximumLength(255).WithMessage("图片地址过长");
         RuleFor(x => x.Price)
             .GreaterThan(0).WithMessage("商品价格必须大于0")
             .Must(price => decimal.Round(price, 2) == price).WithMessage("商品价格最多保留两位小数");

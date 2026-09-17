@@ -48,6 +48,21 @@ public class MerchantController(IMediator mediator, IFreeSql freeSql, TenantCont
         return Ok(await mediator.Send(command, CancellationToken.None));
     }
 
+    /// <summary>
+    /// 店铺主页公开信息（游客可访问）：只返回已入驻商户的展示字段，不含联系人/佣金等经营数据。
+    /// 商城店铺页头部使用；商品列表走 /products/List?merchantId= 单独查询。
+    /// </summary>
+    [HttpGet]
+    public async Task<ApiResponse> Shop([FromQuery] long id)
+    {
+        if (id <= 0) return Error(BaseApiResponseCode.BadRequest, "商户不能为空");
+        var merchant = await freeSql.Select<Merchant>()
+            .Where(item => item.Id == id && item.Status == (int)MerchantStatus.Approved)
+            .FirstAsync();
+        if (merchant is null) return Error(BaseApiResponseCode.NotFound, "店铺不存在或未营业");
+        return Ok(new { merchant.Id, merchant.MerchantName, merchant.PlatformId, merchant.Status, merchant.CreatedAt });
+    }
+
     [HttpGet]
     public async Task<ApiResponse> Get([FromQuery] GetMerchantQuery query)
         => Ok(await mediator.Send(query, CancellationToken.None));

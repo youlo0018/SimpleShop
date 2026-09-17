@@ -14,6 +14,7 @@ public sealed class MarketingCommitService(
     IMarketingCouponRepository couponRepository,
     ILogger<MarketingCommitService> logger)
 {
+    /// <summary>订单落库后落账：按订单号幂等写活动参与记录与用券记录（失败返回 Success=false，不抛异常）。</summary>
     public async Task<MarketingCommitResponse> CommitAsync(MarketingCommitRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.OrderNo))

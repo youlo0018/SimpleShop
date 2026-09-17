@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
@@ -16,6 +17,8 @@ public sealed class CartItem : BaseEntity
     public long MerchantId { get; set; }
     public long PlatformId { get; set; }
     public string ProductName { get; set; } = string.Empty;
+    [Column(StringLength = 255), Description("商品图片快照")]
+    public string Image { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public bool Checked { get; set; } = true;

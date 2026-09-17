@@ -25,6 +25,8 @@ command = command with { CustomerId = tenant.UserId, OverrideOwnerCheck = !tenan
 
 // ✅ 例外 2：Handler 是旧式 IRequest<object> 时用 Ok() 包一层
 return Ok(await mediator.Send(query, CancellationToken.None));
+// ⛔ 禁止：Handler 返回类型已是 ApiResponse 时再包 Ok() → 产生双层信封 {data:{code,message,data}}，
+//    前端 request.js 解包后读不到 success/code（历史缺陷：/orders/Cancel）。
 ```
 
 - 私有 helper（校验函数、查询方法）**不允许**留在控制器。
@@ -96,6 +98,24 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 
 注释的目标读者是**下一个改这段代码的人**：他需要知道"这段代码为什么存在、在整条链路的什么位置、有哪些不能踩的约束"。禁止写"这行做了什么"的废话注释。
 
+### 5.0 注释完备性（强制检查项）
+
+**接口、方法、字段三类必须 100% 有 XML 注释，缺一不可**；新增服务（如 MarketingService）与新增代码一律按此标准执行，评审时按清单逐项核对：
+
+| 对象 | 必须写 | 注释要点 |
+|------|--------|----------|
+| 接口/类/枚举 | `/// <summary>` | 职责 + 在链路中的位置 + 关键约束 |
+| **接口的每个方法** | `/// <summary>` + `/// <param>` + `/// <returns>` | 语义、输入约束、返回含义、是否幂等/有副作用 |
+| **类的每个方法（含私有）** | `/// <summary>` | 用途、输入输出、边界条件；私有方法说明"为什么存在" |
+| **DTO/Command/Query/实体的每个字段与属性** | `/// <summary>`（或紧随其后的行内说明） | 业务含义、单位、取值/枚举含义、默认值、可空语义 |
+| 枚举的每个成员 | `/// <summary>` | 触发条件与去向 |
+| 控制器每个动作 | `/// <summary>` | 接口用途、入参、权限点、协议差异（HTTP 200+code vs 400） |
+| Validator 类 | `/// <summary>` | 覆盖哪些字段、什么规则、与实体的长度/范围对齐关系 |
+| 仓储接口方法 | `/// <summary>` + `/// <param>` + `/// <returns>` | 过滤条件、分页语义、返回元组含义 |
+| MQ 消费者 | `/// <summary>` | 队列名、绑定事件、幂等键、失败策略 |
+
+> 判断标准：**打开任意一个文件，不看实现也能凭注释知道每个字段能填什么、每个方法会做什么、失败会发生什么**。`[Description]` 特性（实体列描述）可以与 XML 注释并存，但不能替代字段注释。
+
 ### 5.1 必须写 XML 注释（`/// <summary>`）的位置
 
 | 对象 | 注释内容要求 | 示例 |
@@ -140,6 +160,10 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 3. 雪花 ID 全局 JSON 配置自动转字符串；Handler 内用 `long` 比较，不要 `ToString()` 后比。
 4. `IRequest<T>` 与 Handler 泛型必须一致（改返回类型时两处同步，否则 CS0311）。
 5. `IBaseRepository.UpdateAsync(entity)` 单参；带 CancellationToken 的重载是部分服务自定义接口才有的。
+6. **后端数字统一按字符串下发**（雪花 ID 防精度丢失，全局 `JsonNumberHandling.WriteAsString`）：前端比较/回填枚举、金额、数量必须先 `Number()`，否则 `el-radio/el-select` 严格比较不回显、`===` 判断失效；但**ID 禁止 `Number()`**（雪花 ID 超出 JS 安全整数会丢精度），ID 原样用字符串传参与比较，仅"是否为 0"可用 `Number(id) > 0` 判断。
+7. 服务端种子代码不要依赖雪花 AOP 自动生成主键（启动阶段 Yitter 尚未初始化会 NRE）；新增固定主键时用"当前最大 Id + 1"。
+8. **列表查询必须显式 ORDER BY**：PostgreSQL 无排序时按堆物理顺序返回（更新/清理后变化），表现为"随机排序"。营销引擎的活动遍历也按 `CreatedAt, Id` 固定，保证同优惠力度/满赠兜底时结果确定。
+9. `/carts/Add` 是**累加数量**语义：调用方传本次增量（加购传购买数量、购物车加减传 ±1），不要传"目标数量"，否则会出现倍数增长；累计上限 99 由服务端与前端双重校验。
 
 ## 7. 分层迁移完成度（2026-09-16）
 
