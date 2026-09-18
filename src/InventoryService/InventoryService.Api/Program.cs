@@ -1,4 +1,4 @@
-using CommunalService.Application.Common;
+﻿using CommunalService.Application.Common;
 using CommunalService.Domain;
 using InventoryService.Application;
 using InventoryService.Application.Messaging;

@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using MarketingService.Domain.Entity;
 using MarketingService.Domain.Enums;
 using MarketingService.Domain.IRepository;
@@ -17,7 +17,7 @@ namespace MarketingService.Application.Services;
 /// 5) 所有折扣按商品行小计计算并四舍五入到分，单行最多抵扣到 0.01 元。
 /// </summary>
 public sealed class DiscountEngine(
-    IMarketingActivityRepository activityRepository,
+    MarketingSnapshotCache snapshotCache,
     IMarketingCouponRepository couponRepository,
     ILogger<DiscountEngine> logger)
 {
@@ -79,6 +79,62 @@ public sealed class DiscountEngine(
             Coupons = coupons.OrderByDescending(item => item.EstimatedDiscount).ToList(),
             Activities = activities.OrderByDescending(item => item.EstimatedDiscount).ToList()
         };
+    }
+
+    /// <summary>
+    /// 到手价（京东/淘宝式）：每个商品独立按"单商品订单"试算，登录用户自动取最优券、游客只算活动。
+    /// 与结算引擎共用同一套规则与优先级，保证"展示到手价 = 实际可享价"，避免前端自行拼算导致不一致。
+    /// </summary>
+    /// <param name="platformId">平台 ID（活动/券范围过滤）。</param>
+    /// <param name="userId">当前登录用户 ID；0 表示游客（不加载用户券，仅活动价）。</param>
+    /// <param name="items">待试算商品行（列表页批量/详情页单行）。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>逐商品的原价/活动/券/到手价拆分；无法计算的商品行不返回。</returns>
+    public async Task<List<MarketingFinalPriceResult>> FinalPriceAsync(long platformId, long userId, List<MarketingSettleItem> items, CancellationToken cancellationToken)
+    {
+        var context = await BuildContextAsync(new MarketingSettleRequest { PlatformId = platformId, UserId = userId, Items = items }, cancellationToken);
+        var counterPriority = context.Priority == (int)DiscountPriority.CouponFirst
+            ? (int)DiscountPriority.ActivityFirst
+            : (int)DiscountPriority.CouponFirst;
+        var results = new List<MarketingFinalPriceResult>();
+        foreach (var item in items)
+        {
+            // 每个商品独立成单：券不跨商品消耗，展示"只买这一件"的最优到手价（与京东/淘宝列表口径一致）。
+            // 同时按两种优先级各算一次并取更低价：用户可在结算页取消勾选券，因此"活动更省"时展示活动价才不负于承诺。
+            var best = new[] { context.Priority, counterPriority }
+                .Select(priority => Run(new MarketingSettleRequest { PlatformId = platformId, UserId = userId, Items = [item] }, new CalculationContext
+                {
+                    Priority = priority,
+                    Activities = context.Activities,
+                    ActivityTargets = context.ActivityTargets,
+                    UsableCoupons = context.UsableCoupons,
+                    CouponActivities = context.CouponActivities,
+                    CouponTargets = context.CouponTargets,
+                    Templates = context.Templates,
+                    Items = [item]
+                }))
+                .Where(settle => settle.Success && settle.Items.Count > 0)
+                .Select(settle => settle.Items[0])
+                .OrderBy(row => row.PayAmount)
+                .ThenByDescending(row => row.DiscountAmount)
+                .FirstOrDefault();
+            if (best is null) continue;
+            var row = best;
+            results.Add(new MarketingFinalPriceResult
+            {
+                SkuId = row.SkuId,
+                OriginalPrice = row.ItemAmount,
+                ActivityDiscount = row.HitType == (int)MarketingHitType.Activity ? row.DiscountAmount : 0m,
+                CouponDiscount = row.HitType == (int)MarketingHitType.Coupon ? row.DiscountAmount : 0m,
+                FinalPrice = row.PayAmount,
+                HitType = row.HitType,
+                ActivityId = row.ActivityId,
+                ActivityName = row.ActivityName,
+                CouponName = row.CouponName,
+                GiftCouponActivityId = row.GiftCouponActivityId
+            });
+        }
+        return results;
     }
 
     /// <summary>下单结算：计算并原子占用所选券；OrderNo 必填，占用后可用 Release 回退。</summary>
@@ -249,10 +305,12 @@ public sealed class DiscountEngine(
     private async Task<CalculationContext> BuildContextAsync(MarketingSettleRequest request, CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
-        var config = await activityRepository.GetConfigAsync(request.PlatformId);
-        var activities = await activityRepository.ListEnabledAsync(request.PlatformId, now);
-        var activityTargets = (await activityRepository.ListTargetsAsync(activities.Select(item => item.Id).ToList()))
-            .GroupBy(item => item.ActivityId).ToDictionary(group => group.Key, group => group.ToList());
+        // 平台快照（配置/启用活动/范围）走缓存；时间窗口每次按当前时间过滤，保证活动按时开始/结束。
+        var snapshot = await snapshotCache.GetAsync(request.PlatformId, cancellationToken);
+        var activities = snapshot.Activities
+            .Where(item => item.StartAt <= now && (item.EndAt is null || item.EndAt > now))
+            .ToList();
+        var activityTargets = snapshot.ActivityTargets;
 
         var userCoupons = request.UserId > 0
             ? await couponRepository.ListUserCouponsAsync(request.UserId, unusedOnly: true)
@@ -272,7 +330,7 @@ public sealed class DiscountEngine(
 
         return new CalculationContext
         {
-            Priority = config?.DiscountPriority ?? (int)DiscountPriority.CouponFirst,
+            Priority = snapshot.Priority,
             Activities = activities,
             ActivityTargets = activityTargets,
             UsableCoupons = userCoupons.Where(item => couponActivities.ContainsKey(item.CouponActivityId) && templates.ContainsKey(item.CouponTemplateId)).ToList(),

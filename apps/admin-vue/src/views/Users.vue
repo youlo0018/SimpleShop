@@ -33,6 +33,9 @@
           <el-col :span="12"><el-form-item label="角色" prop="role"><el-select v-model="form.role" style="width:100%"><el-option v-for="role in roleOptions" :key="role.code" :value="role.code" :label="`${role.name}（${scopeText(role.tenantType)}）`" /></el-select></el-form-item></el-col>
           <el-col v-if="Number(selectedRole?.tenantType) === 1" :span="12"><el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item></el-col>
           <el-col v-if="Number(selectedRole?.tenantType) === 2" :span="12"><el-form-item label="所属商户" prop="merchantId"><el-select v-model="form.merchantId" filterable style="width:100%"><el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="头像地址" prop="avatar"><el-input v-model="form.avatar" placeholder="图片 URL（可留空）" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="性别" prop="gender"><el-select v-model="form.gender" style="width:100%"><el-option :value="0" label="未设置" /><el-option :value="1" label="男" /><el-option :value="2" label="女" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="生日" prop="birth"><el-date-picker v-model="form.birth" type="date" value-format="YYYY-MM-DD" placeholder="选择生日" style="width:100%" /></el-form-item></el-col>
         </el-row>
       </el-form>
       <template #footer><el-button @click="dialog = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
@@ -49,7 +52,7 @@ import { EMAIL_PATTERN, PHONE_PATTERN, isStrongPassword, lengthRule, optionalPat
 const rows = ref([]); const bindings = ref([]); const total = ref(0); const dialog = ref(false)
 const roles = ref([]); const platforms = ref([]); const merchants = ref([]); const formRef = ref(null)
 const query = reactive({ keyword: '', page: 1, pageSize: 10 })
-const emptyForm = () => ({ id: 0, userName: '', password: '', phone: '', email: '', role: 'customer', platformId: '', merchantId: '' })
+const emptyForm = () => ({ id: 0, userName: '', password: '', phone: '', email: '', role: '', platformId: '', merchantId: '', avatar: '', gender: 0, birth: '' })
 const form = reactive(emptyForm())
 const rules = {
   userName: [lengthRule(3, 64, '用户名')],
@@ -64,22 +67,29 @@ const rules = {
   email: [optionalPattern(EMAIL_PATTERN, '邮箱格式不正确')],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   platformId: [{ required: true, message: '请选择所属平台', trigger: 'change' }],
-  merchantId: [{ required: true, message: '请选择所属商户', trigger: 'change' }]
+  merchantId: [{ required: true, message: '请选择所属商户', trigger: 'change' }],
+  birth: [{
+    validator: (rule, value, callback) => {
+      // 生日不得晚于今天（与后端 SaveProfile/UpdateUser 校验一致）。
+      if (!value) return callback()
+      return String(value) <= new Date().toISOString().slice(0, 10) ? callback() : callback(new Error('生日不能晚于今天'))
+    }, trigger: 'change'
+  }]
 }
 
-const roleOptions = computed(() => [{ code: 'customer', name: '商城客户', tenantType: 0 }, ...roles.value])
+const roleOptions = computed(() => roles.value)
 const selectedRole = computed(() => roleOptions.value.find(role => role.code === form.role))
 const scopeText = type => ({ 0: '无范围', 1: '平台', 2: '商户' }[type] || '未知')
 const roleText = row => {
   const boundRoles = bindings.value.filter(item => String(item.userId) === String(row.id))
-  return boundRoles.length ? [...new Set(boundRoles.map(item => item.roleName))].join('、') : '商城客户'
+  return boundRoles.length ? [...new Set(boundRoles.map(item => item.roleName))].join('、') : '未绑定角色'
 }
 
 const resetForm = () => Object.assign(form, emptyForm())
 const openCreate = () => { resetForm(); dialog.value = true }
 const openEdit = row => {
   resetForm()
-  Object.assign(form, { id: row.id, userName: row.userName, phone: row.phone || '', email: row.email || '', role: row.role || 'customer' })
+  Object.assign(form, { id: row.id, userName: row.userName, phone: row.phone || '', email: row.email || '', role: '', avatar: row.avatar || '', gender: Number(row.gender || 0), birth: row.birth ? String(row.birth).slice(0, 10) : '' })
   const binding = bindings.value.find(item => String(item.userId) === String(row.id))
   if (binding) {
     form.role = binding.roleCode || 'customer'
@@ -94,7 +104,7 @@ const save = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return ElMessage.warning('请按红色提示修正输入')
   trimForm(form)
-  const payload = { ...form, platformId: form.platformId || 0, merchantId: form.merchantId || 0 }
+  const payload = { ...form, platformId: form.platformId || 0, merchantId: form.merchantId || 0, birth: form.birth ? `${form.birth}T00:00:00` : null }
   if (form.id) await request.post('/users/Update', payload)
   else await request.post('/users/Create', payload)
   dialog.value = false; ElMessage.success('已保存'); load()

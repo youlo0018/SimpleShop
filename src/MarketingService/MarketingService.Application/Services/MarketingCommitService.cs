@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using MarketingService.Domain.Entity;
 using MarketingService.Domain.Enums;
 using MarketingService.Domain.IRepository;

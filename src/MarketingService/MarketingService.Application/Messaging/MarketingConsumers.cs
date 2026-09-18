@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using MarketingService.Application.Services;
 using Microsoft.Extensions.Configuration;
@@ -19,8 +19,12 @@ public sealed class PaymentSucceededMarketingConsumer(
     ILogger<PaymentSucceededMarketingConsumer> logger) : BackgroundService
 {
     /// <summary>RabbitMQ 连接（StopAsync 关闭）。</summary>
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
     private IConnection? _connection;
     /// <summary>消费通道（声明队列与 Ack/Nack 使用）。</summary>
+    /// <summary>消费通道（随连接重建）。</summary>
+    /// <summary>消费通道（随连接重建）。</summary>
     private IChannel? _channel;
 
     /// <summary>后台循环启动消费者；RabbitMQ 未就绪时每 10 秒重试，不拖垮服务本身。</summary>
@@ -103,9 +107,12 @@ public sealed class OrderCancelledMarketingConsumer(
     MarketingCommitService commitService,
     ILogger<OrderCancelledMarketingConsumer> logger) : BackgroundService
 {
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道（随连接重建）。</summary>
     private IChannel? _channel;
 
+    /// <summary>订单取消消费者：支付超时关单/主动取消时回退券占用，避免券被未成交订单长期占用。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)

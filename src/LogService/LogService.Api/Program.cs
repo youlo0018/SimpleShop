@@ -1,4 +1,4 @@
-using LogService.Api.Consumers;
+﻿using LogService.Api.Consumers;
 using LogService.Api.Endpoints;
 using LogService.Api;
 using LogService.Api.Elasticsearch;

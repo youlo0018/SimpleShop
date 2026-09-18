@@ -2,110 +2,194 @@
   "Routes": [
     {
       "UpstreamPathTemplate": "/gateway/auth/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Auth/{everything}",
       "ServiceName": "AuthService"
     },
     {
       "UpstreamPathTemplate": "/gateway/products/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Product/{everything}",
       "ServiceName": "ProductService"
     },
     {
       "UpstreamPathTemplate": "/gateway/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/User/{everything}",
       "ServiceName": "UserService"
     },
     {
       "UpstreamPathTemplate": "/gateway/customers/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Customer/{everything}",
       "ServiceName": "CustomerService"
-    }
-    ,
+    },
     {
       "UpstreamPathTemplate": "/gateway/orders/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Order/{everything}",
       "ServiceName": "OrderService"
     },
     {
       "UpstreamPathTemplate": "/gateway/reports/{everything}",
-      "UpstreamHttpMethod": [ "GET" ],
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
       "DownstreamPathTemplate": "/api/{everything}",
       "ServiceName": "OrderService"
     },
     {
       "UpstreamPathTemplate": "/gateway/merchants/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Merchant/{everything}",
       "ServiceName": "MerchantPlatformService"
     },
     {
       "UpstreamPathTemplate": "/gateway/platforms/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Platform/{everything}",
       "ServiceName": "MerchantPlatformService"
     },
     {
       "UpstreamPathTemplate": "/gateway/permissions/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Permission/{everything}",
       "ServiceName": "PermissionService"
     },
     {
       "UpstreamPathTemplate": "/gateway/platform-configs/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/PlatformConfig/{everything}",
       "ServiceName": "MerchantPlatformService"
     },
     {
       "UpstreamPathTemplate": "/gateway/carts/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Cart/{everything}",
       "ServiceName": "CartService"
     },
     {
       "UpstreamPathTemplate": "/gateway/stocks/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Stock/{everything}",
       "ServiceName": "InventoryService"
     },
     {
       "UpstreamPathTemplate": "/gateway/payments/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Payment/{everything}",
       "ServiceName": "PaymentService"
-    }
-    ,
+    },
     {
       "UpstreamPathTemplate": "/gateway/logs/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/log/{everything}",
       "ServiceName": "LogService"
-    }
-    ,
+    },
     {
       "UpstreamPathTemplate": "/gateway/marketing/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
       "DownstreamScheme": "http",
       "DownstreamPathTemplate": "/api/Marketing/{everything}",
       "ServiceName": "MarketingService"
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/files/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "DownstreamPathTemplate": "/api/File/{everything}",
+      "DownstreamScheme": "http",
+      "ServiceName": "FileService",
+      "LoadBalancerOptions": {
+        "Type": "RoundRobin"
+      }
     }
   ],
   "GlobalConfiguration": {

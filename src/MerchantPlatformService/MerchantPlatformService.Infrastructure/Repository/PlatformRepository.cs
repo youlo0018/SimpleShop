@@ -1,9 +1,10 @@
-using CommunalService.Domain.Infrastructure;
+﻿using CommunalService.Domain.Infrastructure;
 using MerchantPlatformService.Domain.Entity;
 using MerchantPlatformService.Domain.IRepository;
 
 namespace MerchantPlatformService.Infrastructure.Repository;
 
+/// <summary>平台仓储实现：分页组合查询与配置读写。</summary>
 public class PlatformRepository(IFreeSql freeSql) : BaseRepository<Platform>(freeSql), IPlatformRepository
 {
 
@@ -21,6 +22,7 @@ public class PlatformRepository(IFreeSql freeSql) : BaseRepository<Platform>(fre
         return (items, total);
     }
 
+    /// <summary>查询：GetPlatformIdByMerchantAsync。</summary>
     public Task<long?> GetPlatformIdByMerchantAsync(long merchantId, CancellationToken cancellationToken = default)
         => freeSql.Select<Merchant>()
             .Where(merchant => merchant.Id == merchantId && !merchant.IsDeleted)

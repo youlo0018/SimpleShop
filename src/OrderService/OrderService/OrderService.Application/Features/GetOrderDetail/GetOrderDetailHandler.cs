@@ -9,6 +9,7 @@ namespace OrderService.Application.Features.GetOrderDetail;
 public sealed class GetOrderDetailHandler(IOrderRepository repository)
     : IRequestHandler<GetOrderDetailQuery, object>
 {
+    /// <summary>处理入口：订单详情：主单 + 明细快照一起返回，方便用户核对“当时买了什么”。</summary>
     public async Task<object> Handle(GetOrderDetailQuery request, CancellationToken cancellationToken)
     {
         // 后台租户查询时 CustomerId 为 0；只有顾客侧详情才必须校验订单归属。

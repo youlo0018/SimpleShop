@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Messaging;
+﻿namespace CommunalService.Domain.Messaging;
 
 /// <summary>
 /// 消息发布抽象：topic 即 RabbitMQ Topic 交换机的 routing key（如 payment.succeeded）；

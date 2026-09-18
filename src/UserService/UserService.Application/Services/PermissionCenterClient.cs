@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using CommunalService.Domain.Contracts.Services;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Consul;
@@ -13,16 +13,18 @@ namespace UserService.Application.Services;
 /// </summary>
 public sealed class PermissionCenterClient(IServiceDiscovery serviceDiscovery)
 {
+    /// <summary>辅助处理：ResolveAsync。</summary>
     public async Task<AuthorizationResponse> ResolveAsync(User user)
     {
         using var channel = GrpcChannel.ForAddress($"http://{await ResolveAddressAsync()}");
         var client = MagicOnionClient.Create<IPermissionService>(channel);
         return await client.ResolveAsync(new AuthorizationRequest
         {
-            UserId = user.Id, LegacyRole = user.Role, UserName = user.UserName
+            UserId = user.Id, UserName = user.UserName
         });
     }
 
+    /// <summary>内部处理：AssignRoleAsync。</summary>
     public async Task AssignRoleAsync(long userId, string roleCode, long platformId, long merchantId)
     {
         if (string.IsNullOrWhiteSpace(roleCode) || roleCode is "admin" or "customer") return;
@@ -37,6 +39,7 @@ public sealed class PermissionCenterClient(IServiceDiscovery serviceDiscovery)
         }
     }
 
+    /// <summary>辅助处理：ResolveAddressAsync。</summary>
     private async Task<string> ResolveAddressAsync()
         => await serviceDiscovery.GetPollingAddressAsync("PermissionService", PollingAddressType.Grpc)
            ?? throw new InvalidOperationException("PermissionService 不可用");

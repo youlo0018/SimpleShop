@@ -1,4 +1,4 @@
-using Consul;
+﻿using Consul;
 using Microsoft.Extensions.Options;
 
 namespace CommunalService.Domain.Infrastructure.Consul;
@@ -8,8 +8,11 @@ namespace CommunalService.Domain.Infrastructure.Consul;
 /// </summary>
 public class ConsulServiceRegistry : IConsulServiceRegistry
 {
+    /// <summary>Consul 客户端。</summary>
     private readonly IConsulClient _consulClient;
+    /// <summary>Consul 注册配置（服务名/地址/端口/健康检查）。</summary>
     private readonly ConsulOptions _options;
+    /// <summary>当前实例唯一 ID（服务名+实例标识，注销时使用）。</summary>
     private readonly string _serviceId; // 当前实例的唯一 ID
 
     public ConsulServiceRegistry(IConsulClient consulClient, IOptions<ConsulOptions> options)

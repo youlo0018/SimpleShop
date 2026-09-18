@@ -1,4 +1,4 @@
-using AuthService.Domain.Entity;
+﻿using AuthService.Domain.Entity;
 
 namespace AuthService.Infrastructure;
 
@@ -10,12 +10,17 @@ public class AuthDbContext : DbContext
         : base(options)
     {
     }
-    // 使用自定义的客户端实体，继承并添加 ClientType
+    // 使用自定义 OpenIddict 客户端实体（公开/机密由框架自带 ClientType 决定）
+    /// <summary>OpenIddict 客户端注册表。</summary>
     public DbSet<UserApplication> Applications { get; set; }
+    /// <summary>OpenIddict 授权记录。</summary>
     public DbSet<UserAuthorization> Authorizations { get; set; }
+    /// <summary>OpenIddict 作用域。</summary>
     public DbSet<UserScope> Scopes { get; set; }
+    /// <summary>OpenIddict 令牌存储。</summary>
     public DbSet<UserToken> Tokens { get; set; }
 
+    /// <summary>注册 OpenIddict EF 模型（客户端/授权/作用域/令牌）。</summary>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

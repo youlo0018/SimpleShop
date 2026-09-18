@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace CommunalService.Domain.Logging;
 
@@ -8,14 +8,18 @@ namespace CommunalService.Domain.Logging;
 public static partial class SensitiveDataSanitizer
 {
     [GeneratedRegex(@"(?<!\d)1[3-9]\d{9}(?!\d)")]
+    /// <summary>手机号匹配（源生成正则，性能优先）。</summary>
     private static partial Regex MobilePhoneRegex();
 
     [GeneratedRegex(@"(?<!\d)\d{17}[\dXx](?!\d)")]
+    /// <summary>身份证号匹配。</summary>
     private static partial Regex IdentityCardRegex();
 
     [GeneratedRegex(@"(?i)(authorization|token|access[_-]?token|refresh[_-]?token|password|secret)\s*[:=]\s*([^,;\s}""']+)")]
+    /// <summary>口令/密钥等敏感字段匹配。</summary>
     private static partial Regex CredentialRegex();
 
+    /// <summary>脱敏入口：手机号/身份证/凭据统一替换，日志落库前调用。</summary>
     public static string Sanitize(string value)
     {
         if (string.IsNullOrWhiteSpace(value))

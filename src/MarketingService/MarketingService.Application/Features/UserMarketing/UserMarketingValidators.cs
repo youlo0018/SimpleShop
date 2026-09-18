@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace MarketingService.Application.Features.UserMarketing;
 
@@ -40,6 +40,24 @@ public class SettlePreviewValidator : AbstractValidator<SettlePreviewCommand>
     {
         RuleFor(x => x.PlatformId).GreaterThan(0).WithMessage("请先选择平台");
         RuleFor(x => x.Items).NotEmpty().WithMessage("结算商品不能为空");
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.SkuId).GreaterThan(0).WithMessage("SKU 不能为空");
+            item.RuleFor(i => i.Price).GreaterThan(0).WithMessage("商品价格必须大于0");
+            item.RuleFor(i => i.Quantity).InclusiveBetween(1, 99).WithMessage("数量必须为1-99");
+        });
+    }
+}
+
+/// <summary>到手价试算校验：平台必选、1-50 行商品、每行 SKU/价格/数量合法（与清单/结算口径一致）。</summary>
+public class FinalPriceValidator : AbstractValidator<FinalPriceCommand>
+{
+    /// <summary>规则覆盖：平台必选、批量上限 50、每行 SKU 非空、价格 &gt; 0、数量 1-99。</summary>
+    public FinalPriceValidator()
+    {
+        RuleFor(x => x.PlatformId).GreaterThan(0).WithMessage("请先选择平台");
+        RuleFor(x => x.Items).NotEmpty().WithMessage("试算商品不能为空");
+        RuleFor(x => x.Items).Must(items => items.Count <= 50).WithMessage("一次最多试算50个商品");
         RuleForEach(x => x.Items).ChildRules(item =>
         {
             item.RuleFor(i => i.SkuId).GreaterThan(0).WithMessage("SKU 不能为空");

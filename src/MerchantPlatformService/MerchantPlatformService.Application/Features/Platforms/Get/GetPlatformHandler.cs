@@ -1,12 +1,14 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using FreeSql;
 using MediatR;
 using MerchantPlatformService.Domain.Entity;
 
 namespace MerchantPlatformService.Application.Features.Platforms.Get;
 
+/// <summary>平台详情查询。</summary>
 public sealed class GetPlatformHandler(IFreeSql freeSql, TenantContext tenant) : IRequestHandler<GetPlatformQuery, object>
 {
+    /// <summary>处理入口：平台详情查询。</summary>
     public async Task<object> Handle(GetPlatformQuery request, CancellationToken cancellationToken)
     {
         var selection = freeSql.Select<Platform>()

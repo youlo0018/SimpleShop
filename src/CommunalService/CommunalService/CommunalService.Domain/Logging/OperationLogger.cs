@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Logging;
+﻿namespace CommunalService.Domain.Logging;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -11,6 +11,7 @@ internal sealed class OperationLogger(
     LoggingEventPublisher logPublisher,
     ILogger<OperationLogger> logger) : IOperationLogger
 {
+    /// <summary>内部处理：LogAsync。</summary>
     public async Task LogAsync(
         HttpContext httpContext,
         string operationType,
@@ -43,6 +44,7 @@ internal sealed class OperationLogger(
         }
     }
 
+    /// <summary>辅助处理：ParseLong。</summary>
     private static long ParseLong(IHeaderDictionary headers, string name)
         => long.TryParse(headers[name].ToString(), out var value) ? value : 0;
 }

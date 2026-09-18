@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using ProductService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace ProductService.Application.Features.Category.DeleteCategory;
 public class DeleteCategoryCommandHandler(IProductAdminRepository repository)
     : IRequestHandler<DeleteCategoryCommand, ApiResponse>
 {
+    /// <summary>处理入口：删除分类（软删除）：有子分类或有在挂商品时拒绝，防止商品/分类树悬空。</summary>
     public async Task<ApiResponse> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
     {
         var category = await repository.GetCategoryAsync(request.Id, cancellationToken);

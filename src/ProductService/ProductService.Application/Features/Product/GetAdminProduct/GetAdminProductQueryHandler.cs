@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using ProductService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace ProductService.Application.Features.Product.GetAdminProduct;
 public class GetAdminProductQueryHandler(IProductAdminRepository repository, TenantContext tenant)
     : IRequestHandler<GetAdminProductQuery, ApiResponse>
 {
+    /// <summary>处理入口：后台商品详情：商品 + 全部 SKU；按租户裁剪可见范围（无权时与不存在同样返回 404，不泄露存在性）。</summary>
     public async Task<ApiResponse> Handle(GetAdminProductQuery request, CancellationToken cancellationToken)
     {
         var product = await repository.GetProductInScopeAsync(

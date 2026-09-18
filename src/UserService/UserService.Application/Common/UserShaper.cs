@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using UserService.Domain.Entity;
 
 namespace UserService.Application.Common;
@@ -8,11 +8,12 @@ namespace UserService.Application.Common;
 /// </summary>
 public static class UserShaper
 {
+    /// <summary>构造对外用户对象（租户/权限来自登录解析结果）。</summary>
     public static object Shape(User user, AuthorizationResponse? authorization = null)
     {
         return new
         {
-            user.Id, user.UserName, user.Email, user.Phone, user.Role, user.Avatar, user.IsEnabled, user.CreatedAt,
+            user.Id, user.UserName, user.Email, user.Phone, user.Avatar, user.Gender, user.Birth, user.IsEnabled, user.CreatedAt,
             tenantType = authorization?.TenantType ?? "customer",
             platformId = authorization?.PlatformId.ToString() ?? "0",
             merchantId = authorization?.MerchantId.ToString() ?? "0",

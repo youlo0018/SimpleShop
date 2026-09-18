@@ -9,12 +9,15 @@ namespace OrderService.Infrastructure.Repository;
 /// </summary>
 public class ShipmentRepository(IFreeSql freeSql) : IShipmentRepository
 {
+    /// <summary>查询：GetByIdAsync。</summary>
     public Task<Shipment?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         => freeSql.Select<Shipment>().Where(shipment => shipment.Id == id).FirstAsync(cancellationToken);
 
+    /// <summary>查询：GetByOrderAsync。</summary>
     public Task<List<Shipment>> GetByOrderAsync(long orderId, CancellationToken cancellationToken = default)
         => freeSql.Select<Shipment>().Where(shipment => shipment.OrderId == orderId).ToListAsync(cancellationToken);
 
+    /// <summary>写入/新增：AddAsync。</summary>
     public async Task<bool> AddAsync(Shipment shipment, IReadOnlyCollection<ShipmentItem> items, CancellationToken cancellationToken = default)
     {
         var added = await freeSql.Insert(shipment).ExecuteAffrowsAsync(cancellationToken) > 0;
@@ -38,9 +41,11 @@ public class ShipmentRepository(IFreeSql freeSql) : IShipmentRepository
         return affectedRows == items.Count;
     }
 
+    /// <summary>更新：UpdateAsync。</summary>
     public async Task<bool> UpdateAsync(Shipment shipment, CancellationToken cancellationToken = default)
         => await freeSql.Update<Shipment>().SetSource(shipment).ExecuteAffrowsAsync(cancellationToken) > 0;
 
+    /// <summary>查询：GetItemsAsync。</summary>
     public Task<List<ShipmentItem>> GetItemsAsync(long shipmentId, CancellationToken cancellationToken = default)
         => freeSql.Select<ShipmentItem>().Where(item => item.ShipmentId == shipmentId).ToListAsync(cancellationToken);
 }

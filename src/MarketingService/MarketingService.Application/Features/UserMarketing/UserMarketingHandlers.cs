@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using MarketingService.Application.Services;
@@ -156,14 +156,16 @@ public class MyCouponsHandler(IMarketingCouponRepository repository, TenantConte
 /// 进行中活动：返回当前平台有效期内、启用的活动与可领取券活动，供首页优惠专区/活动卡展示。
 /// 活动卡展示"满X减Y / 满X打Y折 / 满X赠券"，券卡展示剩余库存，两者都可点击进入对应页面。
 /// </summary>
-public class ActiveActivitiesHandler(IMarketingActivityRepository activityRepository, IMarketingCouponRepository couponRepository)
+public class ActiveActivitiesHandler(MarketingSnapshotCache snapshotCache, IMarketingCouponRepository couponRepository)
     : IRequestHandler<ActiveActivitiesQuery, ApiResponse>
 {
-    /// <summary>规则：平台下启用且在有效期内的活动；MerchantId&gt;0 时只看该商户的活动。</summary>
+    /// <summary>规则：平台下启用且在有效期内的活动；MerchantId&gt;0 时只看该商户的活动（活动快照走缓存）。</summary>
     public async Task<ApiResponse> Handle(ActiveActivitiesQuery request, CancellationToken cancellationToken)
     {
         var now = DateTime.Now;
-        var activities = (await activityRepository.ListEnabledAsync(request.PlatformId, now))
+        var snapshot = await snapshotCache.GetAsync(request.PlatformId, cancellationToken);
+        var activities = snapshot.Activities
+            .Where(item => item.StartAt <= now && (item.EndAt is null || item.EndAt > now))
             .Where(item => request.MerchantId <= 0 || item.MerchantId == request.MerchantId)
             .Select(item => new
             {
@@ -192,6 +194,21 @@ public class ActiveActivitiesHandler(IMarketingActivityRepository activityReposi
             }).ToList();
 
         return ApiResults.Ok(new { activities, coupons });
+    }
+}
+
+/// <summary>
+/// 到手价试算：商品列表/详情展示用（游客可调用）；登录后自动计入最优券，金额口径与结算引擎一致。
+/// </summary>
+public class FinalPriceHandler(DiscountEngine engine, TenantContext tenant)
+    : IRequestHandler<FinalPriceCommand, ApiResponse>
+{
+    /// <summary>逐商品试算到手价：游客只算活动，登录用户自动取最优券（无副作用，不占用券）。</summary>
+    public async Task<ApiResponse> Handle(FinalPriceCommand request, CancellationToken cancellationToken)
+    {
+        var userId = tenant.UserId > 0 ? tenant.UserId : 0;
+        var items = await engine.FinalPriceAsync(request.PlatformId, userId, request.ToEngineItems(), cancellationToken);
+        return ApiResults.Ok(new { items });
     }
 }
 

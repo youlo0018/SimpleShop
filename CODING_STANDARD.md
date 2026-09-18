@@ -164,6 +164,12 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 7. 服务端种子代码不要依赖雪花 AOP 自动生成主键（启动阶段 Yitter 尚未初始化会 NRE）；新增固定主键时用"当前最大 Id + 1"。
 8. **列表查询必须显式 ORDER BY**：PostgreSQL 无排序时按堆物理顺序返回（更新/清理后变化），表现为"随机排序"。营销引擎的活动遍历也按 `CreatedAt, Id` 固定，保证同优惠力度/满赠兜底时结果确定。
 9. `/carts/Add` 是**累加数量**语义：调用方传本次增量（加购传购买数量、购物车加减传 ±1），不要传"目标数量"，否则会出现倍数增长；累计上限 99 由服务端与前端双重校验。
+10. **字段级更新必须用 `SetDto`**：`UpdateColumns(a => obj)` 对捕获的匿名对象解析不出列，会生成空 SET 静默不更新（`BaseRepository.UpdateColumnsAsync` 曾因此让活动启停/软删全部失效）；正确写法 `freeSql.Update<T>().Where(x => x.Id == id).SetDto(obj)`，且更新后要断言数据库（`full-chain.sh` 有落库断言样板）。
+11. **营销读路径走 `MarketingSnapshotCache`**：配置/启用活动/范围按平台缓存，写操作（保存活动、启停、保存配置）必须调用 `Invalidate(platformId)`；快照不缓存时间窗口，使用时按 `now` 过滤，避免活动提前/延迟生效。
+12. **账号域禁止混用**：客户账号只能进 CustomerService（`/customers/*`，客户 JWT），后台账号只能进 UserService + AuthService（`/users/*` 管理、`/auth/Token` 登录，OpenIddict 令牌）；后台建号禁止 `customer` 角色，客户账号从后台登录必须拒绝。
+13. **统一上传入口**：所有文件上传（商品图/装修图/头像/后续附件）一律走 FileService `/gateway/files/Upload`，业务服务禁止自建上传接口；允许格式与分类大小限制在 AgileConfig `FileStorage:*` 配置（默认本地存储，可切阿里云 OSS/腾讯云 COS/Azure Blob），校验顺序为扩展名白名单 → 大小 → 文件头魔数。
+14. **权限只认显式绑定**：禁止用账号字段（如旧 `User.Role`）做权限兜底；`user_role` 无绑定即无后台权限（fail-closed），全局超管通过 `platform-admin` + PlatformId=0 的显式绑定表达。后台登录与客户登录严格分离，历史 issuer/兜底分支一律删除。
+15. **OpenIddict 陷阱（AuthService）**：① 不要定义与 OpenIddict 自带 `ClientType`（public/confidential）同名的属性——会遮蔽它导致公开客户端仍被要求 client_secret（本项目的业务分类列已改名 `AppCategory`）；② 自定义声明必须 `RegisterClaims(...)` 且 `identity.SetDestinations(AccessToken)` 才会写入令牌；③ `sub` 声明是强制的；④ 令牌端点需 `DisableTransportSecurityRequirement()`（开发经 HTTP 网关）与 `AcceptAnonymousClients()`（SPA 公开客户端）；⑤ 签名必须非对称（RS256），证书用 `LocalSigningCertificate` 共享路径生成，网关读取同一文件验签。
 
 ## 7. 分层迁移完成度（2026-09-16）
 

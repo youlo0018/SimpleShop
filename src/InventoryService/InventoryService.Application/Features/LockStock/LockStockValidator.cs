@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace InventoryService.Application.Features.LockStock;
 

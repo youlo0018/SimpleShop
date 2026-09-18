@@ -1,4 +1,4 @@
-using CommunalService.Domain.Infrastructure.Redis;
+﻿using CommunalService.Domain.Infrastructure.Redis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -6,9 +6,12 @@ namespace CommunalService.Domain.Infrastructure.Snowflake;
 
 using Yitter.IdGenerator;
 
-public class WorkerIdBackgroundService(RedisWorkerIdProvider provider) : IHostedService
+/// <summary>WorkerId 后台服务：应用启动时申请雪花 WorkerId 并周期续约，退出时释放租约。</summary>
+    public class WorkerIdBackgroundService(RedisWorkerIdProvider provider) : IHostedService
 {
+    /// <summary>WorkerId 提供者（Redis 租约实现）。</summary>
     private readonly RedisWorkerIdProvider _provider = provider;
+    /// <summary>启动时获取 WorkerId 并启动续约；失败抛出阻止服务以无 WorkerId 状态启动。</summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         try
@@ -33,6 +36,7 @@ public class WorkerIdBackgroundService(RedisWorkerIdProvider provider) : IHosted
         }
     }
 
+    /// <summary>停止续约并释放租约。</summary>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine("正在释放 WorkerId...");

@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 
 namespace PermissionService.Application.Features.Permission.ListBindings;

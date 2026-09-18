@@ -13,9 +13,10 @@
 
 SimpleShop 是一个基于 **.NET 10 微服务** 与 **Vue 3 / UniApp** 的全栈电商系统 MVP，跑通了从注册、浏览、加购、下单、支付、发货、签收到退款的完整闭环，并内置**多平台（多租户）运营、营销活动与优惠券、库存、权限中心、报表、日志**等能力。
 
-- **微服务架构**：12 个后端服务 + Ocelot 网关，服务间 gRPC（MagicOnion）通信，Consul 服务发现，RabbitMQ 事件驱动，AgileConfig 配置中心。
+- **微服务架构**：14 个后端服务 + Ocelot 网关，服务间 gRPC（MagicOnion）通信，Consul 服务发现，RabbitMQ 事件驱动，AgileConfig 配置中心。
 - **DDD 分层**：Api / Application / Domain / Infrastructure 四层，控制器纯转发，业务在 Handler，验证在 Validator，查询在仓储。
 - **多租户隔离**：平台 → 商户 → 客户三层数据隔离，网关验签并注入租户声明，下游只信任网关注入的 `X-Claim-*`。
+- **账号域分离**：前台客户在 CustomerService（`customer` 表 + 客户 JWT），后台账号在 UserService（`User` 表 + AuthService OpenIddict 令牌）；客户账号无法从后台登录，后台接口对客户令牌一律 403。存量客户数据用 `scripts/migrate-customers.sh` 迁移（保留雪花 Id）。
 - **前后端双重校验**：FluentValidation 管道 + 前端统一校验工具，字段级错误提示。
 - **双前端**：管理后台（Vue 3 + Element Plus，Apple 风格）与用户商城（UniApp，H5 与微信小程序同源）。
 
@@ -25,8 +26,8 @@ SimpleShop 是一个基于 **.NET 10 微服务** 与 **Vue 3 / UniApp** 的全�
 |------|------|
 | 交易闭环 | 幂等下单、库存锁定/扣减/释放、模拟支付、支付超时关单、发货/签收/取消、退款申请与审批（累计限额） |
 | 营销中心 | 平台/商户活动（满减/满折/满赠）、券模板、券活动、领券中心与券包；逐商品贪心 + 券/活动互斥 + 平台优先级配置；订单优惠快照与效果报表 |
-| 多平台小程序 | 按平台配置主题色、公告、TabBar、首页轮播、金刚区（快捷入口）、首页模块与「我的服务」宫格（凯德星模式），同一小程序按平台动态渲染 |
-| 会员与活动专区 | 首页会员问候卡（券/收藏/订单概览）、优惠专区（进行中活动与可领券卡）、店铺页（商品+店铺活动）、收藏页、商品图集与吸底购买栏（店铺/购物车角标/加购/立购） |
+| 多平台小程序 | 按凯德星参考图重做：铺满头图 + 定位/评分/悬浮搜索、四宫格金刚区、Hi 会员问候卡、优惠专区、商城页（团购/推荐/活动）、店铺页（评分头/分类 chips/优惠专区/两列网格）、详情页（红色到手价/渐变双按钮）、我的页（渐变会员卡/权益行/5 列服务宫格）；后台提供**可视化拖拽装修 + 手机实时预览**，同一小程序按平台动态渲染 |
+| 会员与活动专区 | 首页会员问候卡（券/收藏/订单概览）、优惠专区（进行中活动与可领券卡）、店铺页（商品+店铺活动）、收藏页、商品图集与吸底购买栏（店铺/购物车角标/加购/立购）、**到手价**（京东/淘宝式：商品卡与详情展示原价划线 + 活动/最优券后到手价，游客可看活动价） |
 | 权限中心 | 角色/权限点/用户绑定，平台与商户两层权限；网关 RBAC（权限点 ↔ 接口路径） |
 | 商品与库存 | SPU/SKU、三级分类、审核上下架、图片上传（魔数校验）、库存流水幂等与补偿 |
 | 报表与日志 | 工作台经营报表、活动/券效果报表；PV/操作/异常日志经 RabbitMQ 入 Elasticsearch |
@@ -35,9 +36,11 @@ SimpleShop 是一个基于 **.NET 10 微服务** 与 **Vue 3 / UniApp** 的全�
 
 | 服务 | HTTP | gRPC | 数据库 | 职责 |
 |------|------|------|--------|------|
-| Gateway | 5008 | - | - | Ocelot 路由 + JWT 验签 + RBAC + 租户声明注入 |
-| Auth | 5019 | 5004 | simpleshopauth | OpenIddict 授权（EF Core） |
-| User | 5011 | 5003 | simpleshopuser | 注册/登录（JWT）、地址簿、收藏 |
+| Gateway | 5008 | - | - | Ocelot 路由 + 双令牌验签（后台 RS256 / 客户 HS256）+ RBAC + 租户声明注入 |
+| Auth | 5019 | 5004 | simpleshopauth | **后台账号 OpenIddict 令牌**（password flow、公开客户端 admin-app、RS256 自签证书） |
+| User | 5011 | 5003 | simpleshopuser | **后台账号域**：账号管理（列表/建号/改号/启停）+ 资料；不含客户 |
+| Customer | 5280 | 5001 | simpleshopcustomer | **前台客户域**：注册/登录（客户 JWT）、资料、地址簿、收藏 |
+| File | 5080 | 5081 | simpleshopfile | **统一文件上传入口**：本地/阿里云 OSS/腾讯云 COS/微软云 Azure 多存储（AgileConfig 切换），格式白名单与分类大小限制可配 |
 | Permission | 5022 | 5023 | simpleshoppermission | 角色/权限点/用户绑定，登录权限解析 |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU、三级分类、上下架、图片上传 |
 | Cart | 5060 | 5060 | simpleshopcart | 购物车（PostgreSQL） |
@@ -114,8 +117,9 @@ SimpleShop/
 测试用例清单（按功能模块，含前置/步骤/期望/自动化对照）：`tests/TEST_CASES.md`
 
 ```bash
-bash tests/e2e/api-regression.sh   # API 回归：认证/鉴权/隔离/商品/购物车/订单/支付/退款/营销/装修/校验（98 项）
-node tests/e2e/ui-regression.js    # UI 回归：小程序（首页/商品/购物车/结算/券/店铺/我的/登录态）+ 后台（营销/装修/401）（25 项）
+bash tests/e2e/api-regression.sh   # API 回归：认证/鉴权/隔离/商品/购物车/订单/支付/退款/营销/装修/文件/校验（114 项）
+node tests/e2e/ui-regression.js    # UI 回归：小程序 + 后台（含装修拖拽/上传框/前端=数据库断言）（46 项）
+bash tests/e2e/full-chain.sh       # 业务链路端到端：6 条链路（注册→下单→支付→退款/取消→库存释放/满赠/到手价）+ 精确报错，接口与数据库双向断言（101 项）
 bash tests/e2e/business-flow.sh    # 注册 → 下单 → 支付 → 发货 → 签收
 bash tests/e2e/marketing-flow.sh   # 建活动/券 → 领券 → 优先级 → 下单抵扣 → 报表 → 满赠（26 项）
 ```
@@ -137,7 +141,7 @@ node scripts/seed-test-data.js --skip-orders   # 只补商品与营销配置
 
 SimpleShop is a full-stack e-commerce MVP built on **.NET 10 microservices** and **Vue 3 / UniApp**. It covers the complete loop from sign-up, browsing, cart and checkout to payment, shipping, delivery confirmation and refunds, with built-in **multi-tenant operations, promotions & coupons, inventory, RBAC, reporting and logging**.
 
-- **Microservices**: 12 backend services behind an Ocelot gateway; inter-service gRPC (MagicOnion), Consul service discovery, RabbitMQ eventing, AgileConfig configuration center.
+- **Microservices**: 14 backend services behind an Ocelot gateway; inter-service gRPC (MagicOnion), Consul service discovery, RabbitMQ eventing, AgileConfig configuration center.
 - **DDD layering**: Api / Application / Domain / Infrastructure. Controllers only forward, business lives in Handlers, validation in Validators, queries in Repositories.
 - **Multi-tenancy**: Platform → Merchant → Customer isolation. The gateway validates JWTs and injects trusted tenant claims (`X-Claim-*`); downstream services trust nothing else.
 - **Double validation**: FluentValidation pipeline on the backend plus shared frontend validators with field-level error messages.
@@ -159,9 +163,11 @@ SimpleShop is a full-stack e-commerce MVP built on **.NET 10 microservices** and
 
 | Service | HTTP | gRPC | Database | Responsibility |
 |---------|------|------|----------|----------------|
-| Gateway | 5008 | - | - | Ocelot routing + JWT validation + RBAC + tenant claims |
-| Auth | 5019 | 5004 | simpleshopauth | OpenIddict authorization (EF Core) |
-| User | 5011 | 5003 | simpleshopuser | Registration/login (JWT), addresses, favorites |
+| Gateway | 5008 | - | - | Ocelot routing + dual token validation (backend RS256 / customer HS256) + RBAC + tenant claims |
+| Auth | 5019 | 5004 | simpleshopauth | **Backend account OpenIddict tokens** (password flow, public client admin-app, RS256 self-signed cert) |
+| User | 5011 | 5003 | simpleshopuser | **Backend account domain**: account management (list/create/update/enable) + profile; no customers |
+| Customer | 5280 | 5001 | simpleshopcustomer | **Storefront customer domain**: register/login (customer JWT), profile, addresses, favorites |
+| File | 5080 | 5081 | simpleshopfile | **Unified upload entry**: local / Aliyun OSS / Tencent COS / Azure Blob (switchable via AgileConfig); format whitelist and per-category size limits configurable |
 | Permission | 5022 | 5023 | simpleshoppermission | Roles/permissions/bindings, login permission resolution |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU, categories, publishing, image upload |
 | Cart | 5060 | 5060 | simpleshopcart | Shopping cart (PostgreSQL) |
@@ -238,8 +244,9 @@ SimpleShop/
 Test case catalog by module (preconditions / steps / expected results / automation mapping): `tests/TEST_CASES.md`
 
 ```bash
-bash tests/e2e/api-regression.sh   # API regression: auth/RBAC/tenant isolation/catalog/cart/order/payment/refund/marketing/design/validation (98 checks)
-node tests/e2e/ui-regression.js    # UI regression: storefront (home/product/cart/checkout/coupons/shop/profile/login-state) + admin (marketing/design/401) (25 checks)
+bash tests/e2e/api-regression.sh   # API regression: auth/RBAC/tenant isolation/catalog/cart/order/payment/refund/marketing/design/files/validation (114 checks)
+node tests/e2e/ui-regression.js    # UI regression: storefront + admin, incl. UI-vs-DB/pricing-engine consistency assertions (39 checks)
+bash tests/e2e/full-chain.sh       # End-to-end business chains: register/order/pay/refund/cancel-stock-release/gift/final-price + exact error matrix, API & DB asserted (104 checks)
 bash tests/e2e/business-flow.sh    # register → order → pay → ship → receive
 bash tests/e2e/marketing-flow.sh   # campaigns/coupons → claim → priority → checkout discount → reports → gift coupon (26 checks)
 ```

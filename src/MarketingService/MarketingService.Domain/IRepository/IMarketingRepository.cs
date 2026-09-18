@@ -1,4 +1,4 @@
-using CommunalService.Domain.Interfaces;
+﻿using CommunalService.Domain.Interfaces;
 using MarketingService.Domain.Entity;
 
 namespace MarketingService.Domain.IRepository;
@@ -41,12 +41,12 @@ public interface IMarketingActivityRepository : IBaseRepository<MarketingActivit
         long platformId, long merchantId, int page, int pageSize);
 
     /// <summary>
-    /// 计算引擎用：取平台下当前有效的启用活动（含平台活动与商户活动，范围匹配由引擎在内存完成）。
-    /// 固定按 CreatedAt、Id 升序返回，保证优惠力度并列与满赠兜底选择结果确定。
+    /// 计算引擎与活动专区用：取平台下全部"启用"活动（含未开始/已结束，时间窗口由使用方按当前时间过滤）。
+    /// 不带时间过滤是为了让结果可被平台快照缓存复用；固定按 CreatedAt、Id 升序返回，保证优惠并列与满赠兜底结果确定。
     /// </summary>
     /// <param name="platformId">平台 ID。</param>
-    /// <param name="now">当前时间，用于 StartAt/EndAt 有效期判断。</param>
-    Task<List<MarketingActivity>> ListEnabledAsync(long platformId, DateTime now);
+    /// <returns>平台下所有 IsEnabled 的活动（未过滤 StartAt/EndAt）。</returns>
+    Task<List<MarketingActivity>> ListEnabledActivitiesAsync(long platformId);
 
     /// <summary>批量取活动范围明细（引擎匹配范围、后台编辑回显用）。</summary>
     /// <param name="activityIds">活动 ID 集合；空集合直接返回空列表（不发 SQL）。</param>

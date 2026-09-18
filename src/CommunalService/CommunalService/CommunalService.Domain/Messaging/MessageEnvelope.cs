@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Messaging;
+﻿namespace CommunalService.Domain.Messaging;
 
 /// <summary>
 /// 全部 MQ 消息的统一信封：EventId 用作消费端幂等键（如 LogService 写 ES 的 _id）；

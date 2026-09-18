@@ -1,4 +1,4 @@
-using CommunalService.Domain.Infrastructure.Locks;
+﻿using CommunalService.Domain.Infrastructure.Locks;
 using CommunalService.Domain.Messaging;
 using Microsoft.Extensions.Options;
 using OrderService.Domain.Entity;
@@ -20,6 +20,7 @@ public sealed class PaymentTimeoutCloseJob(
     IOptions<PaymentTimeoutJobOptions> options,
     ILogger<PaymentTimeoutCloseJob> logger) : BackgroundService
 {
+    /// <summary>订单支付超时关单任务。全局锁避免多实例重复扫描；订单锁保证关单、支付、取消互斥。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var settings = options.Value;
@@ -40,6 +41,7 @@ public sealed class PaymentTimeoutCloseJob(
         }
     }
 
+    /// <summary>内部处理：CloseExpiredOrdersWithGlobalLockAsync。</summary>
     private async Task CloseExpiredOrdersWithGlobalLockAsync(
         PaymentTimeoutJobOptions settings,
         CancellationToken cancellationToken)
@@ -64,6 +66,7 @@ public sealed class PaymentTimeoutCloseJob(
         await CloseExpiredOrdersAsync(settings.BatchSize, cancellationToken);
     }
 
+    /// <summary>内部处理：CloseExpiredOrdersAsync。</summary>
     private async Task CloseExpiredOrdersAsync(int batchSize, CancellationToken cancellationToken)
     {
         var orders = await orderRepository.QueryExpiredAwaitPaymentAsync(DateTime.Now, batchSize, cancellationToken);
@@ -138,6 +141,7 @@ public sealed class PaymentTimeoutCloseJob(
         }
     }
 
+    /// <summary>内部处理：RetryPendingReleasesAsync。</summary>
     private async Task RetryPendingReleasesAsync(int batchSize, CancellationToken cancellationToken)
     {
         var records = await compensationRepository.GetDueAsync(batchSize, cancellationToken);

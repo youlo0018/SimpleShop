@@ -1,4 +1,4 @@
-using Locks = CommunalService.Domain.Infrastructure.Locks;
+﻿using Locks = CommunalService.Domain.Infrastructure.Locks;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Contracts.Messages;
 using Microsoft.AspNetCore.Http;
@@ -17,6 +17,7 @@ public sealed class ReleaseStockHandler(
     IOperationLogger operationLogger)
     : IRequestHandler<ReleaseStockCommand, InventoryStockResponse>
 {
+    /// <summary>处理入口：释放库存（下单落库失败补偿 / 超时关单 / 退款回补共用）：锁定减少、可售回补；流水幂等保证重放安全。</summary>
     public async Task<InventoryStockResponse> Handle(ReleaseStockCommand request, CancellationToken cancellationToken)
     {
         foreach (var item in request.Items.OrderBy(item => item.SkuId))

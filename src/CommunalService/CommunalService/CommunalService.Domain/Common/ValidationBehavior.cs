@@ -1,4 +1,4 @@
-using FluentValidation; // FluentValidation 核心命名空间
+﻿using FluentValidation; // FluentValidation 核心命名空间
 using MediatR; // MediatR 核心命名空间
 
 namespace CommunalService.Application.Common;
@@ -14,6 +14,7 @@ public class ValidationBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse> // 约束：TRequest 必须实现了 IRequest<TResponse>
 {
     // 依赖注入：获取当前请求类型对应的所有验证器（可能有多个）
+    /// <summary>当前请求的校验器集合（FluentValidation 管道注入）。</summary>
     private readonly IEnumerable<IValidator<TRequest>> _validators;
 
     /// <summary>

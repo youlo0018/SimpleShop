@@ -1,4 +1,4 @@
-using OpenIddict.EntityFrameworkCore.Models;
+﻿using OpenIddict.EntityFrameworkCore.Models;
 
 namespace AuthService.Domain.Entity;
 

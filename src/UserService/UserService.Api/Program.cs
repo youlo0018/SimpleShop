@@ -1,4 +1,4 @@
-using CommunalService.Application.Common;
+﻿using CommunalService.Application.Common;
 using CommunalService.Domain;
 using CommunalService.Domain.Infrastructure;
 using UserService.Application;
@@ -18,7 +18,7 @@ var app = builder.Build();
 app.AddApplication();
 await app.AddBaseInfrastructure();
 
-// 用户表由当前服务自治；启动时同步新增角色和头像字段，便于后台与应用端共用账号体系。
+// 后台账号表由当前服务自治；C 端客户账号在 CustomerService，两套账号体系完全分离。
 app.Services.GetRequiredService<IFreeSql>().CodeFirst.SyncStructure<User>();
 
 if (app.Environment.IsDevelopment())

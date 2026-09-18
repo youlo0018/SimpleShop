@@ -33,23 +33,37 @@ body_of() { request "$@" | sed '$d'; }
 code_of() { body_of "$@" | jq -r '.code' 2>/dev/null; }
 jq_of()   { local expr="$1"; shift; body_of "$@" | jq -r "$expr" 2>/dev/null; }
 
+# 后台账号登录：AuthService OpenIddict 令牌端点（password flow，公开客户端 admin-app）。
+backend_login_http() {
+  curl -s -m 15 -o /dev/null -w '%{http_code}' -X POST "$BASE/auth/Token" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode 'grant_type=password' --data-urlencode "username=$1" \
+    --data-urlencode "password=$2" --data-urlencode 'client_id=admin-app'
+}
+backend_login() {
+  curl -s -m 15 -X POST "$BASE/auth/Token" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode 'grant_type=password' --data-urlencode "username=$1" \
+    --data-urlencode "password=$2" --data-urlencode 'client_id=admin-app' | jq -r '.access_token // empty'
+}
+
 echo "== 准备测试数据 =="
-ADMIN=$(jq_of '.data.token' POST '/users/Login' '' "{\"userName\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}")
+ADMIN=$(backend_login "$ADMIN_USER" "$ADMIN_PASS")
 [[ -n "$ADMIN" && "$ADMIN" != "null" ]] || { echo "无法登录后台账号，终止"; exit 1; }
-PLATFORM_JSON=$(body_of GET '/platforms/List?page=1&pageSize=100' "$ADMIN" | jq -c '[.data.items[] | select(.platformCode=="demo")][0]')
+PLATFORM_JSON=$(body_of GET '/platforms/List?page=1&pageSize=100' "$ADMIN" | jq -c '[.data.items[] | select(.platformCode=="DEMOPL")][0]')
 PLATFORM=$(jq -r '.id' <<<"$PLATFORM_JSON")
 [[ "$PLATFORM" != "null" ]] || { echo "未找到演示平台（demo），请先执行 node scripts/seed-test-data.js"; exit 1; }
 MERCHANTS=$(body_of GET '/merchants/List?page=1&pageSize=100' "$ADMIN")
 MERCHANT1=$(jq -r "[.data.items[] | select(.merchantName==\"演示旗舰店\")][0].id" <<<"$MERCHANTS")
 MERCHANT2=$(jq -r "[.data.items[] | select(.merchantName==\"品质优选店\")][0].id" <<<"$MERCHANTS")
 [[ "$MERCHANT1" != "null" && "$MERCHANT2" != "null" ]] || { echo "演示商户缺失，请先执行 seed 脚本"; exit 1; }
-MERCHANT_TOKEN=$(jq_of '.data.token' POST '/users/Login' '' '{"userName":"demo-merchant","password":"Demo123456"}')
+MERCHANT_TOKEN=$(backend_login demo-merchant Demo123456)
 
 # 两个独立客户
-AUTH_A=$(body_of POST '/users/Register' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"email\":\"apit${TS}a@test.com\",\"phone\":\"131${TS: -8}\"}")
+AUTH_A=$(body_of POST '/customers/Register' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"email\":\"apit${TS}a@test.com\",\"phone\":\"131${TS: -8}\",\"platformId\":$PLATFORM,\"agreedAgreement\":true}")
 TOKEN_A=$(jq -r '.data.token' <<<"$AUTH_A")
 UID_A=$(jq -r '.data.user.id' <<<"$AUTH_A")
-AUTH_B=$(body_of POST '/users/Register' '' "{\"userName\":\"apit${TS}b\",\"password\":\"Test1234\",\"email\":\"apit${TS}b@test.com\",\"phone\":\"132${TS: -8}\"}")
+AUTH_B=$(body_of POST '/customers/Register' '' "{\"userName\":\"apit${TS}b\",\"password\":\"Test1234\",\"email\":\"apit${TS}b@test.com\",\"phone\":\"132${TS: -8}\",\"platformId\":$PLATFORM,\"agreedAgreement\":true}")
 TOKEN_B=$(jq -r '.data.token' <<<"$AUTH_B")
 [[ "$TOKEN_A" != "null" && "$TOKEN_B" != "null" ]] || { echo "测试客户注册失败"; exit 1; }
 
@@ -85,30 +99,57 @@ echo "  平台=$PLATFORM 商户=$MERCHANT1/$MERCHANT2 商品=$PRODUCT_ID SKU=$SK
 echo
 echo "== SYS：健康检查与 Consul =="
 HEALTH_OK=1
-for port in 5019 5022 5070 5058 5011 5060 5062 5064 5066 5072 5088 5008; do
+for port in 5019 5022 5070 5058 5011 5060 5062 5064 5066 5072 5088 5280 5080 5008; do
   [[ "$(curl -s -m 3 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/health")" != "200" ]] && HEALTH_OK=0
 done
-check "SYS-01 12 个服务 /health 全 200" "$HEALTH_OK" "1"
+check "SYS-01 14 个服务 /health 全 200" "$HEALTH_OK" "1"
 SERVICES=$(curl -s -m 5 http://127.0.0.1:8500/v1/catalog/services | jq -r 'keys | length')
 check "SYS-03 Consul 已注册服务数 ≥ 11" "$([[ $SERVICES -ge 11 ]] && echo yes || echo no)" "yes"
 
 echo
+echo "== FILE：统一文件服务（本地存储 + 校验） =="
+TMP_PNG=$(mktemp /tmp/apitest-XXXXXX.png)
+printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' | base64 -d > "$TMP_PNG"
+UPLOAD=$(curl -s -m 20 -X POST "$BASE/files/Upload" -F "file=@$TMP_PNG")
+check "FILE-01 上传成功且返回绝对地址" "$(jq -r 'if (.data.url // "") | startswith("http") then "yes" else "no" end' <<<"$UPLOAD")" "yes"
+check "FILE-02 元数据落库：Provider=Local/分类=image" "$(docker exec -i postgres psql -U postgres -d simpleshopfile -tAc "select \"Provider\"||'/'||\"Category\" from stored_file order by \"Id\" desc limit 1" | tr -d ' \r')" "Local/image"
+check "FILE-03 本地存储回源读取 200" "$(curl -s -m 10 -o /dev/null -w '%{http_code}' "$(jq -r '.data.url' <<<"$UPLOAD")")" "200"
+TMP_FAKE=$(mktemp /tmp/apitest-fake-XXXXXX.png); printf 'not-an-image' > "$TMP_FAKE"
+check "FILE-04 伪造图片（魔数不符）400" "$(curl -s -m 10 -X POST "$BASE/files/Upload" -F "file=@$TMP_FAKE" | jq -r '.code')" "400"
+TMP_EXE=$(mktemp /tmp/apitest-XXXXXX.exe); printf 'x' > "$TMP_EXE"
+check "FILE-05 扩展名白名单外 400" "$(curl -s -m 10 -X POST "$BASE/files/Upload" -F "file=@$TMP_EXE" | jq -r '.code')" "400"
+TMP_BIG=$(mktemp /tmp/apitest-big-XXXXXX.txt); head -c 20971521 /dev/zero > "$TMP_BIG"
+check "FILE-06 超过文档分类大小上限 400（提示20MB）" "$(curl -s -m 30 -X POST "$BASE/files/Upload" -F "file=@$TMP_BIG" | jq -r '.message' | grep -c '20MB')" "1"
+rm -f "$TMP_PNG" "$TMP_FAKE" "$TMP_EXE" "$TMP_BIG"
+
+echo
 echo "== AUTH / USER：认证、注册与列表 =="
-check "AUTH-01 正确账号登录" "$(code_of POST '/users/Login' '' "{\"userName\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}")" "200"
-check "AUTH-02 错误密码" "$(code_of POST '/users/Login' '' '{"userName":"codexadmin","password":"wrong-password"}')" "400"
-check "AUTH-03 不存在用户" "$(code_of POST '/users/Login' '' "{\"userName\":\"no_such_$TS\",\"password\":\"Test1234\"}")" "400"
-check "AUTH-04 用户名超长(HTTP)" "$(http_of POST '/users/Login' '' "{\"userName\":\"$(printf 'a%.0s' {1..80})\",\"password\":\"Test1234\"}")" "400"
-check "AUTH-05 密码为空(HTTP)" "$(http_of POST '/users/Login' '' '{"userName":"codexadmin","password":""}')" "400"
-check "AUTH-10 注册邮箱非法(HTTP)" "$(http_of POST '/users/Register' '' "{\"userName\":\"badmail$TS\",\"password\":\"Test1234\",\"email\":\"bad-email\",\"phone\":\"13800000000\"}")" "400"
-check "AUTH-11 重复注册" "$(code_of POST '/users/Register' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"email\":\"x$TS@test.com\",\"phone\":\"133${TS: -8}\"}")" "400"
+check "AUTH-01 后台正确账号登录(OpenIddict)" "$(backend_login_http "$ADMIN_USER" "$ADMIN_PASS")" "200"
+check "AUTH-02 后台错误密码" "$(backend_login_http codexadmin wrong-password)" "400"
+check "AUTH-03 后台不存在用户" "$(backend_login_http "no_such_$TS" Test1234)" "400"
+check "AUTH-04 后台用户名超长(HTTP)" "$(backend_login_http "$(printf 'a%.0s' {1..80})" Test1234)" "400"
+check "AUTH-05 后台密码为空(HTTP)" "$(backend_login_http codexadmin '')" "400"
+check "AUTH-10 客户注册邮箱非法(HTTP)" "$(http_of POST '/customers/Register' '' "{\"userName\":\"badmail$TS\",\"password\":\"Test1234\",\"email\":\"bad-email\",\"phone\":\"13800000000\",\"platformId\":$PLATFORM,\"agreedAgreement\":true}")" "400"
+check "AUTH-11 客户重复注册" "$(code_of POST '/customers/Register' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"email\":\"x$TS@test.com\",\"phone\":\"133${TS: -8}\",\"platformId\":$PLATFORM,\"agreedAgreement\":true}")" "400"
+check "AUTH-12 客户登录（平台维度）" "$(code_of POST '/customers/Login' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"platformId\":$PLATFORM}")" "200"
+check "AUTH-13 客户错误密码" "$(code_of POST '/customers/Login' '' "{\"userName\":\"apit${TS}a\",\"password\":\"wrong\",\"platformId\":$PLATFORM}")" "400"
+check "AUTH-14 客户账号不能走后台登录" "$(backend_login_http "apit${TS}a" Test1234)" "400"
+check "AUTH-15 注册必须勾选用户协议" "$(code_of POST '/customers/Register' '' "{\"userName\":\"noag$TS\",\"password\":\"Test1234\",\"email\":\"noag$TS@test.com\",\"phone\":\"134${TS: -8}\",\"platformId\":$PLATFORM,\"agreedAgreement\":false}")" "400"
+check "AUTH-16 注册来源非法" "$(code_of POST '/customers/Register' '' "{\"userName\":\"badrs$TS\",\"password\":\"Test1234\",\"email\":\"badrs$TS@test.com\",\"phone\":\"135${TS: -8}\",\"platformId\":$PLATFORM,\"agreedAgreement\":true,\"registerSource\":99}")" "400"
+check "TEN-05 平台编码必须6位字母" "$(code_of POST '/platforms/Create' "$ADMIN" '{"platformCode":"abc123","platformName":"编码校验","contactEmail":"code@test.com","defaultCommissionRate":1}')" "400"
+BK_ID=$(jq_of '.data.id' POST '/users/Create' "$ADMIN" "{\"userName\":\"bkp$TS\",\"password\":\"Test1234\",\"email\":\"bkp$TS@test.com\",\"phone\":\"139${TS: -8}\",\"role\":\"platform-operator\",\"platformId\":$PLATFORM}")
+check "USER-13 后台资料编辑（头像/性别/生日）" "$(jq_of '.data.success' POST '/users/Update' "$ADMIN" "{\"id\":$BK_ID,\"userName\":\"bkp$TS\",\"email\":\"bkp$TS@test.com\",\"phone\":\"139${TS: -8}\",\"role\":\"platform-operator\",\"platformId\":$PLATFORM,\"avatar\":\"/static/a.png\",\"gender\":1,\"birth\":\"1995-06-01T00:00:00\"}")" "true"
+check "USER-13b 后台资料回读一致" "$(jq_of '.data.gender' GET "/users/Profile?id=$BK_ID" "$ADMIN")|$(jq_of '.data.birth' GET "/users/Profile?id=$BK_ID" "$ADMIN")" "1|1995-06-01T00:00:00"
+check "AUTH-17 登录必须带平台" "$(code_of POST '/customers/Login' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\"}")" "400"
+check "AUTH-18 客户账号按平台隔离（错误平台登录失败）" "$(code_of POST '/customers/Login' '' "{\"userName\":\"apit${TS}a\",\"password\":\"Test1234\",\"platformId\":1}")" "400"
 check "USER-01 用户分页结构" "$(jq_of '.data | has("items") and has("total")' GET '/users/Users?page=1&pageSize=10' "$ADMIN")" "true"
 check "USER-02 分页越界(HTTP)" "$(http_of GET '/users/Users?page=1&pageSize=1000' "$ADMIN")" "400"
 check "USER-03 建号非法手机号" "$(code_of POST '/users/Create' "$ADMIN" "{\"userName\":\"badphone$TS\",\"password\":\"Test1234\",\"email\":\"ok$TS@test.com\",\"phone\":\"123\",\"role\":\"customer\"}")" "400"
-check "USER-06 客户读取本人资料" "$(jq_of '.data.userName' GET '/users/Profile' "$TOKEN_A")" "apit${TS}a"
-check "USER-08 地址非法手机号" "$(code_of POST '/users/SaveAddress' "$TOKEN_A" '{"receiverName":"测试","receiverPhone":"123","province":"广东省","city":"深圳市","district":"南山区","detail":"测试路1号","isDefault":false}')" "400"
-check "USER-11 收藏 ID 为空" "$(code_of POST '/users/ToggleFavorite' "$TOKEN_A" '{"productId":0}')" "400"
-body_of POST '/users/ToggleFavorite' "$TOKEN_A" "{\"productId\":$PRODUCT_ID}" >/dev/null
-check "USER-10 取消收藏" "$(jq_of '.data.favorited' POST '/users/ToggleFavorite' "$TOKEN_A" "{\"productId\":$PRODUCT_ID}")" "false"
+check "USER-06 客户读取本人资料" "$(jq_of '.data.userName' GET '/customers/Profile' "$TOKEN_A")" "apit${TS}a"
+check "USER-08 地址非法手机号" "$(code_of POST '/customers/SaveAddress' "$TOKEN_A" '{"receiverName":"测试","receiverPhone":"123","province":"广东省","city":"深圳市","district":"南山区","detail":"测试路1号","isDefault":false}')" "400"
+check "USER-11 收藏 ID 为空" "$(code_of POST '/customers/ToggleFavorite' "$TOKEN_A" '{"productId":0}')" "400"
+body_of POST '/customers/ToggleFavorite' "$TOKEN_A" "{\"productId\":$PRODUCT_ID}" >/dev/null
+check "USER-10 取消收藏" "$(jq_of '.data.favorited' POST '/customers/ToggleFavorite' "$TOKEN_A" "{\"productId\":$PRODUCT_ID}")" "false"
 
 echo
 echo "== GW / TEN：鉴权与多租户隔离 =="
@@ -148,9 +189,9 @@ check "PRD-09 商品不存在" "$(code_of GET '/products/AdminDetail?id=99999999
 printf '\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0dIHDR' > /tmp/apit-ok.png
 printf 'not an image' > /tmp/apit-fake.png
 printf '<svg></svg>' > /tmp/apit-bad.svg
-check "IMG-01 上传真实 PNG" "$(curl -s -m 10 -X POST "$BASE/products/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-ok.png;type=image/png' | jq -r '.code')" "200"
-check "IMG-02 伪 PNG(魔数校验)" "$(curl -s -m 10 -X POST "$BASE/products/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-fake.png;type=image/png' | jq -r '.code')" "400"
-check "IMG-03 非法扩展名" "$(curl -s -m 10 -X POST "$BASE/products/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-bad.svg;type=image/svg+xml' | jq -r '.code')" "400"
+check "IMG-01 上传真实 PNG（统一文件服务）" "$(curl -s -m 10 -X POST "$BASE/files/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-ok.png;type=image/png' | jq -r '.code')" "200"
+check "IMG-02 伪 PNG(魔数校验)" "$(curl -s -m 10 -X POST "$BASE/files/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-fake.png;type=image/png' | jq -r '.code')" "400"
+check "IMG-03 非法扩展名" "$(curl -s -m 10 -X POST "$BASE/files/Upload" -H "Authorization: Bearer $ADMIN" -F 'file=@/tmp/apit-bad.svg;type=image/svg+xml' | jq -r '.code')" "400"
 
 echo
 echo "== CART：增量语义与校验 =="
@@ -290,7 +331,7 @@ check "MKT-08 活动报表可查" "$(jq -r '.code' <<<"$ACT_REPORT")" "200"
 COUPON_REPORT=$(body_of GET "/marketing/CouponReport?couponActivityId=$COUPON_ACT&page=1&pageSize=10" "$ADMIN")
 check "MKT-09 券报表计入订单" "$(jq_of "[.data.records[] | select(.orderNo==\"$ORDER_NO\")] | length" GET "/marketing/CouponReport?couponActivityId=$COUPON_ACT&page=1&pageSize=10" "$ADMIN")" "1"
 check "DSN-01 装修 Admin 接口" "$(jq -r '.code' <<<"$(body_of GET "/platform-configs/Admin?platformId=$PLATFORM" "$ADMIN")")" "200"
-check "DSN-03 MiniApp 含我的服务" "$(jq_of '(.data.design.profile.services | length) > 0' GET "/platform-configs/MiniApp?platformCode=demo" '')" "true"
+check "DSN-03 MiniApp 含我的服务" "$(jq_of '(.data.design.profile.services | length) > 0' GET "/platform-configs/MiniApp?platformCode=DEMOPL" '')" "true"
 check "VAL-09 装修非法 JSON" "$(code_of POST '/platform-configs/Save' "$ADMIN" "{\"platformId\":$PLATFORM,\"configJson\":\"not-json\",\"publish\":false}")" "400"
 check "VAL-09b 装修空配置" "$(code_of POST '/platform-configs/Save' "$ADMIN" "{\"platformId\":$PLATFORM,\"configJson\":\"\",\"publish\":false}")" "400"
 

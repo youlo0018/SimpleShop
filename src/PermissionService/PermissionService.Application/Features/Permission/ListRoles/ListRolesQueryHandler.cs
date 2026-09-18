@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 using PermissionService.Domain.IRepository;
 
@@ -10,6 +10,7 @@ namespace PermissionService.Application.Features.Permission.ListRoles;
 public class ListRolesQueryHandler(IPermissionCenterRepository repository)
     : IRequestHandler<ListRolesQuery, ApiResponse>
 {
+    /// <summary>处理入口：角色列表：附带每个角色勾选的权限码集合；platform-admin 固定返回 *（全部权限）。</summary>
     public async Task<ApiResponse> Handle(ListRolesQuery request, CancellationToken cancellationToken)
     {
         var roles = await repository.ListRolesAsync(cancellationToken);

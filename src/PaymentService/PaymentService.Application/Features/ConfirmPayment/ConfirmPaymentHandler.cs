@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using Microsoft.AspNetCore.Http;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
@@ -9,6 +9,7 @@ using PaymentService.Domain.IRepository;
 
 namespace PaymentService.Application.Features.ConfirmPayment;
 
+/// <summary>确认支付：状态幂等 → 标记已支付 → 发 payment.succeeded（含库存明细）。</summary>
 public sealed class ConfirmPaymentHandler(
     IPaymentOrderRepository repository,
     TenantContext tenant,
@@ -18,6 +19,7 @@ public sealed class ConfirmPaymentHandler(
     IOperationLogger operationLogger)
     : IRequestHandler<ConfirmPaymentCommand, ApiResponse>
 {
+    /// <summary>处理入口：确认支付：状态幂等 → 标记已支付 → 发 payment.succeeded（含库存明细）。</summary>
     public async Task<ApiResponse> Handle(ConfirmPaymentCommand request, CancellationToken cancellationToken)
     {
         await using var lockHandle = await distributedLock.AcquireAsync(
@@ -81,6 +83,7 @@ public sealed class ConfirmPaymentHandler(
         return ApiResults.Ok(new { success = true, payment.PaymentNo, status = 20 });
     }
 
+    /// <summary>辅助处理：PublishSucceededAsync。</summary>
     private async Task PublishSucceededAsync(
         Domain.Entity.PaymentOrder payment,
         IReadOnlyCollection<CreatePayment.PaymentStockItem> items,

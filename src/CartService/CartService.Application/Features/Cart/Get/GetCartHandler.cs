@@ -1,4 +1,4 @@
-using CartService.Domain;
+﻿using CartService.Domain;
 using MediatR;
 
 namespace CartService.Application.Features.Cart.Get;
@@ -6,8 +6,10 @@ namespace CartService.Application.Features.Cart.Get;
 /// <summary>购物车查询：按当前登录用户取全部条目并计算合计；结算时由前端把勾选项带入结算页。</summary>
 public sealed class GetCartHandler(ICartStore cartStore) : IRequestHandler<GetCartQuery, object>
 {
+    /// <summary>处理入口：购物车查询：按当前登录用户取全部条目并计算合计；结算时由前端把勾选项带入结算页。</summary>
     public async Task<object> Handle(GetCartQuery request, CancellationToken cancellationToken)
     {
+        if (request.UserId <= 0) return new { success = false, code = 401, message = "请先登录" };
         var items = await cartStore.GetAsync(request.UserId, cancellationToken);
         return new
         {

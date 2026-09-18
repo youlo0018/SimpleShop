@@ -44,6 +44,21 @@ const api = async (path, { method = 'GET', body, token, allowFail = false } = {}
   return payload
 }
 const admin = (path, options = {}) => api(path, { ...options, token: adminToken })
+
+/**
+ * 后台账号登录：AuthService 的 OpenIddict 令牌端点（password flow，公开客户端 admin-app）。
+ * 后台账号（平台/商户/运营）统一走这里，客户账号走 /customers/Login。
+ */
+const backendLogin = async (userName, password) => {
+  const response = await fetch(`${BASE}/auth/Token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'password', username: userName, password, client_id: 'admin-app' })
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!payload?.access_token) throw new Error(`后台登录失败：${payload?.error_description || response.status}`)
+  return payload.access_token
+}
 const customer = (path, { token, ...options }) => api(path, { ...options, token })
 
 const log = (...parts) => console.log('[seed]', ...parts)
@@ -86,11 +101,11 @@ const CATEGORY_MAP = {
 
 const findPlatform = async () => {
   const data = await admin('/platforms/List?page=1&pageSize=100')
-  const existing = (data.data.items || []).find(item => item.platformCode === 'demo')
+  const existing = (data.data.items || []).find(item => item.platformCode === 'DEMOPL')
   if (existing) return existing.id
   const created = await admin('/platforms/Create', {
     method: 'POST',
-    body: { platformCode: 'demo', platformName: '演示商城', contactEmail: 'demo@simpleshop.test', defaultCommissionRate: 3 }
+    body: { platformCode: 'DEMOPL', platformName: '演示商城', contactEmail: 'demo@simpleshop.test', defaultCommissionRate: 3 }
   })
   log('创建演示平台：演示商城')
   return created.data.id
@@ -126,9 +141,9 @@ const ensureMerchantAdmin = async (platformId, merchantId) => {
     })
     log('创建商户管理员：demo-merchant')
   }
-  const login = await api('/users/Login', { method: 'POST', body: { userName, password: 'Demo123456' }, allowFail: true })
-  if (Number(login?.code) !== 200) throw new Error('商户管理员登录失败，请在权限中心检查 merchant-admin 角色绑定')
-  merchantToken = login.data.token
+  merchantToken = await backendLogin(userName, 'Demo123456').catch(() => {
+    throw new Error('商户管理员登录失败，请在权限中心检查 merchant-admin 角色绑定')
+  })
 }
 
 const ensureCategories = async () => {
@@ -285,18 +300,18 @@ const seedMarketing = async (platformId, merchantId, products) => {
   return couponActivityIds
 }
 
-const ensureCustomers = async (count) => {
+const ensureCustomers = async (count, platformId) => {
   const users = []
   for (let index = 1; index <= count; index++) {
     const userName = `demo_user_${String(index).padStart(2, '0')}`
     const password = 'Test123456'
-    let login = await api('/users/Register', {
+    let login = await api('/customers/Register', {
       method: 'POST',
-      body: { userName, password, email: `${userName}@demo.test`, phone: `139000000${String(index).padStart(2, '0')}` },
+      body: { userName, password, email: `${userName}@demo.test`, phone: `139000000${String(index).padStart(2, '0')}`, platformId, agreedAgreement: true, registerSource: 1 },
       allowFail: true
     })
     if (Number(login?.code) !== 200) {
-      login = await api('/users/Login', { method: 'POST', body: { userName, password } })
+      login = await api('/customers/Login', { method: 'POST', body: { userName, password, platformId } })
     }
     users.push({ token: login.data.token, id: login.data.user.id, userName })
   }
@@ -396,22 +411,20 @@ const seedRefund = async (users) => {
 
 const summary = async () => {
   const products = await admin('/products/List?page=1&pageSize=1')
-  const users = await admin('/users/Users?page=1&pageSize=1')
   const orders = await admin('/orders/List?page=1&pageSize=1')
   const payments = await admin('/payments/Payments?page=1&pageSize=1')
   const refunds = await admin('/payments/Refunds?page=1&pageSize=1')
   const activityReport = await admin('/marketing/ActivityReport?page=1&pageSize=5')
   const couponReport = await admin('/marketing/CouponReport?page=1&pageSize=5')
   console.log('\n===== 数据概览 =====')
-  console.log(`商品：${products.data.total} 个    用户：${users.data.total} 个    订单：${orders.data.total} 笔`)
+  console.log(`商品：${products.data.total} 个    订单：${orders.data.total} 笔`)
   console.log(`支付单：${payments.data.total} 笔    退款单：${refunds.data.total} 笔`)
   console.log(`活动参与：${activityReport.data.totalOrders} 单 / 折扣 ${Number(activityReport.data.totalDiscount).toFixed(2)} 元    用券：${couponReport.data.totalCoupons} 笔 / 抵扣 ${Number(couponReport.data.totalDiscount).toFixed(2)} 元`)
 }
 
 (async () => {
   log(`网关：${BASE}`)
-  const login = await api('/users/Login', { method: 'POST', body: { userName: ADMIN_USER, password: ADMIN_PASS } })
-  adminToken = login.data.token
+  adminToken = await backendLogin(ADMIN_USER, ADMIN_PASS)
 
   const platformId = await findPlatform()
   const merchants = [
@@ -423,7 +436,7 @@ const summary = async () => {
   const source = await fetchProducts()
   const products = await seedProducts(platformId, merchants, categories, source)
   const couponActivityIds = await seedMarketing(platformId, merchants[0], products)
-  const users = await ensureCustomers(8)
+  const users = await ensureCustomers(8, platformId)
   await claimCoupons(users, couponActivityIds)
 
   if (SKIP_ORDERS) {

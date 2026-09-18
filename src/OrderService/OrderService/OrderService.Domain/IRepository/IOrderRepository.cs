@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using OrderService.Domain.Entity;
 
 namespace OrderService.Domain.IRepository;
@@ -34,4 +34,10 @@ public interface IOrderRepository
 
     /// <summary>营销回退（gRPC）：下单失败/订单取消时释放券占用。</summary>
     Task ReleaseMarketingAsync(string orderNo, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 取消订单时释放库存失败 → 写入 pending_stock_release 补偿表，
+    /// 由 ScheduledService 的补偿任务重试（与超时关单共用一张表）。
+    /// </summary>
+    Task SavePendingStockReleaseAsync(string orderNo, IReadOnlyCollection<OrderStockRequestItem> items, string error, CancellationToken cancellationToken = default);
 }

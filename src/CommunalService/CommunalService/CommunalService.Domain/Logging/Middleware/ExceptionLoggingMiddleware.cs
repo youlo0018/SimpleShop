@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Logging.Middleware;
+﻿namespace CommunalService.Domain.Logging.Middleware;
 
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +13,7 @@ public sealed class ExceptionLoggingMiddleware(
     LoggingEventPublisher logPublisher,
     ILogger<ExceptionLoggingMiddleware> logger)
 {
+    /// <summary>内部处理：InvokeAsync。</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -52,6 +53,7 @@ public sealed class ExceptionLoggingMiddleware(
         }
     }
 
+    /// <summary>辅助处理：PublishAsync。</summary>
     private async Task PublishAsync(HttpContext context, Exception exception)
     {
         try
@@ -80,6 +82,7 @@ public sealed class ExceptionLoggingMiddleware(
         }
     }
 
+    /// <summary>辅助处理：ParseLong。</summary>
     private static long ParseLong(IHeaderDictionary headers, string name)
         => long.TryParse(headers[name].ToString(), out var value) ? value : 0;
 }

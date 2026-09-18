@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 using ProductService.Domain.IRepository;
 
@@ -11,6 +11,7 @@ namespace ProductService.Application.Features.Product.ListProducts;
 public class ListProductsQueryHandler(IProductAdminRepository repository, TenantContext tenant)
     : IRequestHandler<ListProductsQuery, ApiResponse>
 {
+    /// <summary>处理入口：商品分页列表：keyword/分类/商户/状态过滤；租户裁剪（平台→本平台、商户→本商户）； 一次批量查 SKU 后内存分组，避免 N+1 查询。</summary>
     public async Task<ApiResponse> Handle(ListProductsQuery request, CancellationToken cancellationToken)
     {
         var (products, total) = await repository.QueryProductsPagedAsync(

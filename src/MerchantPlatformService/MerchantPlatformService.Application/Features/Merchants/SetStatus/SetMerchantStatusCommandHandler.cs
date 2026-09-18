@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using MerchantPlatformService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace MerchantPlatformService.Application.Features.Merchants.SetStatus;
 public class SetMerchantStatusCommandHandler(IMerchantRepository repository, TenantContext tenant)
     : IRequestHandler<SetMerchantStatusCommand, ApiResponse>
 {
+    /// <summary>处理入口：商户启停/状态变更：平台账号限本平台；状态枚举见 MerchantStatus。</summary>
     public async Task<ApiResponse> Handle(SetMerchantStatusCommand request, CancellationToken cancellationToken)
     {
         var merchant = await repository.GetByIdAsync(request.Id);

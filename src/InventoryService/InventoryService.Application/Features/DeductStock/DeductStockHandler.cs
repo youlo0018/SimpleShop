@@ -1,4 +1,4 @@
-using Locks = CommunalService.Domain.Infrastructure.Locks;
+﻿using Locks = CommunalService.Domain.Infrastructure.Locks;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Contracts.Messages;
 using Microsoft.AspNetCore.Http;
@@ -17,6 +17,7 @@ public sealed class DeductStockHandler(
     IOperationLogger operationLogger)
     : IRequestHandler<DeductStockCommand, InventoryStockResponse>
 {
+    /// <summary>处理入口：扣减库存（支付成功事件驱动）：锁定数量转为已扣数量；流水幂等防重复投递；失败回补已扣部分。</summary>
     public async Task<InventoryStockResponse> Handle(DeductStockCommand request, CancellationToken cancellationToken)
     {
         var deductedItems = new List<LockStock.StockItem>();

@@ -1,4 +1,4 @@
-using ProductService.Domain.Entity;
+﻿using ProductService.Domain.Entity;
 
 namespace ProductService.Domain.IRepository;
 

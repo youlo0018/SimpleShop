@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PermissionService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace PermissionService.Application.Features.Permission.UpdateRolePermission
 public class UpdateRolePermissionsCommandHandler(IPermissionCenterRepository repository)
     : IRequestHandler<UpdateRolePermissionsCommand, ApiResponse>
 {
+    /// <summary>处理入口：编辑角色名称/描述并整体重写权限勾选；角色编码与租户范围创建后不可变。</summary>
     public async Task<ApiResponse> Handle(UpdateRolePermissionsCommand request, CancellationToken cancellationToken)
     {
         var role = await repository.GetRoleAsync(request.Id, cancellationToken);

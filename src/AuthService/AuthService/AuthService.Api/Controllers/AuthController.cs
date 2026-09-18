@@ -1,33 +1,56 @@
-using AuthService.Application.Features.User.Login;
+﻿using AuthService.Application.Features.User.Login;
 using CommunalService.Domain;
-using CommunalService.Domain.Enums;
 using MediatR;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
 
 namespace AuthService.Api.Controllers;
 
+/// <summary>
+/// 后台认证入口：OpenIddict 令牌端点（password flow）。
+/// 令牌由 AuthService 签发（issuer=SimpleShop.AuthService），网关验签后转 X-Claim-* 头。
+/// </summary>
 public class AuthController(IMediator mediator) : BaseController
 {
-    private readonly IMediator _mediator = mediator;
+    /// <summary>
+    /// 令牌端点（POST /gateway/auth/Token，表单编码）：grant_type=password 时校验账号并签发访问令牌。
+    /// 其他授权类型未启用（后台使用密码流 + 12 小时访问令牌）。
+    /// </summary>
     [HttpPost]
-    public async Task<ApiResponse> Login([FromBody] LoginCommand command)
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> Token()
     {
-        try
+        var request = HttpContext.GetOpenIddictServerRequest();
+        if (request is null)
+            return BadRequest(new { error = OpenIddictConstants.Errors.InvalidRequest });
+
+        if (request.IsPasswordGrantType())
         {
-            var result = await _mediator.Send(command);
-            var principal = result.claimsPrincipal;
-            return Ok(new
+            try
             {
-                authenticated = true,
-                userId = long.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!),
-                userName = principal.FindFirstValue(ClaimTypes.Name)
-            });
+                var result = await mediator.Send(new LoginCommand
+                {
+                    UserName = request.Username ?? string.Empty,
+                    Password = request.Password ?? string.Empty
+                });
+                return SignIn(result.claimsPrincipal, result.authenticationScheme);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                return BadRequest(new
+                {
+                    error = OpenIddictConstants.Errors.InvalidGrant,
+                    error_description = exception.Message
+                });
+            }
         }
-        catch (UnauthorizedAccessException exception)
+
+        return BadRequest(new
         {
-            return Error(BaseApiResponseCode.Unauthorized, exception.Message);
-        }
+            error = OpenIddictConstants.Errors.UnsupportedGrantType,
+            error_description = "仅支持 password 授权类型"
+        });
     }
-    
 }

@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace ProductService.Application.Features.Category.CreateCategory;
 

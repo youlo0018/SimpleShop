@@ -40,7 +40,7 @@ const query = reactive({ keyword: '', page: 1, pageSize: 10 })
 const emptyForm = () => ({ id: 0, platformCode: '', platformName: '', contactEmail: '', defaultCommissionRate: 5 })
 const form = reactive(emptyForm())
 const rules = {
-  platformCode: [{ required: true, message: '请输入平台编码', trigger: 'blur' }, optionalPattern(PLATFORM_CODE_PATTERN, '3-32位字母开头，可用数字、横线、下划线')],
+  platformCode: [{ required: true, message: '请输入平台编码', trigger: 'blur' }, optionalPattern(PLATFORM_CODE_PATTERN, '6位字母（创建后不可修改）')],
   platformName: [{ required: true, min: 2, max: 64, message: '平台名称必须为2-64个字符', trigger: 'blur' }],
   contactEmail: [{ required: true, message: '请输入联系邮箱', trigger: 'blur' }, optionalPattern(EMAIL_PATTERN, '邮箱格式不正确')],
   defaultCommissionRate: [{ required: true, message: '请输入佣金率', trigger: 'change' }]

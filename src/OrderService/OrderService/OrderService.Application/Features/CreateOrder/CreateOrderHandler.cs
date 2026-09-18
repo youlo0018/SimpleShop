@@ -11,6 +11,7 @@ using OrderService.Domain.IRepository;
 
 namespace OrderService.Application.Features.CreateOrder;
 
+/// <summary>创建订单：幂等校验 → 营销结算占券 → 锁库存 → 落单 → 发 order.created 事件。</summary>
 public sealed class CreateOrderHandler(
     IOrderRepository repository,
     IDistributedLock distributedLock,
@@ -21,8 +22,10 @@ public sealed class CreateOrderHandler(
     ILogger<CreateOrderHandler> logger)
     : IRequestHandler<CreateOrderCommand, object>
 {
+    /// <summary>处理入口：创建订单：幂等校验 → 营销结算占券 → 锁库存 → 落单 → 发 order.created 事件。</summary>
     public async Task<object> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
+        if (request.CustomerId <= 0) return new { success = false, code = 401, message = "请先登录" };
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
         {
             return new { success = false, message = "缺少幂等键" };
@@ -97,14 +100,20 @@ public sealed class CreateOrderHandler(
             ActivityDiscountPrice = settle.ActivityDiscount,
             PointDiscountPrice = 0,
             OrderStatus = (int)OrderState.AwaitPayment,
-            PaymentExpiredAt = DateTimeOffset.UtcNow.AddMinutes(15).UtcDateTime
+            // 到期时间必须与定时关单/其他时间戳同为本地时间，否则会被误判为已超时秒关。
+            PaymentExpiredAt = DateTime.Now.AddMinutes(15)
         };
 
         // 先把库存占住，再落订单；锁库存失败要把刚占用的券放回去。
-        if (request.StockItems.Count > 0 && !await repository.LockStockAsync(order.OrderNo, MapStockItems(request.StockItems), cancellationToken))
+        if (request.StockItems.Count > 0)
         {
-            await repository.ReleaseMarketingAsync(order.OrderNo, cancellationToken);
-            return new { success = false, message = "库存不足或锁定失败" };
+            if (!await repository.LockStockAsync(order.OrderNo, MapStockItems(request.StockItems), cancellationToken))
+            {
+                await repository.ReleaseMarketingAsync(order.OrderNo, cancellationToken);
+                return new { success = false, message = "库存不足或锁定失败" };
+            }
+            // 标记已锁库存：订单取消时需要释放；未锁过的订单取消时不能释放（否则虚增可用库存）。
+            order.StockLocked = true;
         }
 
         var orderItems = request.Items.Select(item =>
@@ -207,6 +216,7 @@ public sealed class CreateOrderHandler(
         return result;
     }
 
+    /// <summary>辅助处理：MapStockItems。</summary>
     private static List<OrderStockRequestItem> MapStockItems(IReadOnlyCollection<OrderStockItem> items)
     {
         return items.Select(item => new OrderStockRequestItem { SkuId = item.SkuId, Quantity = item.Quantity }).ToList();

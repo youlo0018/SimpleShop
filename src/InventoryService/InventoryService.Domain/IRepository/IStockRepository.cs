@@ -1,4 +1,4 @@
-using InventoryService.Domain.Entity;
+﻿using InventoryService.Domain.Entity;
 
 namespace InventoryService.Domain.IRepository;
 

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using FreeSql;
@@ -14,9 +14,11 @@ namespace MerchantPlatformService.Api.Controllers;
 /// </summary>
 // 网关与前端统一使用 PlatformConfig 资源名；控制器类名保留业务语义 PlatformAppConfig。
 [Route("api/PlatformConfig/[action]")]
-public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant) : Base
+/// <summary>平台小程序装修配置入口（游客可读、后台可写）：控制器只做协议转换与装修 JSON 解析。</summary>
+    public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant) : Base
 {
     [HttpGet]
+    /// <summary>小程序可选平台列表（GET，游客可访问）：只返回启用平台的编码与名称。</summary>
     public async Task<ApiResponse> MiniAppPlatforms()
     {
         var items = await freeSql.Select<Platform>()
@@ -27,6 +29,7 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
     }
 
     [HttpGet]
+    /// <summary>小程序启动装修配置（GET，游客可访问）：按平台编码取已发布配置，缺失回退默认装修。</summary>
     public async Task<ApiResponse> MiniApp([FromQuery] string platformCode)
     {
         if (string.IsNullOrWhiteSpace(platformCode))
@@ -53,6 +56,7 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
     }
 
     [HttpGet]
+    /// <summary>后台装修配置（GET，platform:read）：按租户裁剪，返回草稿与发布配置。</summary>
     public async Task<ApiResponse> Admin([FromQuery] long platformId)
     {
         var scopedPlatformId = await ResolvePlatformIdAsync(platformId);
@@ -76,6 +80,7 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
     }
 
     [HttpPost]
+    /// <summary>保存装修配置（POST，platform:update）：JSON 校验后写库，publish=true 时递增发布版本。</summary>
     public async Task<ApiResponse> Save([FromBody] SavePlatformAppConfigRequest request)
     {
         // 配置为空会让 JsonDocument.Parse 抛 ArgumentNullException 变 500；大小上限防止超大 JSON 落库。
@@ -134,6 +139,8 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
         }
     }
 
+    /// <summary>辅助处理：ResolvePlatformIdAsync。</summary>
+    /// <summary>解析目标平台：平台账号强制本平台，超管按请求参数（私有方法，仅本控制器使用）。</summary>
     private async Task<long> ResolvePlatformIdAsync(long requestPlatformId)
     {
         // 平台账号只能维护本平台；通配账号和指定平台的平台账号均收敛到唯一合法平台ID。
@@ -142,6 +149,8 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
         return requestPlatformId;
     }
 
+    /// <summary>辅助处理：ParseDesign。</summary>
+    /// <summary>解析装修 JSON；非法 JSON 返回 null（保存前校验会拦截）。</summary>
     private object? ParseDesign(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
@@ -155,21 +164,28 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
         }
     }
 
+    /// <summary>内置默认装修：平台未配置时保证小程序可正常渲染。</summary>
     private static object DefaultDesign(string code, string name)
     {
-        // 默认主题用 Apple 蓝，避免未装修平台落到高饱和随机色；平台仍可在装修里覆盖。
+        // 默认主题用凯德星式青绿，避免未装修平台落到高饱和随机色；平台仍可在装修里覆盖。
         var primary = code.Contains("life", StringComparison.OrdinalIgnoreCase) ? "#30b0c7"
-            : code.Contains("mall", StringComparison.OrdinalIgnoreCase) ? "#5e5ce6" : "#0071e3";
+            : code.Contains("mall", StringComparison.OrdinalIgnoreCase) ? "#5e5ce6" : "#00c1a2";
         return new
         {
             schemaVersion = 1,
-            theme = new { primary, background = "#f5f5f7", tabColor = primary },
+            theme = new { primary, background = "#f5f5f5", tabColor = primary },
             home = new
             {
                 appName = name,
                 slogan = "本平台专属精选商城",
                 notice = "新用户专享好价，登录后立即下单。",
-                banners = Array.Empty<object>(),
+                // 默认使用本地设计好的营销 banner（随小程序静态资源发布），未装修平台也有完整头图。
+                banners = new object[]
+                {
+                    new { image = "/static/banners/banner-1.png", title = "夏季洗护日用优惠", linkType = "products", linkValue = "" },
+                    new { image = "/static/banners/banner-2.png", title = "会员日狂欢", linkType = "coupon-center", linkValue = "" },
+                    new { image = "/static/banners/banner-3.png", title = "新品尝鲜", linkType = "products", linkValue = "" }
+                },
                 modules = new object[]
                 {
                     // 金刚区默认四项，后台装修可按平台增删/改图标与跳转。
@@ -194,28 +210,29 @@ public class PlatformAppConfigController(IFreeSql freeSql, TenantContext tenant)
             {
                 benefits = new object[]
                 {
-                    new { icon = "/static/line/points.png", title = "积分回馈", linkType = "coupons", linkValue = "" },
-                    new { icon = "/static/line/benefit.png", title = "专属活动", linkType = "coupon-center", linkValue = "" },
-                    new { icon = "/static/line/star.png", title = "我的收藏", linkType = "favorites", linkValue = "" },
-                    new { icon = "/static/line/card.png", title = "更多权益", linkType = "service", linkValue = "" }
+                    new { icon = "/static/line-color/points.png", title = "积分回馈", linkType = "coupons", linkValue = "" },
+                    new { icon = "/static/line-color/benefit.png", title = "专属活动", linkType = "coupon-center", linkValue = "" },
+                    new { icon = "/static/line-color/star.png", title = "我的收藏", linkType = "favorites", linkValue = "" },
+                    new { icon = "/static/line-color/card.png", title = "更多权益", linkType = "service", linkValue = "" }
                 },
                 services = new object[]
                 {
                     new { icon = "/static/line/order.png", title = "我的订单", linkType = "orders", linkValue = "" },
                     new { icon = "/static/line/cart.png", title = "购物车", linkType = "cart", linkValue = "" },
                     new { icon = "/static/line/record.png", title = "消费记录", linkType = "orders", linkValue = "" },
-                    new { icon = "/static/line/gift.png", title = "领券中心", linkType = "coupon-center", linkValue = "" },
+                    new { icon = "/static/line/gift.png", title = "我的活动", linkType = "coupon-center", linkValue = "" },
                     new { icon = "/static/line/service.png", title = "客服帮助", linkType = "service", linkValue = "" },
-                    new { icon = "/static/line/heart.png", title = "我的收藏", linkType = "favorites", linkValue = "" },
-                    new { icon = "/static/line/card.png", title = "我的券包", linkType = "coupons", linkValue = "" },
+                    new { icon = "/static/line/review.png", title = "评价中心", linkType = "service", linkValue = "" },
+                    new { icon = "/static/line/points.png", title = "积分指南", linkType = "coupons", linkValue = "" },
                     new { icon = "/static/line/pin.png", title = "收货地址", linkType = "address", linkValue = "" },
                     new { icon = "/static/line/invoice.png", title = "发票信息", linkType = "service", linkValue = "" },
-                    new { icon = "/static/line/info.png", title = "关于我们", linkType = "service", linkValue = "" }
+                    new { icon = "/static/line/mall.png", title = "关于我们", linkType = "service", linkValue = "" }
                 }
             },
-            tabs = new { home = "首页", category = "分类", cart = "购物车", profile = "我的" }
+            tabs = new { home = "首页", category = "商城", cart = "购物车", profile = "我的" }
         };
     }
 }
 
+/// <summary>保存平台小程序装修配置（发布开关 + JSON 校验）。</summary>
 public sealed record SavePlatformAppConfigRequest(long PlatformId, string ConfigJson, bool Publish);

@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using CommunalService.Domain.Contracts.Services;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Consul;
@@ -13,12 +13,15 @@ namespace OrderService.Infrastructure.ExternalServices;
 /// </summary>
 public sealed class InventoryClient(IServiceDiscovery serviceDiscovery)
 {
+    /// <summary>库存操作（幂等键由调用方提供）：LockAsync。</summary>
     public async Task<bool> LockAsync(string orderNo, IReadOnlyCollection<OrderStockRequestItem> items, CancellationToken cancellationToken)
         => await SendAsync("lock", orderNo, items, cancellationToken);
 
+    /// <summary>库存操作（幂等键由调用方提供）：ReleaseAsync。</summary>
     public async Task<bool> ReleaseAsync(string orderNo, IReadOnlyCollection<OrderStockRequestItem> items, CancellationToken cancellationToken)
         => await SendAsync("release", orderNo, items, cancellationToken);
 
+    /// <summary>辅助处理：SendAsync。</summary>
     private async Task<bool> SendAsync(string action, string orderNo, IReadOnlyCollection<OrderStockRequestItem> items, CancellationToken cancellationToken)
     {
         var address = await serviceDiscovery.GetPollingAddressAsync("InventoryService", PollingAddressType.Grpc);

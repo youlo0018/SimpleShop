@@ -1,4 +1,4 @@
-using CommunalService.Domain.Infrastructure;
+﻿using CommunalService.Domain.Infrastructure;
 using FreeSql;
 using MarketingService.Domain.Entity;
 using MarketingService.Domain.Enums;
@@ -27,9 +27,9 @@ public sealed class MarketingActivityRepository(IFreeSql freeSql)
     }
 
     /// <inheritdoc />
-    public Task<List<MarketingActivity>> ListEnabledAsync(long platformId, DateTime now)
+    public Task<List<MarketingActivity>> ListEnabledActivitiesAsync(long platformId)
         => freeSql.Select<MarketingActivity>()
-            .Where(item => item.PlatformId == platformId && item.IsEnabled && item.StartAt <= now && (item.EndAt == null || item.EndAt > now))
+            .Where(item => item.PlatformId == platformId && item.IsEnabled)
             // 计算引擎按创建顺序遍历：优惠力度相同时结果确定，满赠兜底取最早创建的活动。
             .OrderBy(item => item.CreatedAt).OrderBy(item => item.Id)
             .ToListAsync();
@@ -185,7 +185,7 @@ public sealed class MarketingCouponRepository(IFreeSql freeSql)
 
     /// <inheritdoc />
     public async Task<bool> UpdateCouponActivityColumnsAsync(long id, object columns)
-        => await freeSql.Update<CouponActivity>().Where(item => item.Id == id).UpdateColumns(entity => columns).ExecuteAffrowsAsync() > 0;
+        => await freeSql.Update<CouponActivity>().Where(item => item.Id == id).SetDto(columns).ExecuteAffrowsAsync() > 0;
 
     /// <inheritdoc />
     public async Task<bool> InsertUserCouponAsync(UserCoupon entity)

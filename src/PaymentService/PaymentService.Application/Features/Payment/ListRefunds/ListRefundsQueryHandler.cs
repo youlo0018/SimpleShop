@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PaymentService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace PaymentService.Application.Features.Payment.ListRefunds;
 public class ListRefundsQueryHandler(IPaymentOrderRepository repository, TenantContext tenant)
     : IRequestHandler<ListRefundsQuery, ApiResponse>
 {
+    /// <summary>处理入口：退款单分页列表：keyword 匹配退款单号/业务单号；租户裁剪同支付列表。</summary>
     public async Task<ApiResponse> Handle(ListRefundsQuery request, CancellationToken cancellationToken)
     {
         if (!tenant.HasWildcard && !tenant.IsPlatform && !tenant.IsMerchant && !tenant.IsCustomer)

@@ -1,13 +1,15 @@
-using FreeSql;
+﻿using FreeSql;
 using Microsoft.Extensions.DependencyInjection;
 using OrderService.Domain.IRepository;
 using Yitter.IdGenerator;
 
 namespace ScheduledService.Compensation;
 
+/// <summary>库存释放补偿仓储：扫描待重试记录、标记重试结果（与 ScheduledService 共用表）。</summary>
 public sealed class StockReleaseCompensationRepository(
     [FromKeyedServices("scheduled")] IFreeSql freeSql) : IStockReleaseCompensationRepository
 {
+    /// <summary>更新：SaveAsync。</summary>
     public async Task SaveAsync(
         string orderNo,
         IReadOnlyCollection<OrderStockRequestItem> items,
@@ -40,6 +42,7 @@ public sealed class StockReleaseCompensationRepository(
         }
     }
 
+    /// <summary>查询：GetDueAsync。</summary>
     public Task<List<PendingStockRelease>> GetDueAsync(int limit, CancellationToken cancellationToken)
     {
         return freeSql.Select<PendingStockRelease>()
@@ -49,6 +52,7 @@ public sealed class StockReleaseCompensationRepository(
             .ToListAsync(cancellationToken);
     }
 
+    /// <summary>标记补偿记录重试结果：成功删除/失败累计次数并延后下次重试。</summary>
     public async Task MarkRetriedAsync(PendingStockRelease record, string error, CancellationToken cancellationToken)
     {
         record.RetryCount++;
@@ -57,6 +61,7 @@ public sealed class StockReleaseCompensationRepository(
         await freeSql.Update<PendingStockRelease>().SetSource(record).ExecuteAffrowsAsync(cancellationToken);
     }
 
+    /// <summary>删除：DeleteAsync。</summary>
     public Task DeleteAsync(string orderNo, IReadOnlyCollection<long> ids, CancellationToken cancellationToken)
     {
         return freeSql.Delete<PendingStockRelease>()

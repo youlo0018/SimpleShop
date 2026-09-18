@@ -1,7 +1,7 @@
 using CommunalService.Application.Common;
 using CommunalService.Domain;
 using CustomerService.Application;
-using CustomerService.Application.Features.Customer.GetCustomer;
+using CustomerService.Application.Features.Customer.GetProfile;
 using CustomerService.Infrastructure;
 using FreeSql;
 
@@ -16,8 +16,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.AddBasicServices();
 builder.AddInfrastructure();
+builder.AddApplication();
 builder.Services.AddControllers();
-builder.AddMediatRWithHandlers(typeof(GetCustomerCommand).Assembly, typeof(ValidationBehavior<,>).Assembly);
+builder.AddMediatRWithHandlers(typeof(GetProfileQuery).Assembly, typeof(ValidationBehavior<,>).Assembly);
 var app = builder.Build();
 app.UseRouting();
 

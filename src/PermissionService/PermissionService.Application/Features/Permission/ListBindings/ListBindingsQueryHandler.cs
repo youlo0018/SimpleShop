@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 using PermissionService.Domain.IRepository;
 
@@ -10,6 +10,7 @@ namespace PermissionService.Application.Features.Permission.ListBindings;
 public class ListBindingsQueryHandler(IPermissionCenterRepository repository)
     : IRequestHandler<ListBindingsQuery, ApiResponse>
 {
+    /// <summary>处理入口：用户-角色绑定列表：联角色表补名称/编码/范围，供后台查看与解绑。</summary>
     public async Task<ApiResponse> Handle(ListBindingsQuery request, CancellationToken cancellationToken)
     {
         var bindings = await repository.ListBindingsAsync(cancellationToken);

@@ -1,13 +1,15 @@
-using MediatR;
+﻿using MediatR;
 using EntityCategory = ProductService.Domain.Entity.Category;
 using ProductService.Domain.Entity;
 using ProductService.Domain.IRepository;
 
 namespace ProductService.Application.Features.Category.GetCategoryTree;
 
+/// <summary>分类树：返回启用分类的层级结构。</summary>
 public class GetCategoryTreeCommandHandler(ICategoryRepository<EntityCategory> repository)
     : IRequestHandler<GetCategoryTreeCommand, object>
 {
+    /// <summary>处理入口：分类树：返回启用分类的层级结构。</summary>
     public async Task<object> Handle(GetCategoryTreeCommand request, CancellationToken cancellationToken)
     {
         // 后台分类管理必须能编辑停用节点；商城列表接口另行按启用状态过滤。

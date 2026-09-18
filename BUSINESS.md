@@ -10,13 +10,22 @@
 - **商户（Merchant）**：挂靠在某平台下经营商品，发货与退款处理者。
 - **客户（Customer）**：C 端购物用户，可浏览所有启用平台，数据按归属隔离。
 
+**账号域分离（强制）**：
+- 前台客户账号只存在于 CustomerService（`simpleshopcustomer.customer`），注册/登录走 `/gateway/customers/Register|Login`，令牌为 HS256 客户 JWT（`tenant_type=customer`）。
+- 后台账号（平台/商户/运营）只存在于 UserService（`simpleshopuser."User"`），由平台管理员在后台建号，真实角色绑定在权限中心。
+- 后台登录走 AuthService 的 OpenIddict 令牌端点 `/gateway/auth/Token`（password flow，公开客户端 `admin-app`，RS256 自签证书），令牌声明含 `tenant_type/permission/role`，网关验签后转 `X-Claim-*`。
+- 互斥校验：客户账号走后台登录返回 `invalid_grant`；客户令牌访问后台接口 403；后台建号禁止 `customer` 角色。
+- 存量数据迁移：`bash scripts/migrate-customers.sh`（默认只复制，`--purge` 清理 User 表客户，保留雪花 Id）。
+
 ## 2. 服务一览
 
 | 服务 | HTTP | gRPC | 数据库 | 职责 |
 |------|------|------|--------|------|
 | Gateway | 5008 | - | - | Ocelot 路由 + JWT 验签 + RBAC（权限点↔接口路径）+ 租户声明注入 |
-| Auth | 5019 | 5004 | simpleshopauth | OpenIddict 授权、令牌（EF Core，其余服务用 FreeSql） |
-| User | 5011 | 5003 | simpleshopuser | 注册/登录（JWT 签发）、地址簿、收藏 |
+| Auth | 5019 | 5004 | simpleshopauth | 后台登录 OpenIddict 令牌（password flow、RS256 自签证书；EF Core） |
+| User | 5011 | 5003 | simpleshopuser | 后台账号域：账号管理（列表/建号/改号/启停）+ 资料；不含客户 |
+| Customer | 5280 | 5001 | simpleshopcustomer | 前台客户域：注册/登录（客户 JWT）、资料、地址簿、收藏 |
+| File | 5080 | 5081 | simpleshopfile | 统一文件上传：多存储（Local/阿里云OSS/腾讯云COS/Azure Blob，AgileConfig 切换）、格式与大小限制可配 |
 | Permission | 5022 | 5023 | simpleshoppermission | 权限中心：角色/权限点/用户绑定；登录解析与后台管理 |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU、三级分类、审核上下架、图片上传 |
 | Cart | 5060 | 5060 | simpleshopcart | 购物车（PostgreSQL 存储） |
@@ -27,6 +36,12 @@
 | MerchantPlatform | 5070 | 5070 | simpleshopmerchant | 商户/平台管理 + 小程序装修配置 |
 | Scheduled | - | - | simpleshopscheduled + simpleshoporder | 独立定时进程：支付超时关单 + 库存释放补偿 |
 | Log | 5088 | - | Elasticsearch | 消费 pv/operation/exception 日志 → ES（带 DLQ） |
+
+**统一文件上传（FileService）**：
+- 所有端（后台/小程序/后续端）统一走 `POST /gateway/files/Upload`（multipart，字段 `file`），返回绝对访问地址；本地存储通过 `GET /gateway/files/Content/{对象键}` 回源。
+- 存储后端由 AgileConfig `FileStorage:Provider` 决定：`Local`（默认）/`AliyunOss`/`TencentCos`/`AzureBlob`；各厂商凭据、自定义域名均在 `FileStorage:{Provider}:*` 配置。
+- 允许格式 `FileStorage:AllowedExtensions`、分类大小上限 `FileStorage:MaxSizeBytes`（image/document/audio/video/default，字节）均在 AgileConfig 调整，无需改代码。
+- 校验顺序：扩展名白名单 → 分类大小 → 文件头魔数（防伪造扩展名）。
 
 外部依赖：PostgreSQL `127.0.0.1:5432`（postgres/Aa123456..）、Redis `127.0.0.1:6379`、Consul `:8500`、RabbitMQ `localhost`（admin/admin123）、AgileConfig `:5000`（每服务独立应用配置）。
 
@@ -51,7 +66,7 @@
 
 ### 4.1 购物主链路（C 端）
 ```
-注册/登录 → 选平台（小程序按平台下发装修）→ 浏览/搜索 → 商品详情选 SKU
+客户注册/登录（CustomerService `/customers/Register|Login`，客户 JWT）→ 选平台（小程序按平台下发装修）→ 浏览/搜索 → 商品详情选 SKU
 → 加购（展示自动最优优惠金额）→ 结算（选地址 + 勾选用券，金额随优惠浮动）
 → 下单（幂等 → 营销结算占券 → 锁库存 → 落单 → 写营销记录）→ 支付（模拟确认，按实付金额）
 → 支付成功事件 → 订单已支付 + 库存扣减 + 满赠发券 → 商户发货 → 用户签收 → 完成
@@ -61,8 +76,11 @@
 ```
 首页：会员问候卡（优惠券/收藏/订单，未登录不请求）+ 优惠专区（进行中活动与可领券卡，游客可见）
 店铺页：/merchants/Shop（公开店铺信息）+ /products/List?merchantId= + 本店活动（ActiveActivities 按商户过滤）
-收藏页：/users/Favorites + 逐个商品详情（上限 20）
+收藏页：/customers/Favorites + 逐个商品详情（上限 20）
 商品详情：主图+SKU 图图集、服务保障、配送说明、商品评价占位、吸底（店铺/购物车角标/加购/立购）
+价格展示：到手价（京东/淘宝式）= 后端 FinalPrice 试算的活动/最优券更低价，商品卡与详情页
+          展示"到手价 + 划线原价 + 优惠来源标签"；游客只算活动价，登录后自动计入最优券；
+          列表页整页商品合并为一次批量试算（≤50 个/批），失败静默回退原价展示
 ```
 
 ### 4.5 营销优惠（活动 + 券）
@@ -77,6 +95,9 @@
 下单：以服务端结算结果为准写订单（总价/活动折扣/券折扣/实付 + 明细营销快照），
       支付成功后退款上限按实付；订单取消/关单回退券占用
 报表：活动/券效果（参与订单数、折扣总额、赠券数）与订单/商品下钻明细
+到手价：POST /marketing/FinalPrice（游客可调用），逐商品按"单商品订单"试算并取
+        活动价与券后价的更低价（用户可在结算页取消勾选券，故展示最低可到手价）；
+        与结算引擎共用同一套规则，金额拆分返回（原价/活动优惠/券优惠/到手价）
 ```
 
 
@@ -108,7 +129,9 @@
 
 | 服务 | 实体 | 说明 |
 |------|------|------|
-| User | User, Address, Favorite | 账号（customer/admin 两值 Role，真实角色在权限中心） |
+| User | User | 后台账号（平台/商户/运营；真实角色绑定在权限中心） |
+| Customer | Customer, CustomerAddress, CustomerFavorite | 前台客户账号、地址簿与收藏（独立库，与后台账号完全分离） |
+| File | StoredFile | 上传文件元数据（原始名/分类/大小/存储后端/对象键/公开地址），文件内容由存储后端保存 |
 | Permission | Permission, Role, RolePermission, UserRole | 权限点/角色/映射/绑定（映射有唯一约束，重绑物理删除） |
 | Product | Product, Sku, Category, Brand, UploadedFile | SKU 按编码 Upsert；分类强制 ≤3 级 |
 | Cart | CartItem | 已从 Redis 迁移到 PostgreSQL |

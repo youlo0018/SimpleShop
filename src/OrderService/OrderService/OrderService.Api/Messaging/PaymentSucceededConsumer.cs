@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using CommunalService.Domain.Infrastructure.Locks;
 using Microsoft.Extensions.Configuration;
@@ -17,9 +17,12 @@ public sealed class PaymentSucceededConsumer(
     IDistributedLock distributedLock,
     ILogger<PaymentSucceededConsumer> logger) : BackgroundService
 {
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道（随连接重建）。</summary>
     private IChannel? _channel;
 
+    /// <summary>订单侧监听支付成功消息，保证支付回调丢失时订单状态也能最终一致。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -37,6 +40,7 @@ public sealed class PaymentSucceededConsumer(
         }
     }
 
+    /// <summary>内部处理：StartConsumerAsync。</summary>
     private async Task StartConsumerAsync(CancellationToken cancellationToken)
     {
         var section = configuration.GetSection("RabbitMQ");
@@ -72,6 +76,7 @@ public sealed class PaymentSucceededConsumer(
         await _channel.BasicConsumeAsync("order.payment.succeeded", autoAck: false, consumer, cancellationToken: cancellationToken);
     }
 
+    /// <summary>内部处理：HandleMessage。</summary>
     private async Task HandleMessage(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
@@ -112,9 +117,11 @@ public sealed class PaymentSucceededConsumer(
         await orderRepository.TryMarkPaidAsync(latest.OrderNo, DateTime.Now, cancellationToken);
     }
 
+    /// <summary>内部处理：LockTimeoutException。</summary>
     private sealed class LockTimeoutException(string orderNo)
         : Exception($"获取订单支付锁超时:{orderNo}");
 
+    /// <summary>订单侧监听支付成功消息，保证支付回调丢失时订单状态也能最终一致。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_channel is not null) await _channel.CloseAsync(cancellationToken);

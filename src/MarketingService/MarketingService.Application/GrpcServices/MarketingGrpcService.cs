@@ -1,4 +1,4 @@
-using CommunalService.Domain.Contracts.Messages;
+﻿using CommunalService.Domain.Contracts.Messages;
 using CommunalService.Domain.Contracts.Services;
 using MagicOnion;
 using MagicOnion.Server;

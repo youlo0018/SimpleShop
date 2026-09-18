@@ -1,4 +1,4 @@
-using AgileConfig.Client;
+﻿using AgileConfig.Client;
 using CommunalService.Application.Common;
 using PermissionService.Domain.IRepository;
 using PermissionService.Infrastructure.Repository;

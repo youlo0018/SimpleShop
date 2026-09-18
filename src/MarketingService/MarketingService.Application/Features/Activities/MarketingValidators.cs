@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MarketingService.Domain.Enums;
 
 namespace MarketingService.Application.Features.Activities;

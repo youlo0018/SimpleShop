@@ -13,6 +13,7 @@ namespace AuthService.Infrastructure.Migrations
     [DbContext(typeof(AuthDbContext))]
     partial class AuthDbContextModelSnapshot : ModelSnapshot
     {
+        /// <summary>辅助处理：BuildModel。</summary>
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Infrastructure.Consul;
+﻿namespace CommunalService.Domain.Infrastructure.Consul;
 
 /// <summary>
 /// 定义服务注册与注销的契约（应用层接口）

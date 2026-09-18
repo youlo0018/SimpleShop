@@ -1,4 +1,4 @@
-using CommunalService.Domain.Interfaces;
+﻿using CommunalService.Domain.Interfaces;
 using MerchantPlatformService.Domain.Entity;
 
 namespace MerchantPlatformService.Domain.IRepository;

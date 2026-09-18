@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using ProductService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace ProductService.Application.Features.Category.UpdateCategory;
 public class UpdateCategoryCommandHandler(IProductAdminRepository repository)
     : IRequestHandler<UpdateCategoryCommand, ApiResponse>
 {
+    /// <summary>处理入口：更新分类：禁止把父级设为自己的子孙（成环）；同样强制 3 级上限。</summary>
     public async Task<ApiResponse> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
     {
         var category = await repository.GetCategoryAsync(request.Id, cancellationToken);

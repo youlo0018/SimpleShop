@@ -30,8 +30,57 @@ const handleUnauthorized = () => {
   }, 400)
 }
 
+// base64url 解码（小程序无 atob）：仅用于读取 JWT 的 exp，不校验签名。
+const base64UrlDecode = input => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  let text = String(input || '').replace(/-/g, '+').replace(/_/g, '/')
+  while (text.length % 4) text += '='
+  let output = ''
+  for (let index = 0; index < text.length; index += 4) {
+    const enc1 = chars.indexOf(text[index]); const enc2 = chars.indexOf(text[index + 1])
+    const enc3 = chars.indexOf(text[index + 2]); const enc4 = chars.indexOf(text[index + 3])
+    output += String.fromCharCode((enc1 << 2) | (enc2 >> 4))
+    if (enc3 > -1) output += String.fromCharCode(((enc2 & 15) << 4) | (enc3 >> 2))
+    if (enc4 > -1) output += String.fromCharCode(((enc3 & 3) << 6) | enc4)
+  }
+  return output
+}
+const tokenExpireAt = token => {
+  try {
+    const matched = base64UrlDecode(String(token).split('.')[1] || '').match(/"exp":(\d+)/)
+    return matched ? Number(matched[1]) * 1000 : 0
+  } catch { return 0 }
+}
+
+// 临近过期（30 分钟内）自动刷新令牌：Redis 会话滑动续期，活跃用户不掉线。
+let refreshing = null
+const refreshTokenIfNeeded = () => {
+  const token = uni.getStorageSync('token')
+  if (!token) return Promise.resolve()
+  const expireAt = tokenExpireAt(token)
+  if (!expireAt || expireAt - Date.now() > 30 * 60 * 1000) return Promise.resolve()
+  if (!refreshing) {
+    refreshing = new Promise(resolve => {
+      uni.request({
+        url: `${BASE_URL}/customers/RefreshToken`, method: 'POST',
+        header: { Authorization: `Bearer ${token}` },
+        success: ({ data }) => {
+          if (Number(data?.code) === 200 && data.data?.token) {
+            uni.setStorageSync('token', data.data.token)
+            if (data.data.user) uni.setStorageSync('user', data.data.user)
+          }
+          resolve()
+        },
+        fail: () => resolve()
+      })
+    }).finally(() => { refreshing = null })
+  }
+  return refreshing
+}
+
 const request = (path, method = 'GET', data = {}) => new Promise((resolve, reject) => {
-  uni.request({
+  const skipRefresh = ['/customers/Login', '/customers/Register', '/customers/RefreshToken'].some(item => path.startsWith(item))
+  const send = () => uni.request({
     url: BASE_URL + path, method, data,
     header: { Authorization: `Bearer ${uni.getStorageSync('token') || ''}` },
     success: ({ statusCode, data }) => {
@@ -46,6 +95,9 @@ const request = (path, method = 'GET', data = {}) => new Promise((resolve, rejec
     },
     fail: error => { uni.showToast({ title: '网络异常', icon: 'none' }); reject(error) }
   })
+  // 临近过期先刷新再发请求；登录/注册/刷新接口自身不触发刷新，避免递归。
+  if (skipRefresh) send()
+  else refreshTokenIfNeeded().finally(send)
 })
 
 export const get = (path, params) => request(`${path}${buildQuery(params)}`)

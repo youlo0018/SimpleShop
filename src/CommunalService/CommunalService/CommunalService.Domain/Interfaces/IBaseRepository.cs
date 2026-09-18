@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using CommunalService.Domain.Entity;
 
 namespace CommunalService.Domain.Interfaces;

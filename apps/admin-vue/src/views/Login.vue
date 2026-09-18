@@ -29,16 +29,35 @@ const rules = {
   password: [requiredRule('请输入密码')]
 }
 
+// 后台登录走 AuthService 的 OpenIddict 令牌端点（password flow，公开客户端 admin-app）。
 async function submit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
   trimForm(form)
   loading.value = true
   try {
-    const data = await request.post('/users/Login', form)
-    auth.setSession(data.token, data.user)
+    const body = new URLSearchParams({ grant_type: 'password', username: form.userName, password: form.password, client_id: 'admin-app' })
+    const data = await request.post('/auth/Token', body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+    auth.setSession(data.access_token, userFromToken(data.access_token))
     router.push('/dashboard')
   } finally { loading.value = false }
+}
+
+// 从访问令牌解析后台用户信息：租户/权限声明由 AuthService 写入，前端只做展示与本地路由校验。
+function userFromToken(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+  const json = decodeURIComponent(atob(base64).split('').map(char => '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2)).join(''))
+  const payload = JSON.parse(json)
+  const asArray = value => value === undefined ? [] : Array.isArray(value) ? value : [value]
+  return {
+    id: payload.sub,
+    userName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload.name || form.userName,
+    tenantType: payload.tenant_type,
+    platformId: payload.platform_id,
+    merchantId: payload.merchant_id,
+    permissions: asArray(payload.permission),
+    roles: asArray(payload.role)
+  }
 }
 </script>
 

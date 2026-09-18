@@ -1,4 +1,4 @@
-namespace MerchantPlatformService.Domain.Enums;
+﻿namespace MerchantPlatformService.Domain.Enums;
 
 public enum MerchantStatus
 {

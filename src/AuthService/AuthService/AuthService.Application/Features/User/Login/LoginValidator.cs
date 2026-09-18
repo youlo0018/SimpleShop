@@ -1,4 +1,4 @@
-using CommunalService.Domain.Enums;
+﻿using CommunalService.Domain.Enums;
 using FluentValidation;
 
 namespace AuthService.Application.Features.User.Login;

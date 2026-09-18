@@ -1,4 +1,4 @@
-using FreeSql.DataAnnotations;
+﻿using FreeSql.DataAnnotations;
 
 namespace ScheduledService.Compensation;
 
@@ -10,21 +10,29 @@ namespace ScheduledService.Compensation;
 public sealed class PendingStockRelease
 {
     [Column(IsPrimary = true)]
+    /// <summary>主键（雪花 ID）。</summary>
     public long Id { get; set; }
 
     [Column(StringLength = 32)]
+    /// <summary>订单号（幂等与对账键）。</summary>
     public string OrderNo { get; set; } = string.Empty;
 
+    /// <summary>商品 SKU ID。</summary>
     public long SkuId { get; set; }
 
+    /// <summary>数量。</summary>
     public int Quantity { get; set; }
 
+    /// <summary>已重试次数。</summary>
     public int RetryCount { get; set; }
 
+    /// <summary>创建时间。</summary>
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    /// <summary>下次重试时间。</summary>
     public DateTime NextRetryAt { get; set; } = DateTime.Now;
 
     [Column(StringLength = 500, IsNullable = true)]
+    /// <summary>最近一次失败原因。</summary>
     public string? LastError { get; set; }
 }

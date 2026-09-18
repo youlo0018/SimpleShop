@@ -1,14 +1,18 @@
-using FreeSql;
+﻿using FreeSql;
 using InventoryService.Domain.Entity;
 using InventoryService.Domain.IRepository;
 
 namespace InventoryService.Infrastructure.Repository;
 
-public class StockRepository(IFreeSql freeSql) : IStockRepository
+/// <summary>库存仓储实现：三列库存模型（Available 总量 / Locked 锁定 / Deducted 已扣），所有变更写流水并按 BizNo+SKU+动作 幂等。</summary>
+    public class StockRepository(IFreeSql freeSql) : IStockRepository
 {
+    /// <summary>查询：GetBySkuIdAsync。</summary>
+    /// <summary>按 SKU 取库存行。</summary>
     public Task<Stock?> GetBySkuIdAsync(long skuId, CancellationToken cancellationToken = default)
         => freeSql.Select<Stock>().Where(stock => stock.SkuId == skuId).FirstAsync();
 
+    /// <summary>初始化 SKU 库存（商品创建事件消费，重复初始化幂等）。</summary>
     public async Task<bool> InitializeAsync(
         long skuId,
         long platformId,
@@ -25,6 +29,8 @@ public class StockRepository(IFreeSql freeSql) : IStockRepository
         return await freeSql.Insert(stock).ExecuteAffrowsAsync(cancellationToken) > 0;
     }
 
+    /// <summary>库存操作（幂等键由调用方提供）：LockAsync。</summary>
+    /// <summary>锁定库存：Locked + N；流水幂等键 BizNo+SKU+lock。</summary>
     public async Task<bool> LockAsync(long skuId, string bizNo, int quantity, CancellationToken cancellationToken = default)
     {
         return await ExecuteWithFlowAsync(skuId, bizNo, "lock", quantity, cancellationToken, () => freeSql
@@ -34,6 +40,8 @@ public class StockRepository(IFreeSql freeSql) : IStockRepository
             .Set(stock => stock.LockedQuantity == stock.LockedQuantity + quantity));
     }
 
+    /// <summary>库存操作（幂等键由调用方提供）：DeductAsync。</summary>
+    /// <summary>支付扣减：Locked - N、Deducted + N（Available 不变）；流水幂等键 BizNo+SKU+deduct。</summary>
     public async Task<bool> DeductAsync(long skuId, string bizNo, int quantity, CancellationToken cancellationToken = default)
     {
         return await ExecuteWithFlowAsync(skuId, bizNo, "deduct", quantity, cancellationToken, () => freeSql
@@ -43,6 +51,8 @@ public class StockRepository(IFreeSql freeSql) : IStockRepository
             .Set(stock => stock.DeductedQuantity == stock.DeductedQuantity + quantity));
     }
 
+    /// <summary>库存操作（幂等键由调用方提供）：ReleaseAsync。</summary>
+    /// <summary>释放锁定：Locked - N（取消/关单）；流水幂等键 BizNo+SKU+release。</summary>
     public async Task<bool> ReleaseAsync(long skuId, string bizNo, int quantity, CancellationToken cancellationToken = default)
     {
         // 超时关单可能已经把锁定数量清零；释放接口必须兼容“无账可释放”的幂等场景。
@@ -59,6 +69,8 @@ public class StockRepository(IFreeSql freeSql) : IStockRepository
             .Set(stock => stock.LockedQuantity == stock.LockedQuantity - quantity));
     }
 
+    /// <summary>库存操作（幂等键由调用方提供）：RestoreAsync。</summary>
+    /// <summary>退款回补：Deducted - N（可用回增）；流水幂等键 BizNo+SKU+restore。</summary>
     public async Task<bool> RestoreAsync(long skuId, string bizNo, int quantity, CancellationToken cancellationToken = default)
     {
         return await ExecuteWithFlowAsync(skuId, bizNo, "restore", quantity, cancellationToken, () => freeSql
@@ -67,10 +79,12 @@ public class StockRepository(IFreeSql freeSql) : IStockRepository
             .Set(stock => stock.DeductedQuantity == stock.DeductedQuantity - quantity));
     }
 
+    /// <summary>流水是否已存在（幂等去重）。</summary>
     public Task<bool> HasFlowAsync(string bizNo, long skuId, string action, CancellationToken cancellationToken = default)
         => freeSql.Select<StockFlow>()
             .AnyAsync(flow => flow.BizNo == bizNo && flow.SkuId == skuId && flow.Action == action);
 
+    /// <summary>库存变更与流水的统一执行器：条件更新 + 流水插入，任一步失败回滚事务。</summary>
     private async Task<bool> ExecuteWithFlowAsync(
         long skuId,
         string bizNo,

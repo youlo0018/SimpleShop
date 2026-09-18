@@ -1,8 +1,9 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using MarketingService.Domain.Entity;
 using MarketingService.Domain.Enums;
+using MarketingService.Application.Services;
 using MarketingService.Domain.IRepository;
 
 namespace MarketingService.Application.Features.Activities;
@@ -39,6 +40,7 @@ public class GetActivityHandler(IMarketingActivityRepository repository, TenantC
         return ApiResults.Ok(new { activity, targets });
     }
 
+    /// <summary>内部处理：InScope。</summary>
     private static bool InScope(MarketingActivity activity, TenantContext tenant)
     {
         if (tenant.HasWildcard) return true;
@@ -52,6 +54,7 @@ public class GetActivityHandler(IMarketingActivityRepository repository, TenantC
 public class SaveActivityHandler(
     IMarketingActivityRepository repository,
     IMarketingCouponRepository couponRepository,
+    MarketingSnapshotCache snapshotCache,
     TenantContext tenant)
     : IRequestHandler<SaveActivityCommand, ApiResponse>
 {
@@ -109,9 +112,12 @@ public class SaveActivityHandler(
         if (entity.Id == 0) await repository.InsertAsync(entity);
         else await repository.UpdateAsync(entity);
         await repository.ReplaceTargetsAsync(entity.Id, BuildTargets(entity, request, tenant));
+        // 活动内容/范围已变化：立即失效平台快照，避免读到旧活动。
+        snapshotCache.Invalidate(entity.PlatformId);
         return ApiResults.Ok(new { success = true, id = entity.Id });
     }
 
+    /// <summary>辅助处理：BuildTargets。</summary>
     internal static List<MarketingActivityTarget> BuildTargets(MarketingActivity entity, SaveActivityCommand request, TenantContext tenant)
     {
         var targets = new List<MarketingActivityTarget>();
@@ -142,7 +148,7 @@ public class SaveActivityHandler(
 }
 
 /// <summary>活动启停：校验租户归属后更新 IsEnabled。</summary>
-public class SetActivityEnabledHandler(IMarketingActivityRepository repository, TenantContext tenant)
+public class SetActivityEnabledHandler(IMarketingActivityRepository repository, MarketingSnapshotCache snapshotCache, TenantContext tenant)
     : IRequestHandler<SetActivityEnabledCommand, ApiResponse>
 {
     /// <summary>活动启停：校验租户归属后条件更新 IsEnabled（停用不影响历史订单记录）。</summary>
@@ -155,6 +161,8 @@ public class SetActivityEnabledHandler(IMarketingActivityRepository repository, 
         if (tenant.IsMerchant && activity.MerchantId != tenant.MerchantId)
             return ApiResults.Fail(BaseApiResponseCode.Forbidden, "无权操作该活动");
         await repository.UpdateColumnsAsync(activity.Id, new { IsEnabled = request.IsEnabled, UpdatedAt = DateTime.Now });
+        // 启停立即生效：失效平台快照（否则最长 30 秒 TTL 内仍按旧状态计算优惠）。
+        snapshotCache.Invalidate(activity.PlatformId);
         return ApiResults.Ok(new { success = true });
     }
 }
@@ -347,6 +355,7 @@ public class SaveCouponActivityHandler(IMarketingCouponRepository repository, Te
         return ApiResults.Ok(new { success = true, id = entity.Id });
     }
 
+    /// <summary>辅助处理：BuildTargets。</summary>
     internal static List<CouponActivityTarget> BuildTargets(CouponActivity entity, SaveCouponActivityCommand request, TenantContext tenant)
     {
         var targets = new List<CouponActivityTarget>();
@@ -412,7 +421,7 @@ public class GetMarketingConfigHandler(IMarketingActivityRepository repository, 
 }
 
 /// <summary>保存平台营销配置：仅平台账号，存在则更新否则新增。</summary>
-public class SaveMarketingConfigHandler(IMarketingActivityRepository repository, TenantContext tenant)
+public class SaveMarketingConfigHandler(IMarketingActivityRepository repository, MarketingSnapshotCache snapshotCache, TenantContext tenant)
     : IRequestHandler<SaveMarketingConfigCommand, ApiResponse>
 {
     /// <summary>保存平台营销配置：不存在则新增、存在则更新优先级；仅平台账号可操作。</summary>
@@ -432,6 +441,8 @@ public class SaveMarketingConfigHandler(IMarketingActivityRepository repository,
             config.UpdatedAt = DateTime.Now;
             await repository.SaveConfigAsync(config);
         }
+        // 优先级切换立即生效：失效平台快照。
+        snapshotCache.Invalidate(platformId);
         return ApiResults.Ok(new { success = true });
     }
 }

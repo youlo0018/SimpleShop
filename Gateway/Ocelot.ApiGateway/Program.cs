@@ -25,6 +25,11 @@ builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(Rab
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqMessagePublisher>();
 builder.Services.AddSingleton<LoggingEventPublisher>();
 builder.Services.AddMemoryCache();
+// 客户令牌会话存 Redis：网关校验 jti 会话有效性并做滑动续期（与 CustomerService 共库）。
+var redisConnection = builder.Configuration["Basic:redisConnectionString"]
+    ?? "localhost:6379,password=Aa123456..,defaultDatabase=1";
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(_ =>
+    StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnection));
 builder.Services.AddSingleton<CommunalService.Domain.Infrastructure.Consul.IServiceDiscovery,
     CommunalService.Domain.Infrastructure.Consul.ConsulServiceDiscovery>();
 builder.Services.AddCors();

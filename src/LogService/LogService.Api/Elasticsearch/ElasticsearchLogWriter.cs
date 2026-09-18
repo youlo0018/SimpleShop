@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Elastic.Transport;
@@ -15,8 +15,10 @@ public sealed class ElasticsearchLogWriter(
     IOptions<ElasticsearchOptions> options,
     ILogger<ElasticsearchLogWriter> logger)
 {
+    /// <summary>ES 客户端（配置来自 ElasticsearchOptions）。</summary>
     private readonly ElasticsearchClient _client = CreateClient(options.Value);
 
+    /// <summary>辅助处理：WriteAsync。</summary>
     public async Task WriteAsync(byte[] body, string logKind, CancellationToken cancellationToken)
     {
         try
@@ -44,6 +46,7 @@ public sealed class ElasticsearchLogWriter(
         }
     }
 
+    /// <summary>查询：QueryAsync。</summary>
     public async Task<object> QueryAsync(string logKind, IQueryCollection query, CancellationToken cancellationToken)
     {
         var indexPattern = $"logs-{logKind}-*";
@@ -71,6 +74,7 @@ public sealed class ElasticsearchLogWriter(
         };
     }
 
+    /// <summary>辅助处理：BuildQueries。</summary>
     private static List<Query> BuildQueries(IQueryCollection query)
     {
         var filters = new List<Query>();
@@ -91,6 +95,7 @@ public sealed class ElasticsearchLogWriter(
         return filters;
     }
 
+    /// <summary>辅助处理：MapToPageView。</summary>
     private static PageViewLog MapToPageView(JsonElement root) => new()
     {
         EventId = root.GetProperty("eventId").GetGuid(),
@@ -109,6 +114,7 @@ public sealed class ElasticsearchLogWriter(
         StayMilliseconds = root.GetProperty("payload").TryGetProperty("stayMilliseconds", out var stay) ? stay.GetInt32() : 0
     };
 
+    /// <summary>辅助处理：MapToOperation。</summary>
     private static OperationLog MapToOperation(JsonElement root) => new()
     {
         EventId = root.GetProperty("eventId").GetGuid(),
@@ -128,6 +134,7 @@ public sealed class ElasticsearchLogWriter(
         Ip = GetString(root.GetProperty("payload"), "ip")
     };
 
+    /// <summary>辅助处理：MapToException。</summary>
     private static ExceptionLog MapToException(JsonElement root) => new()
     {
         EventId = root.GetProperty("eventId").GetGuid(),
@@ -147,15 +154,19 @@ public sealed class ElasticsearchLogWriter(
         StackTrace = GetString(root.GetProperty("payload"), "stackTrace")
     };
 
+    /// <summary>查询数据：GetString（过滤条件与返回语义见参数与调用方约定）。</summary>
     private static string GetString(JsonElement element, string name)
         => element.TryGetProperty(name, out var value) ? value.GetString() ?? string.Empty : string.Empty;
 
+    /// <summary>查询数据：GetInt64（过滤条件与返回语义见参数与调用方约定）。</summary>
     private static long GetInt64(JsonElement element, string name)
         => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt64() : 0;
 
+    /// <summary>辅助处理：ParseInt。</summary>
     private static int ParseInt(string? value, int defaultValue)
         => int.TryParse(value, out var parsed) ? parsed : defaultValue;
 
+    /// <summary>写操作：CreateClient（副作用与幂等键见调用方约定）。</summary>
     private static ElasticsearchClient CreateClient(ElasticsearchOptions settings)
     {
         var configuration = new ElasticsearchClientSettings(new Uri(settings.Url))

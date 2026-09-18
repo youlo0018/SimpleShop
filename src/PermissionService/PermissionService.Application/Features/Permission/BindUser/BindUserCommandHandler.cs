@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PermissionService.Domain.Entity;
@@ -13,6 +13,7 @@ namespace PermissionService.Application.Features.Permission.BindUser;
 public class BindUserCommandHandler(IPermissionCenterRepository repository)
     : IRequestHandler<BindUserCommand, ApiResponse>
 {
+    /// <summary>处理入口：绑定用户角色：校验角色存在与租户范围（平台角色必须带平台、商户角色必须带商户）→ 一个用户只保留一条有效绑定（旧的软删，新的插入）。</summary>
     public async Task<ApiResponse> Handle(BindUserCommand request, CancellationToken cancellationToken)
     {
         var role = await repository.GetRoleAsync(request.RoleId, cancellationToken);
@@ -24,7 +25,7 @@ public class BindUserCommandHandler(IPermissionCenterRepository repository)
 
         var old = await repository.GetUserBindingAsync(request.UserId, cancellationToken);
         if (old is not null)
-            await repository.SoftDeleteBindingAsync(old.Id, cancellationToken);
+            await repository.HardDeleteBindingAsync(old.Id, cancellationToken);
         await repository.InsertBindingAsync(new UserRole
         {
             UserId = request.UserId, RoleId = request.RoleId,

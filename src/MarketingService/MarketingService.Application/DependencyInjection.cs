@@ -1,4 +1,4 @@
-using MarketingService.Application.Services;
+﻿using MarketingService.Application.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +13,8 @@ public static class DependencyInjection
         // 优惠计算与落账服务无状态且被控制器/gRPC/消费者复用，单例注册避免重复构造。
         builder.Services.AddSingleton<DiscountEngine>();
         builder.Services.AddSingleton<MarketingCommitService>();
+        // 平台营销快照缓存：配置/启用活动/范围按平台缓存，写操作显式失效 + 30s TTL 兜底。
+        builder.Services.AddSingleton<MarketingSnapshotCache>();
     }
 
     /// <summary>应用层启动钩子（当前无操作，保留统一启动入口）。</summary>

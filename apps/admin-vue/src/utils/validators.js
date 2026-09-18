@@ -1,7 +1,7 @@
 export const PHONE_PATTERN = /^1[3-9]\d{9}$/
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-export const PLATFORM_CODE_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]{2,31}$/
+export const PLATFORM_CODE_PATTERN = /^[a-zA-Z]{6}$/
 export const ROLE_CODE_PATTERN = /^[a-z][a-z0-9-]{2,79}$/
 export const PERMISSION_CODE_PATTERN = /^[a-z][a-z0-9:-]{2,79}$/
 

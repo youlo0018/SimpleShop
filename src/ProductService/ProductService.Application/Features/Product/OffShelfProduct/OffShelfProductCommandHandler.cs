@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using EntityProduct = ProductService.Domain.Entity.Product;
@@ -12,6 +12,7 @@ namespace ProductService.Application.Features.Product.OffShelfProduct;
 public class OffShelfProductCommandHandler(IProductAdminRepository repository, TenantContext tenant)
     : IRequestHandler<OffShelfProductCommand, ApiResponse>
 {
+    /// <summary>处理入口：商品下架：Status 置 2；租户裁剪（平台→本平台、商户→本商户），无权时 403。</summary>
     public async Task<ApiResponse> Handle(OffShelfProductCommand request, CancellationToken cancellationToken)
     {
         var product = await repository.GetProductInScopeAsync(

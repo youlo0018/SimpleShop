@@ -1,4 +1,4 @@
-using PermissionService.Domain.Entity;
+﻿using PermissionService.Domain.Entity;
 
 namespace PermissionService.Domain.IRepository;
 
@@ -24,5 +24,8 @@ public interface IPermissionCenterRepository
     Task<List<UserRole>> ListBindingsAsync(CancellationToken cancellationToken = default);
     Task<UserRole?> GetUserBindingAsync(long userId, CancellationToken cancellationToken = default);
     Task SoftDeleteBindingAsync(long id, CancellationToken cancellationToken = default);
+
+    /// <summary>物理删除绑定（重绑前调用，避免唯一索引冲突）。</summary>
+    Task HardDeleteBindingAsync(long id, CancellationToken cancellationToken = default);
     Task InsertBindingAsync(UserRole binding, CancellationToken cancellationToken = default);
 }

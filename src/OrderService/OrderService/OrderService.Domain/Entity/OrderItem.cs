@@ -23,6 +23,7 @@ public sealed class OrderItem : BaseEntity
     [Description("SKU ID")] public long SkuId { get; set; }
 
     [Column(StringLength = 128), Description("商品名快照")]
+    /// <summary>商品名快照</summary>
     public string ProductName { get; set; } = string.Empty;
 
     [Description("成交单价")] public decimal Price { get; set; }
@@ -36,6 +37,7 @@ public sealed class OrderItem : BaseEntity
     [Description("活动ID或用户券ID")] public long MarketingId { get; set; }
 
     [Column(StringLength = 64), Description("营销名称快照")]
+    /// <summary>营销名称快照</summary>
     public string MarketingName { get; set; } = string.Empty;
 
     [Description("使用的用户券ID")] public long UserCouponId { get; set; }

@@ -6,6 +6,7 @@
 import { reactive, ref } from 'vue'
 import { post } from '@/common/request'
 import { setSession } from '@/common/store'
+import { ensurePlatform } from '@/common/platform-config'
 import { trimStrings, validateLogin } from '@/common/validators'
 
 const form = reactive({ userName: '', password: '' })
@@ -17,7 +18,9 @@ const submit = async () => {
   if (!validateLogin(form)) return
   submitting.value = true
   try {
-    const data = await post('/users/Login', form)
+    const platform = await ensurePlatform()
+    if (!platform?.id) return uni.showToast({ title: '平台配置未就绪', icon: 'none' })
+    const data = await post('/customers/Login', { ...form, platformId: platform.id })
     setSession(data.token, data.user)
     uni.showToast({ title: '登录成功' })
     setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/profile/profile' }) }), 500)

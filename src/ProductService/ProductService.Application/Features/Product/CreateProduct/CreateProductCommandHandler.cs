@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Messaging;
@@ -10,6 +10,7 @@ using ProductService.Domain.IRepository;
 
 namespace ProductService.Application.Features.Product.CreateProduct;
 
+/// <summary>新建商品：SKU 校验/编码查重 → 落库（按租户确定审核状态）→ 发 product.created 建库存。</summary>
 public class CreateProductCommandHandler(
     IProductRepository<EntityProduct> productRepository,
     ISkuRepository<Sku> skuRepository,
@@ -20,6 +21,7 @@ public class CreateProductCommandHandler(
     IOperationLogger operationLogger)
     : IRequestHandler<CreateProductCommand, ApiResponse>
 {
+    /// <summary>处理入口：新建商品：SKU 校验/编码查重 → 落库（按租户确定审核状态）→ 发 product.created 建库存。</summary>
     public async Task<ApiResponse> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
         // 租户归属回填与库内唯一性/存在性校验；字段级校验见 CreateProductValidator。

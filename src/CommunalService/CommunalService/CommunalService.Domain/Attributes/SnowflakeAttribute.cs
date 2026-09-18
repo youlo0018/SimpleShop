@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Attributes;
+﻿namespace CommunalService.Domain.Attributes;
 
 
 [AttributeUsage(AttributeTargets.Property)]

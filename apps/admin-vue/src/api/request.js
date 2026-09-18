@@ -28,6 +28,8 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use((response) => {
   const body = response.data
+  // OAuth 风格响应（AuthService OpenIddict 令牌端点）没有业务信封，直接透传。
+  if (body && body.access_token) return body
   if (body && Number(body.code) !== 200) {
     if (Number(body.code) === 401 && !onLoginPage()) {
       redirectToLogin()
@@ -56,7 +58,7 @@ request.interceptors.response.use((response) => {
     if (details) body.message = `${body.message || '输入验证失败'}：${details}`
   }
   error.validation = validation
-  const message = body.message || error.message || '网络异常'
+  const message = body.error_description || body.message || error.message || '网络异常'
   ElMessage.error(message)
   return Promise.reject(error)
 })

@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace MerchantPlatformService.Application.Features.Platforms.SetEnabled;
 

@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using ProductService.Domain.Entity;
@@ -13,6 +13,7 @@ namespace ProductService.Application.Features.Product.SaveProduct;
 public class SaveProductCommandHandler(IProductAdminRepository repository, TenantContext tenant)
     : IRequestHandler<SaveProductCommand, ApiResponse>
 {
+    /// <summary>处理入口：商品编辑保存：主表更新 + SKU 按编码 Upsert（新增插入、已存在更新；价格/库存非法的 SKU 跳过）。 写入路径收口在 IProductAdminRepository.UpdateProductWithSkusAsync。</summary>
     public async Task<ApiResponse> Handle(SaveProductCommand request, CancellationToken cancellationToken)
     {
         var product = await repository.GetProductInScopeAsync(

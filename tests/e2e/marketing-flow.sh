@@ -7,8 +7,10 @@ PASS=0; FAIL=0
 
 check() { local label="$1" got="$2" want="$3"; if [[ "$got" == "$want" ]]; then PASS=$((PASS+1)); echo "  ✓ $label"; else FAIL=$((FAIL+1)); echo "  ✗ $label 期望[$want] 实际[$got]"; fi; }
 
-admin_login=$(curl -s -X POST "$BASE/users/Login" -H 'Content-Type: application/json' -d '{"userName":"codexadmin","password":"Admin123456"}')
-ADMIN=$(jq -r '.data.token' <<<"$admin_login")
+admin_login=$(curl -s -X POST "$BASE/auth/Token" -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'grant_type=password' --data-urlencode 'username=codexadmin' \
+  --data-urlencode 'password=Admin123456' --data-urlencode 'client_id=admin-app')
+ADMIN=$(jq -r '.access_token' <<<"$admin_login")
 PLATFORM_ID=$(curl -s "$BASE/platforms/List?page=1&pageSize=10" -H "Authorization: Bearer $ADMIN" | jq -r '.data.items[0].id')
 MERCHANT_ID=$(curl -s "$BASE/merchants/List?page=1&pageSize=10" -H "Authorization: Bearer $ADMIN" | jq -r '.data.items[0].id')
 SKU_BASE=$((TS % 900000 + 100000))
@@ -38,7 +40,7 @@ gift=$(post_admin "marketing/SaveActivity" "{\"platformId\":$PLATFORM_ID,\"name\
 check "满赠活动创建" "$(jq -r '.code' <<<"$gift")" 200
 
 echo "== 3. 用户注册、领券、券包"
-reg=$(curl -s -X POST "$BASE/users/Register" -H 'Content-Type: application/json' -d "{\"userName\":\"mk${TS}\",\"password\":\"Test1234\",\"email\":\"mk${TS}@test.com\",\"phone\":\"139${TS: -8}\"}")
+reg=$(curl -s -X POST "$BASE/customers/Register" -H 'Content-Type: application/json' -d "{\"userName\":\"mk${TS}\",\"password\":\"Test1234\",\"email\":\"mk${TS}@test.com\",\"phone\":\"139${TS: -8}\",\"platformId\":$PLATFORM_ID,\"agreedAgreement\":true}")
 USER_TOKEN=$(jq -r '.data.token' <<<"$reg")
 USER_ID=$(jq -r '.data.user.id' <<<"$reg")
 check "用户注册" "$(jq -r '.code' <<<"$reg")" 200
@@ -94,7 +96,7 @@ check "券报表计入订单" "$(jq -r '[.data.records[] | select(.orderNo=="'"$
 check "券报表折扣合计" "$(jq -r '[.data.summary[] | select((.couponActivityId|tostring)=="'"$COUPON_ACT_ID"'")][0].discountAmount' <<<"$coupon_report")" "5.00"
 
 echo "== 7. 活动订单与满赠发券"
-reg2=$(curl -s -X POST "$BASE/users/Register" -H 'Content-Type: application/json' -d "{\"userName\":\"mk${TS}b\",\"password\":\"Test1234\",\"email\":\"mk${TS}b@test.com\",\"phone\":\"138${TS: -8}\"}")
+reg2=$(curl -s -X POST "$BASE/customers/Register" -H 'Content-Type: application/json' -d "{\"userName\":\"mk${TS}b\",\"password\":\"Test1234\",\"email\":\"mk${TS}b@test.com\",\"phone\":\"138${TS: -8}\",\"platformId\":$PLATFORM_ID,\"agreedAgreement\":true}")
 USER2=$(jq -r '.data.token' <<<"$reg2")
 USER2_ID=$(jq -r '.data.user.id' <<<"$reg2")
 order2=$(curl -s -X POST "$BASE/orders/Create" -H "Authorization: Bearer $USER2" -H 'Content-Type: application/json' -d "{

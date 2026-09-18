@@ -1,4 +1,4 @@
-using CommunalService.Domain.Entity;
+﻿using CommunalService.Domain.Entity;
 using CommunalService.Domain.Interfaces;
 using ProductService.Domain.Entity;
 

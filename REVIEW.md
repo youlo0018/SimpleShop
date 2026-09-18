@@ -25,20 +25,24 @@
 ⑥ TenantContext 读取 X-Claim-* → 查询按租户裁剪
 ```
 
-### 链路 1：登录 `/users/Login`
+### 链路 1：后台登录 `/gateway/auth/Token`（AuthService + OpenIddict）
 
-1. `LoginCommandHandler`：按用户名查 User → 校验 `IsEnabled` + `SHA256(password+Salt)`
-2. `PermissionCenterClient.ResolveAsync()`：gRPC 调权限中心 → `{tenantType, platformId, merchantId, permissions, roles}`
-3. `AdminTokenIssuer.CreateToken()`：签发 JWT（租户声明+权限声明，12h）
-4. 返回 `{token, user}`；前端存 localStorage `admin_token`
+1. 客户端表单提交 `grant_type=password&username&password&client_id=admin-app`（公开客户端，浏览器 SPA 无 secret）。
+2. `AuthController.Token`（令牌端点 passthrough）→ `LoginCommandHandler`：Consul 发现 UserService gRPC → `UserGrpcService.LoginAsync` 校验 `IsEnabled` + `SHA256(password+Salt)`，并调权限中心取回 `{tenantType, platformId, merchantId, permissions, roles}`。
+3. 组装 claims（sub/name/tenant_type/platform_id/merchant_id/permission/role）→ `identity.SetDestinations(AccessToken)` → `SignIn` → OpenIddict 以 **RS256 自签证书**签发访问令牌（12h，不加密访问令牌）。
+4. 客户账号（tenant_type=customer）在此被拒绝（`invalid_grant`）；网关按 issuer `https://simpleshop.local/auth` 用证书公钥验签，其余令牌按 HS256 共享密钥验签。
+5. 证书由 `LocalSigningCertificate` 生成/读取共享路径（`Auth:SigningCertificatePath`，默认用户级 `SimpleShop/auth-signing.pfx`，已 gitignore）；生产应换成受管证书。
 
-### 链路 2：注册 `/users/Register`
+### 链路 2：客户注册/登录 `/customers/Register`、`/customers/Login`（CustomerService）
 
-`RegisterCommandHandler`：查重 → 盐+散列落库（Role=customer）→ 解析权限 → 签发令牌（自动登录）。字段校验在 `RegisterValidator`。
+1. `RegisterCommandHandler`：查重（登录名/手机号）→ 盐+散列落库到 `simpleshopcustomer.customer`（RegisterSource=1）→ 签发客户 JWT（issuer `SimpleShop.CustomerService`，tenant_type=customer，无权限声明）自动登录。
+2. `LoginCommandHandler`：按 `CustomerName` 查客户 → 校验未注销 + 散列 → 签发客户 JWT。
+3. 地址/收藏同样只认本人（X-Claim-UserId），数据落 `customer_address` / `customer_favorite`。
+4. 账号域分离：UserService 的 `/users/Register|Login` 已移除，后台建号禁止 `customer` 角色；存量客户迁移见 `scripts/migrate-customers.sh`（保留雪花 Id，`--purge` 清理源表）。
 
-### 链路 3：后台建号/改号 `/users/Create`、`/users/Update`
+### 链路 3：后台建号/改号 `/users/Create`、`/users/Update`（仅后台账号）
 
-Validator（用户名 3-64、密码强度、手机/邮箱正则）→ Handler：查重 → 盐+散列落库 → `PermissionCenterClient.AssignRoleAsync()` 把真实角色写入权限中心 UserRole（登录时才生效）。
+Validator（用户名 3-64、密码强度、手机/邮箱正则，**Role 禁止 customer**）→ Handler：查重 → 盐+散列落库 → `PermissionCenterClient.AssignRoleAsync()` 把真实角色写入权限中心 UserRole（登录时才生效）。
 
 ### 链路 4：列表查询通用模式（用户/订单/商品/支付/退款/商户/平台）
 
@@ -54,7 +58,15 @@ Handler 构建仓储分页查询：`!IsDeleted` → `WhereIf` 业务过滤 → �
 - **编辑** `/products/Update`：`SaveProductValidator`（与创建同标准）→ `SaveProductCommandHandler` → 仓储 `UpdateProductWithSkusAsync`（主表更新 + SKU 按编码 Upsert）
 - **上/下架** `/products/PublishProduct`、`/products/OffShelf`：租户归属校验在 Handler（403）
 - **分类** `/products/CreateCategory|UpdateCategory|DisableCategory|DeleteCategory`：3 级上限与成环校验在 Handler；删除前检查子分类与在挂商品
-- **图片上传** `/products/Upload`：大小 ≤2MB → ContentType 前缀 → 扩展名白名单（jpg/jpeg/png/gif/webp）→ 文件头魔数判定真实类型并以探测结果落库 ContentType（防伪造类型存储 XSS）
+- **图片/文件上传**：已统一迁移到 **FileService** `/gateway/files/Upload`（详见链路 6.5）；ProductService 旧上传端点已移除，历史图片读取 `/products/File/{id}` 保留兼容
+
+### 链路 6.5：统一文件上传（FileService）
+
+1. 所有端 `POST /gateway/files/Upload`（multipart，字段 `file`）→ `UploadFileHandler`：整文件读入内存（含前 16 字节文件头）。
+2. `FileUploadValidator`（配置驱动）：扩展名白名单（`FileStorage:AllowedExtensions`）→ 分类大小上限（`MaxSizeBytes`：image 5MB/document 20MB/audio 20MB/video 200MB/default 10MB）→ 文件头魔数（防伪造扩展名）。
+3. 对象键 `分类/yyyyMMdd/GUID.ext` → 按 `FileStorage:Provider` 选择存储后端写入（Local 磁盘 / 阿里云 OSS / 腾讯云 COS / Azure Blob，官方 SDK）→ 落元数据 `stored_file`（Provider/Category/Size/ObjectKey/Url）。
+4. 本地存储：返回 `PublicBaseUrl/对象键`，`GET /gateway/files/Content/{**key}` 回源读取（校验元数据存在 + 防目录穿越）；云存储直接返回对象地址/CDN 域名。
+5. 失败语义：非法格式/超限/魔数不符均 400 且返回可展示原因；未登记的 key 回源 404。
 
 ### 链路 7：下单主链路 `/orders/Create`（核心）
 
@@ -89,11 +101,12 @@ Handler 构建仓储分页查询：`!IsDeleted` → `WhereIf` 业务过滤 → �
 
 - **发货** `/orders/Shipment`：`CreateShipmentHandler`：无锁预检（已支付）→ 🔒 `lock:order:{id}` → 锁内重读 + 租户归属（403）→ 💾 发货单+明细 → 条件更新订单已发货(40)
 - **签收** `/orders/Receive`：🔒 `lock:order:{id}` → 归属+状态校验 → 💾 包裹已签收 + 订单已完成(50)
-- **取消** `/orders/Cancel`：控制器强制回填 `CustomerId/OverrideCustomerScope`（客户只能取消本人订单，禁止请求体伪造 Override 越权）→ `CancelOrderHandler`：租户归属（客户本人 / 平台本平台 / 商户本商户）→ `CanCancel` → 🔒 → 💾 `TryCancelAsync` 条件更新（数据库兜底防非法回退）→ 90 → 📤 `order.cancelled`（营销回退券占用）
+- **取消** `/orders/Cancel`：控制器强制回填 `CustomerId/OverrideCustomerScope`（客户只能取消本人订单，禁止请求体伪造 Override 越权）→ `CancelOrderHandler`：租户归属（客户本人 / 平台本平台 / 商户本商户）→ `CanCancel` → 🔒 → 💾 `TryCancelAsync` 条件更新（数据库兜底防非法回退）→ 90 → **`StockLocked=true` 时按订单明细释放库存（`ReleaseStockAsync`，失败写 `pending_stock_release` 补偿表 + 记 Error 日志）** → 📤 `order.cancelled`（营销回退券占用）。`StockLocked` 由下单锁库存成功后置位，未锁过库存的订单（如非库存模式）取消时不释放，避免虚增可用库存。
 
 ### 链路 11.5：营销结算与发券（MarketingService）
 
 - **配置**：`MarketingActivity`（平台活动 MerchantId=0 / 商户活动；范围=全平台/指定商户/指定商品 SKU）、`CouponTemplate`（满减/满折/0元减）、`CouponActivity`（发券载体：领券中心可领 / 满赠发放；范围同活动）、`MarketingConfig.DiscountPriority`（1 活动优先 / 2 券优先，缺省券优先）
+- **快照缓存**：`MarketingSnapshotCache`（单例 + IMemoryCache）按平台缓存配置/启用活动/范围；保存活动、启停、保存配置显式失效 + 30s TTL 兜底；快照存"全部启用活动"，使用时按当前时间过滤，活动按时开始/结束不受缓存影响。命中后到手价/结算预览从 4-6ms 降至 ~1ms。
 - **预览** `POST /gateway/marketing/SettlePreview`（购物车/提交页）：`DiscountEngine.PreviewAsync` 无副作用，逐商品贪心 + 互斥 + 优先级，返回逐商品优惠与可用券/活动，前端金额浮动展示
 - **结算** `SettleAsync`（下单）：同引擎计算；用户勾选的券必须仍有效（否则失败）→ 逐张 `MarkUserCouponUsedAsync` **条件占用**（一张券一单一次）；任一张占用失败则整单回退
 - **落账** `CommitAsync`：按 `orderNo` 幂等写 `MarketingActivityRecord(+Item)` 与 `CouponRecord(+Item)`，报表与订单溯源依赖它
@@ -138,7 +151,7 @@ PV 中间件（`X-Gateway-PV` 防重复计数）/ OperationLogger（关键动作
 | # | 风险 | 位置 | 现状与建议 |
 |---|------|------|-----------|
 | 1 | **下单孤儿预留** | 链路 7 锁库存成功后、落单前崩溃 | 库存被长期占用。有 `pending_stock_release` 补偿表但无 TTL；建议增加预留过期时间或对账任务 |
-| 2 | **客户主动取消不释放库存** | 链路 11 取消 | 只有超时关单会释放；取消后的订单不再被扫描，占用需人工处理。建议取消时同步释放或纳入补偿表 |
+| 2 | ~~客户主动取消不释放库存~~ **已修复** | 链路 11 取消 | `Order.StockLocked` 标记 + 取消时 `ReleaseStockAsync`，失败写 `pending_stock_release` 由 ScheduledService 重试；`full-chain.sh` 链路 5 断言 `Locked 1→0`、可用 8→9、`release` 流水 1 条 |
 | 3 | **本地多表写入无事务** | 订单+明细、商品+SKU、发货单+明细 | FreeSql 分次写入，中途失败产生半截数据（Saga 起点完整性受影响）。建议仓储级工作单元 |
 
 ### P1
@@ -149,7 +162,19 @@ PV 中间件（`X-Gateway-PV` 防重复计数）/ OperationLogger（关键动作
 | 5 | **缺 Outbox** | 支付确认/下单/关单「本地写入→发事件」非原子 | 引入 Outbox 表 + 中继任务；幂等消费端已就绪 |
 | 6 | **`order.created` / `order.cancelled` 无消费者** | 预留事件 | 接线前先补消费方，否则是死信噪音 |
 
+### P1（文件与数据）
+
+| # | 风险 | 触发点 | 说明 |
+|---|------|--------|------|
+| 1 | **上传整文件读入内存** | `UploadFileHandler` 为魔数校验把整个文件读进 MemoryStream | 200MB 视频会造成内存峰值；建议改为流式落盘/上传（边写边计数）并只读文件头 |
+| 2 | 云存储未用真实凭据联调 | `FileStorage:Provider` 切云厂商 | 代码走官方 SDK，但仅本地存储经过自动化验证；切换前需用真实 Bucket 冒烟 |
+| 3 | 测试临时商品污染列表 | `api-regression/full-chain` 创建 `API回归商品/链路商品`（占位图） | 列表按创建时间倒序会被测试数据占据；跑完可软删（历史已清理过一次），或给测试商品加标记过滤 |
+
 ### P1（营销相关）
+
+| # | 风险 | 触发点 | 说明 |
+|---|------|--------|------|
+| 0 | ~~活动启停/软删不落库~~ **已修复** | `BaseRepository.UpdateColumnsAsync` | `UpdateColumns(a => obj)` 生成空 SET 静默不更新，导致 `SetActivityEnabled`/券模板启停全部失效（接口仍返回成功）。改为 `SetDto(obj)`，`full-chain.sh` 断言启停后数据库 `IsEnabled` 与到手价同步变化 |
 
 | # | 风险 | 位置 | 建议 |
 |---|------|------|------|

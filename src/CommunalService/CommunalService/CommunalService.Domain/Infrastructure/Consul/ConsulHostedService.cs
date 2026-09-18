@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace CommunalService.Domain.Infrastructure.Consul;
@@ -8,7 +8,9 @@ namespace CommunalService.Domain.Infrastructure.Consul;
 /// </summary>
 public class ConsulHostedService : IHostedService
 {
+    /// <summary>Consul 服务注册器（启动注册、退出注销）。</summary>
     private readonly IConsulServiceRegistry _registry;
+    /// <summary>日志。</summary>
     private readonly ILogger<ConsulHostedService> _logger;
 
     public ConsulHostedService(IConsulServiceRegistry registry, ILogger<ConsulHostedService> logger)

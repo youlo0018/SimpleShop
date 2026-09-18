@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 
 namespace MarketingService.Application.Features.Activities;
@@ -63,6 +63,8 @@ public sealed record SaveActivityCommand : IRequest<ApiResponse>
 }
 
 /// <summary>活动启停：置 IsEnabled（停用后不再参与新的优惠计算，历史记录保留）。</summary>
+/// <param name="Id">主键。</param>
+/// <param name="IsEnabled">是否启用。</param>
 public sealed record SetActivityEnabledCommand(long Id, bool IsEnabled) : IRequest<ApiResponse>;
 
 /// <summary>后台活动分页查询（按当前租户裁剪）。</summary>
@@ -71,6 +73,7 @@ public sealed record ListActivitiesQuery(
     int Page = 1, int PageSize = 10) : IRequest<ApiResponse>;
 
 /// <summary>活动详情（含范围明细，后台编辑回显用）。</summary>
+/// <param name="Id">主键。</param>
 public sealed record GetActivityQuery(long Id) : IRequest<ApiResponse>;
 
 /// <summary>保存券模板（Id=0 新增）：仅定义规则与有效天数，不直接发券。</summary>
@@ -108,6 +111,8 @@ public sealed record SaveCouponTemplateCommand : IRequest<ApiResponse>
 }
 
 /// <summary>券模板启停。</summary>
+/// <param name="Id">主键。</param>
+/// <param name="IsEnabled">是否启用。</param>
 public sealed record SetCouponTemplateEnabledCommand(long Id, bool IsEnabled) : IRequest<ApiResponse>;
 
 /// <summary>后台券模板分页查询。</summary>
@@ -161,15 +166,22 @@ public sealed record SaveCouponActivityCommand : IRequest<ApiResponse>
 }
 
 /// <summary>券活动启停。</summary>
+/// <param name="Id">主键。</param>
+/// <param name="IsEnabled">是否启用。</param>
 public sealed record SetCouponActivityEnabledCommand(long Id, bool IsEnabled) : IRequest<ApiResponse>;
 
 /// <summary>后台券活动分页查询。</summary>
+/// <param name="Keyword">关键字（模糊匹配）。</param>
+/// <param name="Page">页码（从 1 开始）。</param>
+/// <param name="PageSize">每页条数。</param>
 public sealed record ListCouponActivitiesQuery(string Keyword = "", int Page = 1, int PageSize = 10) : IRequest<ApiResponse>;
 
 /// <summary>券活动详情（含范围与模板，后台编辑回显用）。</summary>
+/// <param name="Id">主键。</param>
 public sealed record GetCouponActivityQuery(long Id) : IRequest<ApiResponse>;
 
 /// <summary>查询平台营销配置（缺省返回券优先）。</summary>
+/// <param name="PlatformId">平台 ID。</param>
 public sealed record GetMarketingConfigQuery(long PlatformId = 0) : IRequest<ApiResponse>;
 
 /// <summary>保存平台营销配置：券/活动计算优先级（每平台一条）。</summary>

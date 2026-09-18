@@ -1,4 +1,4 @@
-namespace MarketingService.Domain.Enums;
+﻿namespace MarketingService.Domain.Enums;
 
 /// <summary>活动类型：满减/满折/满赠（赠券，通过券活动发放）。</summary>
 public enum ActivityType

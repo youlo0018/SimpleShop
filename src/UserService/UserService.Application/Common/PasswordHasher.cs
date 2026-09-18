@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace UserService.Application.Common;
@@ -8,8 +8,10 @@ namespace UserService.Application.Common;
 /// </summary>
 public static class PasswordHasher
 {
+    /// <summary>生成 16 字节随机盐（Hex）。</summary>
     public static string NewSalt() => Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
 
+    /// <summary>散列口令：SHA256(password + salt) 的 Hex。</summary>
     public static string Hash(string password, string salt)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(password + salt)));
 }

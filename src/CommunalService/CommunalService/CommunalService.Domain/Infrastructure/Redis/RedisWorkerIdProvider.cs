@@ -1,16 +1,24 @@
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 
 namespace CommunalService.Domain.Infrastructure.Redis;
 
 public class RedisWorkerIdProvider : IDisposable
 {
+    /// <summary>Redis 连接（WorkerId 自增与租约存储）。</summary>
     private readonly IDatabase _redisDb;
+    /// <summary>WorkerId 自增键（雪花算法初始化用）。</summary>
     private readonly string _workerIdKey = "snowflake:worker_id:seq"; // 用于自增的Key
+    /// <summary>WorkerId 租约键前缀（实例唯一性保障）。</summary>
     private readonly string _leaseKeyPrefix = "snowflake:worker_id:lease:"; // 租约Key前缀
+    /// <summary>WorkerId 最大值（由雪花算法配置决定）。</summary>
     private readonly int _maxWorkerId; // WorkerId 最大值
+    /// <summary>租约时长（超时未续约视为实例下线，WorkerId 可被回收）。</summary>
     private readonly TimeSpan _leaseDuration = TimeSpan.FromSeconds(30); // 租约时长
+    /// <summary>续约间隔（必须小于租约时长）。</summary>
     private readonly TimeSpan _renewInterval = TimeSpan.FromSeconds(10); // 续约间隔
+    /// <summary>续约任务取消源。</summary>
     private CancellationTokenSource? _renewCts;
+    /// <summary>当前实例持有的 WorkerId（未获取为 null）。</summary>
     private ushort? _currentWorkerId;
 
     public RedisWorkerIdProvider(IConnectionMultiplexer redis, int maxWorkerId = 63)
@@ -51,6 +59,7 @@ public class RedisWorkerIdProvider : IDisposable
         }
     }
 
+    /// <summary>周期续约：按续约间隔刷新租约 TTL，防止 WorkerId 被其他实例抢占。</summary>
     private async Task RenewLeaseAsync(string leaseKey, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -80,6 +89,7 @@ public class RedisWorkerIdProvider : IDisposable
         _currentWorkerId = null;
     }
 
+    /// <summary>释放资源。</summary>
     public void Dispose()
     {
         // 确保程序退出时释放 WorkerId

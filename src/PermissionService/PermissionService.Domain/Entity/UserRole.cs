@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
@@ -12,14 +12,18 @@ namespace PermissionService.Domain.Entity;
 public sealed class UserRole : BaseEntity
 {
     [Description("用户ID")]
+    /// <summary>用户ID</summary>
     public long UserId { get; set; }
 
     [Description("角色ID")]
+    /// <summary>角色ID</summary>
     public long RoleId { get; set; }
 
     [Description("平台ID，平台角色必填")]
+    /// <summary>平台ID，平台角色必填</summary>
     public long PlatformId { get; set; }
 
     [Description("商户ID，商户角色必填")]
+    /// <summary>商户ID，商户角色必填</summary>
     public long MerchantId { get; set; }
 }

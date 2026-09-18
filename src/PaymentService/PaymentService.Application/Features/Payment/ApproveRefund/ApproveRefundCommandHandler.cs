@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Messaging;
 using MediatR;
@@ -15,6 +15,7 @@ public class ApproveRefundCommandHandler(
     TenantContext tenant,
     IMessagePublisher messagePublisher) : IRequestHandler<ApproveRefundCommand, ApiResponse>
 {
+    /// <summary>处理入口：同意退款：状态机校验（仅待审批 10）→ 标记已退款并累计金额 → 计算是否全额退款 → 发布 payment.refunded 事件（订单转已退款、库存按退款单号幂等回补）。平台通吃，商户限本商户。</summary>
     public async Task<ApiResponse> Handle(ApproveRefundCommand request, CancellationToken cancellationToken)
     {
         var refund = await repository.GetRefundByIdAsync(request.Id, cancellationToken);
@@ -40,6 +41,7 @@ public class ApproveRefundCommandHandler(
         return ApiResults.Ok(new { success = true });
     }
 
+    /// <summary>条件判断：CanDecide。</summary>
     private bool CanDecide(Domain.Entity.RefundOrder refund)
         => tenant.HasWildcard || tenant.IsPlatform || (tenant.IsMerchant && refund.MerchantId == tenant.MerchantId);
 }

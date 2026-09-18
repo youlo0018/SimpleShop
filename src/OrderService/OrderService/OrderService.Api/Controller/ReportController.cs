@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using FreeSql;
 using Microsoft.AspNetCore.Mvc;
 using OrderService.Domain.Entity;
@@ -13,6 +13,7 @@ namespace OrderService.Api.Controller;
 public sealed class ReportController(IFreeSql freeSql, TenantContext tenant) : BaseController
 {
     [HttpGet]
+    /// <summary>查询数据：Get（过滤条件与返回语义见参数与调用方约定）。</summary>
     public async Task<ApiResponse> Get([FromQuery] string granularity = "day")
     {
         var today = DateTime.Today;
@@ -71,10 +72,15 @@ public sealed class ReportController(IFreeSql freeSql, TenantContext tenant) : B
 
     private sealed class ReportPoint
     {
+        /// <summary>统计日期（yyyy-MM-dd）。</summary>
         public string Date { get; set; } = string.Empty;
+        /// <summary>日活用户数。</summary>
         public int DailyActiveUsers { get; set; }
+        /// <summary>日订单数。</summary>
         public int DailyOrders { get; set; }
+        /// <summary>成交总额（元）。</summary>
         public decimal Gmv { get; set; }
+        /// <summary>售出件数。</summary>
         public int SoldItems { get; set; }
     }
 }

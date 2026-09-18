@@ -13,6 +13,8 @@ start_service() {
 }
 
 mkdir -p logs/runtime
+start_service File src/FileService/FileService.Api 5080
+start_service Customer src/CustomerService/CustomerService.Api 5280
 start_service Auth src/AuthService/AuthService/AuthService.Api 5019
 start_service Permission src/PermissionService/PermissionService.Api 5022
 start_service MerchantPlatform src/MerchantPlatformService/MerchantPlatformService.Api 5070

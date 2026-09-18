@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Infrastructure.Consul;
+﻿namespace CommunalService.Domain.Infrastructure.Consul;
 
 /// <summary>
 /// Consul 连接配置选项
@@ -25,5 +25,6 @@ public class ConsulOptions
 
     /// <summary>健康检查间隔（秒）</summary>
     public int HealthCheckIntervalSeconds { get; set; } = 10;
+    /// <summary>Consul 注册元数据（健康检查等附加键值）。</summary>
     public Dictionary<string,string> MetaData { get; set; } = new Dictionary<string,string>();
 }

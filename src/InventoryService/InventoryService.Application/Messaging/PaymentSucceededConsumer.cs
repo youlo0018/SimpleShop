@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using CommunalService.Domain.Infrastructure.Locks;
 using InventoryService.Domain.IRepository;
@@ -21,9 +21,12 @@ public sealed class PaymentSucceededConsumer(
     IDistributedLock distributedLock,
     ILogger<PaymentSucceededConsumer> logger) : BackgroundService
 {
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道（随连接重建）。</summary>
     private IChannel? _channel;
 
+    /// <summary>支付成功消费者：把下单时锁定的库存真正扣掉。 事件里带 SKU 明细；同一 BizNo 重复投递时靠库存流水幂等跳过。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // MQ 没起来时不要拖垮库存服务，后台循环重试即可。
@@ -42,6 +45,7 @@ public sealed class PaymentSucceededConsumer(
         }
     }
 
+    /// <summary>支付成功消费者：把下单时锁定的库存真正扣掉。 事件里带 SKU 明细；同一 BizNo 重复投递时靠库存流水幂等跳过。</summary>
     private async Task StartAsync(CancellationToken cancellationToken)
     {
         // 兼容 IConfiguration 与 IConfigurationRoot 的读取方式。
@@ -76,6 +80,7 @@ public sealed class PaymentSucceededConsumer(
         await _channel.BasicConsumeAsync("inventory.payment.succeeded", autoAck: false, consumer, cancellationToken: cancellationToken);
     }
 
+    /// <summary>内部处理：HandleMessage。</summary>
     private async Task HandleMessage(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
@@ -110,6 +115,7 @@ public sealed class PaymentSucceededConsumer(
         }
     }
 
+    /// <summary>支付成功消费者：把下单时锁定的库存真正扣掉。 事件里带 SKU 明细；同一 BizNo 重复投递时靠库存流水幂等跳过。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _channel?.CloseAsync(cancellationToken);

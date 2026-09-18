@@ -1,4 +1,4 @@
-using AgileConfig.Client;
+﻿using AgileConfig.Client;
 using CommunalService.Domain.Infrastructure;
 using CommunalService.Domain;
 using CommunalService.Domain.Infrastructure.Locks;
@@ -22,6 +22,7 @@ namespace ScheduledService;
 
 public static class DependencyInjection
 {
+    /// <summary>依赖注入/启动扩展：统一注册入口（漏注册会在启动时暴露）。</summary>
     public static IServiceCollection AddScheduledJobs(
         this IServiceCollection services,
         IConfigurationRoot configuration)

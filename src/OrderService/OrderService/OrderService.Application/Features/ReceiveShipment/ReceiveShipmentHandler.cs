@@ -14,6 +14,7 @@ public sealed class ReceiveShipmentHandler(
     IDistributedLock distributedLock)
     : IRequestHandler<ReceiveShipmentCommand, object>
 {
+    /// <summary>处理入口：用户确认收货：包裹置为已签收，并把订单推进到已完成。</summary>
     public async Task<object> Handle(ReceiveShipmentCommand request, CancellationToken cancellationToken)
     {
         var shipment = await shipmentRepository.GetByIdAsync(request.ShipmentId);

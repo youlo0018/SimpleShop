@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Logging;
+﻿namespace CommunalService.Domain.Logging;
 
 using Microsoft.AspNetCore.Http;
 

@@ -1,10 +1,9 @@
-using AuthService.Domain.Entity;
+﻿using AuthService.Domain.Entity;
 using AuthService.Infrastructure;
 using AuthService.Infrastructure.OpenIddict;
 using CommunalService.Domain;
 using CommunalService.Application.Common;
 using AuthService.Application.Features.User.Login;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,15 +34,8 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 });
 
 #endregion
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        // 指定登录路径，用于未认证时重定向
-        options.LoginPath = "/api/account/login"; 
-        // 可选：登出路径
-        options.LogoutPath = "/api/account/logout";
-    });
-builder.Services.AddAuthorization();
+// 仅需认证服务承载 OpenIddict 方案；后台登录只走密码流令牌端点，不再使用 Cookie 会话。
+builder.Services.AddAuthentication();
 // --- 2. 核心配置：添加 OpenIddict ---
 builder.Services.AddOpenIddict()
 
@@ -60,34 +52,32 @@ builder.Services.AddOpenIddict()
     // 2.2 配置服务端 (Server)
     .AddServer(options =>
     {
-        // 设置 Token 颁发和验证的相关端点[reference:13]
-        options.SetAuthorizationEndpointUris("/api/account/authorize")
-            .SetEndSessionEndpointUris("/api/account/logout") // 原 SetLogoutEndpointUris
-            .SetTokenEndpointUris("/api/account/token");
+        // 令牌端点走网关可达路径（/gateway/auth/Token → /api/Auth/Token），由 AuthController 处理 password flow。
+        options.SetTokenEndpointUris("/api/Auth/Token");
+        options.SetIssuer(new Uri("https://simpleshop.local/auth"));
+        options.RegisterAudiences("SimpleShop");
 
-        // 启用你需要的授权流程 (Flows)[reference:14]
-        options.AllowAuthorizationCodeFlow() // 授权码流程，用于有后端的应用
-            .AllowClientCredentialsFlow() // 客户端凭证流程，用于服务器间调用
-            .AllowRefreshTokenFlow() // 刷新令牌流程，用于延长会话
-            .AllowPasswordFlow(); //账号密码流程，用于用户密码验证    
+        // 后台登录只启用密码流（后台账号在 UserService，客户令牌由 CustomerService 签发）。
+        options.AllowPasswordFlow();
+        // 后台是浏览器 SPA（公开客户端，无 client_secret）：允许匿名客户端使用密码流。
+        options.AcceptAnonymousClients();
 
-        // 添加用于签名和加密的开发证书[reference:15]
-        options.AddDevelopmentEncryptionCertificate()
-            .AddDevelopmentSigningCertificate();
+        // 非对称签名（RS256）：证书由 AuthService 生成到共享路径，网关读取同一证书验签；
+        // 访问令牌不加密（DisableAccessTokenEncryption），网关直接校验 JWT 签名。
+        var signingCertificate = CommunalService.Domain.Infrastructure.LocalSigningCertificate.LoadOrCreate(builder.Configuration);
+        options.AddSigningCertificate(signingCertificate);
+        options.AddEncryptionKey(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Auth:TokenSecret"] ?? "SimpleShop.Dev.Token.Secret.2026")));
+        options.DisableAccessTokenEncryption();
+        options.SetAccessTokenLifetime(TimeSpan.FromHours(12));
 
-        // 集成 ASP.NET Core[reference:16]
-        options.UseAspNetCore()
-            .EnableAuthorizationEndpointPassthrough()//SetAuthorizationEndpointUris
-            .EnableEndSessionEndpointPassthrough() // 原 EnableLogoutEndpointPassthrough
-            .EnableTokenEndpointPassthrough();
+        // 自定义声明必须注册，否则不会写入访问令牌。
+        options.RegisterClaims("permission", "tenant_type", "platform_id", "merchant_id");
+
+        // 令牌端点交给控制器处理（password flow 需要自定义账号校验）。
+        // 开发环境经网关走 HTTP：关闭 OpenIddict 的 HTTPS 强制（生产应由网关/负载均衡终结 TLS）。
+        options.UseAspNetCore().EnableTokenEndpointPassthrough().DisableTransportSecurityRequirement();
         options.RegisterScopes("api1", "api2");   // 注册自定义 scope
-    })
-    
-    // 2.3 配置验证端 (Validation) - 注意：这一步可选，仅当授权中心和 API 在同一项目时
-    .AddValidation(options =>
-    {
-        options.UseLocalServer(); // 使用本地授权服务器
-        options.UseAspNetCore();
     });
 
 

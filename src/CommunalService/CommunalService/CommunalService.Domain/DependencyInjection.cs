@@ -210,6 +210,7 @@ public static class BaseDependencyInjection
         builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     }
 
+    /// <summary>依赖注入/启动扩展：统一注册入口（漏注册会在启动时暴露）。</summary>
     public static async Task AddBaseInfrastructure(this WebApplication app)
     {
         app.MapHealthChecks("/health");
@@ -232,6 +233,7 @@ public static class BaseDependencyInjection
         app.MapMagicOnionService();
     }
 
+    /// <summary>依赖注入/启动扩展：统一注册入口（漏注册会在启动时暴露）。</summary>
     public static Task MigrateDatabaseAsync(this WebApplication app, params Type[] entityTypes)
     {
         var freeSql = app.Services.GetRequiredService<IFreeSql>();

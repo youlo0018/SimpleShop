@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
 using MediatR;
@@ -7,12 +7,14 @@ using PaymentService.Domain.IRepository;
 
 namespace PaymentService.Application.Features.RefundPayment;
 
+/// <summary>申请退款：累计限额校验 → 落退款单(10) 待审批。</summary>
 public sealed class RefundPaymentHandler(
     IPaymentOrderRepository repository,
     TenantContext tenant,
     IDistributedLock distributedLock)
     : IRequestHandler<RefundPaymentCommand, ApiResponse>
 {
+    /// <summary>处理入口：申请退款：累计限额校验 → 落退款单(10) 待审批。</summary>
     public async Task<ApiResponse> Handle(RefundPaymentCommand request, CancellationToken cancellationToken)
     {
         if (request.Amount <= 0)

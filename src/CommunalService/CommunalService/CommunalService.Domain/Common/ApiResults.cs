@@ -1,4 +1,4 @@
-using CommunalService.Domain.Enums;
+﻿using CommunalService.Domain.Enums;
 
 namespace CommunalService.Domain;
 
@@ -7,6 +7,7 @@ namespace CommunalService.Domain;
 /// </summary>
 public static class ApiResults
 {
+    /// <summary>成功响应（业务码 200 + 数据）。</summary>
     public static ApiResponse Ok(object? data = null) => new()
     {
         Code = BaseApiResponseCode.Success.Value,
@@ -14,6 +15,7 @@ public static class ApiResults
         Data = data ?? new { }
     };
 
+    /// <summary>失败响应（业务码 + 可直接展示的消息）。</summary>
     public static ApiResponse Fail(BaseApiResponseCode code, string? message = null, object? errors = null) => new()
     {
         Code = code.Value,

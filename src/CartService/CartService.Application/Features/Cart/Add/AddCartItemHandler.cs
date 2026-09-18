@@ -1,4 +1,4 @@
-using CartService.Domain;
+﻿using CartService.Domain;
 using MediatR;
 
 namespace CartService.Application.Features.Cart.Add;
@@ -9,8 +9,10 @@ namespace CartService.Application.Features.Cart.Add;
 /// </summary>
 public sealed class AddCartItemHandler(ICartStore cartStore) : IRequestHandler<AddCartItemCommand, object>
 {
+    /// <summary>处理入口：加入购物车：同一用户+SKU 已存在则**累加** Quantity（调用方增量语义：加购传本次增量、购物车加减传 ±1）， 否则新插入；数量累计上限 99，与下单/支付链路一致（购物车已迁移到 PostgreSQL 存储）。</summary>
     public async Task<object> Handle(AddCartItemCommand request, CancellationToken cancellationToken)
     {
+        if (request.UserId <= 0) return new { success = false, code = 401, message = "请先登录" };
         if (request.Quantity <= 0)
         {
             return new { success = false, message = "数量必须大于0" };

@@ -14,11 +14,16 @@
       </el-form-item>
       <el-form-item label="主图" prop="mainImage">
         <div class="upload-area">
-          <el-upload :action="uploadUrl" name="file" accept="image/*" :headers="uploadHeaders" :show-file-list="false" :on-success="onUploadSuccess">
-            <img v-if="form.mainImage" :src="absoluteUrl(form.mainImage)" class="main-image-preview">
-            <el-button v-else type="primary">上传图片</el-button>
-          </el-upload>
-          <small class="muted">支持 JPG / PNG / WebP，最大 2MB</small>
+          <div class="upload-box" @click="pickImage">
+            <img v-if="form.mainImage" :src="absoluteUrl(form.mainImage)" class="upload-image">
+            <div v-else class="upload-empty"><span class="upload-plus">＋</span><span>点击上传</span></div>
+            <div class="upload-mask">
+              <span class="upload-mask-icon">⇪</span>
+              <span>{{ form.mainImage ? '更换图片' : '上传图片' }}</span>
+            </div>
+          </div>
+          <input ref="fileInputRef" type="file" accept="image/*" class="hidden-input" @change="onFilePicked">
+          <small class="muted">支持 JPG / PNG / WebP，最大 5MB（可在 AgileConfig 调整）</small>
         </div>
       </el-form-item>
       <el-form-item label="描述" prop="description">
@@ -69,7 +74,7 @@ import { maxLengthRule } from '@/utils/validators'
 
 const route = useRoute(); const router = useRouter()
 const apiBase = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5008/gateway'
-const uploadUrl = `${apiBase}/products/Upload`
+const uploadUrl = `${apiBase}/files/Upload`
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` }))
 const merchants = ref([]); const categoryTree = ref([]); const categoryPath = ref([]); const editorRef = ref(null); const formRef = ref(null)
 const saving = ref(false); const skuError = ref('')
@@ -96,6 +101,18 @@ const flattenTree = (items, parents = []) => items.flatMap(item => {
 const absoluteUrl = url => !url || /^https?:/.test(url) ? url : `${apiBase.split('/gateway')[0]}${url}`
 const exec = command => document.execCommand(command, false, null)
 const selectCategory = path => { form.categoryId = path?.at(-1) || '' }
+const fileInputRef = ref(null)
+const pickImage = () => fileInputRef.value?.click()
+const onFilePicked = async event => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(uploadUrl, { method: 'POST', headers: uploadHeaders.value, body: formData }).then(r => r.json()).catch(() => null)
+  if (!response) return ElMessage.error('上传失败')
+  onUploadSuccess(response)
+}
 const onUploadSuccess = response => {
   if (Number(response.code) === 200 && response.data?.url) form.mainImage = response.data.url
   else ElMessage.error(response.message || '上传失败')

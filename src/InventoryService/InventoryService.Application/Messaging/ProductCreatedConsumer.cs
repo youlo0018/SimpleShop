@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using CommunalService.Domain.Infrastructure.Locks;
 using InventoryService.Domain.IRepository;
@@ -19,9 +19,12 @@ public sealed class ProductCreatedConsumer(
     IDistributedLock distributedLock,
     ILogger<ProductCreatedConsumer> logger) : BackgroundService
 {
+    /// <summary>RabbitMQ 连接（懒加载，断线重建）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道（随连接重建）。</summary>
     private IChannel? _channel;
 
+    /// <summary>商品创建消费者：按 SKU 幂等初始化库存，避免新商品因缺库存行而无法交易。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -39,6 +42,7 @@ public sealed class ProductCreatedConsumer(
         }
     }
 
+    /// <summary>内部处理：StartCoreAsync。</summary>
     private async Task StartCoreAsync(CancellationToken cancellationToken)
     {
         var hostName = configuration.GetSection("RabbitMQ")["HostName"] ?? "localhost";
@@ -71,6 +75,7 @@ public sealed class ProductCreatedConsumer(
         await _channel.BasicConsumeAsync("inventory.product.created", false, consumer, cancellationToken: cancellationToken);
     }
 
+    /// <summary>内部处理：HandleMessage。</summary>
     private async Task HandleMessage(byte[] body, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(body));
@@ -94,6 +99,7 @@ public sealed class ProductCreatedConsumer(
         }
     }
 
+    /// <summary>商品创建消费者：按 SKU 幂等初始化库存，避免新商品因缺库存行而无法交易。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_channel is not null) await _channel.CloseAsync(cancellationToken);

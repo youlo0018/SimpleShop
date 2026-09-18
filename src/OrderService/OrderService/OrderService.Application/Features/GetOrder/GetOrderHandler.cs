@@ -1,11 +1,13 @@
-using MediatR;
+﻿using MediatR;
 using OrderService.Domain.IRepository;
 
 namespace OrderService.Application.Features.GetOrder;
 
+/// <summary>订单查询：按租户裁剪返回订单。</summary>
 public sealed class GetOrderHandler(IOrderRepository repository)
     : IRequestHandler<GetOrderQuery, object>
 {
+    /// <summary>处理入口：订单查询：按租户裁剪返回订单。</summary>
     public async Task<object> Handle(GetOrderQuery request, CancellationToken cancellationToken)
     {
         var order = await repository.QueryByIdAsync(request.Id);

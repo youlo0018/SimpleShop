@@ -25,14 +25,14 @@ const list = ref([]); const dialog = ref(false); const saving = ref(false)
 const emptyForm = { id: 0, receiverName: '', receiverPhone: '', province: '广东省', city: '深圳市', district: '南山区', detail: '', isDefault: false }
 const form = reactive({ ...emptyForm })
 
-const load = async () => { if (isLogin()) list.value = await get('/users/Addresses') || [] }
+const load = async () => { if (isLogin()) list.value = await get('/customers/Addresses') || [] }
 const save = async () => {
   if (saving.value) return
   trimStrings(form)
   if (!validateAddress(form)) return
   saving.value = true
   try {
-    await post('/users/SaveAddress', { ...form })
+    await post('/customers/SaveAddress', { ...form })
     Object.assign(form, emptyForm); dialog.value = false; load()
   } finally { saving.value = false }
 }

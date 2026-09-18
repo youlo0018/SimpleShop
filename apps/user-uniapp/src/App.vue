@@ -1,11 +1,14 @@
 <script>
+import { PLATFORM_CODE, ensurePlatform } from '@/common/platform-config'
+
 export default {
   onLaunch(options = {}) {
-    const query = options.query || options
-    if (query.platformCode) {
-      uni.setStorageSync('platform_code', String(query.platformCode))
-      uni.removeStorageSync('platform_design')
+    // 平台由发布配置决定：启动即锁定，不再支持应用内切换平台。
+    uni.setStorageSync('platform_code', PLATFORM_CODE)
+    if (options.query?.platformCode && options.query.platformCode !== PLATFORM_CODE) {
+      console.warn('[platform] 启动参数平台与配置文件不一致，以配置文件为准', options.query.platformCode)
     }
+    ensurePlatform().catch(() => { /* 平台列表暂不可用时由各页面重试 */ })
   },
   onShow() {
     // 兜底：冷启动时把已缓存的平台主题同步到底部 TabBar。

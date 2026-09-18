@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using EntityCategory = ProductService.Domain.Entity.Category;
@@ -12,6 +12,7 @@ namespace ProductService.Application.Features.Category.CreateCategory;
 public class CreateCategoryCommandHandler(IProductAdminRepository repository)
     : IRequestHandler<CreateCategoryCommand, ApiResponse>
 {
+    /// <summary>处理入口：创建分类：沿父链向上走最多 2 层（第 3 层循环即会创建第 4 级）——强制分类不超过 3 级。</summary>
     public async Task<ApiResponse> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
     {
         long parentId = request.ParentId;

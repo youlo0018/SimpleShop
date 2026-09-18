@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using CommunalService.Domain.Enums;
 using Consul;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,6 +11,7 @@ namespace CommunalService.Domain.Infrastructure.Consul;
 /// </summary>
 public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache memoryCache) : IServiceDiscovery
 {
+    /// <summary>地址缓存：轮询地址短 TTL 缓存，降低 Consul 查询压力。</summary>
     private readonly IMemoryCache _memoryCache = memoryCache;
 
     private static readonly ConcurrentDictionary<string, int> Counters = new();
@@ -39,6 +40,7 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
         return addresses;
     }
 
+    /// <summary>查询：GetPollingAddressAsync。</summary>
     public async Task<ServiceAddressesDto> GetPollingAddressAsync(string serviceName)
     {
         var addresses = await GetCachedAddressesAsync(serviceName);
@@ -54,6 +56,7 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
         return address;
     }
 
+    /// <summary>查询：GetPollingAddressAsync。</summary>
     public async Task<string> GetPollingAddressAsync(string serviceName,
         PollingAddressType type = PollingAddressType.Default)
     {
@@ -80,6 +83,7 @@ public class ConsulServiceDiscovery(IConsulClient consulClient, IMemoryCache mem
         }
     }
 
+    /// <summary>查询：GetCachedAddressesAsync。</summary>
     private async Task<IList<ServiceAddressesDto>> GetCachedAddressesAsync(string serviceName)
     {
         var cacheKey = $"consul:healthy:{serviceName}";

@@ -1,4 +1,4 @@
-using CommunalService.Domain.Enums;
+﻿using CommunalService.Domain.Enums;
 
 namespace CommunalService.Domain.Infrastructure.Consul;
 

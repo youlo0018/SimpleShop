@@ -15,12 +15,15 @@ get() { curl -fsS "$BASE/$1" -H "Authorization: Bearer $CUSTOMER_TOKEN"; }
 
 timestamp=$(date +%s%N)
 customer_name="e2e${timestamp}"
-login_json=$(anon_post "users/Register" "{\"userName\":\"$customer_name\",\"password\":\"E2e123456\",\"email\":\"$customer_name@test.local\",\"phone\":\"139${timestamp:0:8}\",\"role\":\"customer\"}")
+login_json=$(anon_post "customers/Register" "{\"userName\":\"$customer_name\",\"password\":\"E2e123456\",\"email\":\"$customer_name@test.local\",\"phone\":\"139${timestamp:0:8}\",\"platformId\":$PLATFORM_ID,\"agreedAgreement\":true}")
 CUSTOMER_TOKEN=$(jq -r '.data.token' <<<"$login_json")
 CUSTOMER_ID=$(jq -r '.data.user.id' <<<"$login_json")
 
-merchant_login=$(anon_post "users/Login" '{"userName":"merchantop","password":"Op123456"}')
-MERCHANT_TOKEN=$(jq -r '.data.token' <<<"$merchant_login")
+# 后台账号登录：AuthService OpenIddict 令牌端点（password flow）。
+merchant_login=$(curl -fsS -X POST "$BASE/auth/Token" -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'grant_type=password' --data-urlencode 'username=merchantop' \
+  --data-urlencode 'password=Op123456' --data-urlencode 'client_id=admin-app')
+MERCHANT_TOKEN=$(jq -r '.access_token' <<<"$merchant_login")
 
 order_payload=$(cat <<JSON
 {

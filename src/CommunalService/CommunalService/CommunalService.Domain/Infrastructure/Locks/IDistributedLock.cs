@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Infrastructure.Locks;
+﻿namespace CommunalService.Domain.Infrastructure.Locks;
 
 /// <summary>
 /// 分布式锁抽象：跨进程互斥的唯一手段（多实例部署下的定时任务、支付回调、库存扣减都依赖它）。

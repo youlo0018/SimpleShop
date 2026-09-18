@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Elastic.Clients.Elasticsearch;
 using LogService.Api.Elasticsearch;
 using Microsoft.Extensions.Options;
@@ -17,19 +17,26 @@ public sealed class LoggingEventConsumer(
     ElasticsearchLogWriter logWriter,
     ILogger<LoggingEventConsumer> logger) : BackgroundService
 {
+    /// <summary>消费成功计数（Prometheus）。</summary>
     private static readonly Counter ConsumeSuccess = Prometheus.Metrics.CreateCounter(
         "logservice_messages_succeeded_total", "成功写入 Elasticsearch 的日志数量", new[] { "kind" });
 
+    /// <summary>消费失败计数（Prometheus）。</summary>
     private static readonly Counter ConsumeFailed = Prometheus.Metrics.CreateCounter(
         "logservice_messages_failed_total", "进入死信队列的日志数量", new[] { "kind" });
 
+    /// <summary>ES 写入耗时直方图（Prometheus）。</summary>
     private static readonly Histogram ElasticsearchWriteDuration = Prometheus.Metrics.CreateHistogram(
         "logservice_elasticsearch_write_seconds", "Elasticsearch 写入耗时", new[] { "kind" });
 
+    /// <summary>RabbitMQ 配置快照。</summary>
     private readonly RabbitMqOptions _rabbit = rabbitOptions.Value;
+    /// <summary>RabbitMQ 连接（懒加载，断线重连）。</summary>
     private IConnection? _connection;
+    /// <summary>消费通道。</summary>
     private IChannel? _channel;
 
+    /// <summary>日志消费者：把 PV、业务操作、异常三类日志统一接入 Elasticsearch。 本机没有 MQ 时服务照常启动，后台重连；处理失败的日志进入 DLQ，不丢也不无限循环。</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -47,6 +54,7 @@ public sealed class LoggingEventConsumer(
         }
     }
 
+    /// <summary>内部处理：ConnectAndConsumeAsync。</summary>
     private async Task ConnectAndConsumeAsync(CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory
@@ -114,6 +122,7 @@ public sealed class LoggingEventConsumer(
         await _channel.BasicConsumeAsync(_rabbit.Queue, autoAck: false, consumer, cancellationToken);
     }
 
+    /// <summary>日志消费者：把 PV、业务操作、异常三类日志统一接入 Elasticsearch。 本机没有 MQ 时服务照常启动，后台重连；处理失败的日志进入 DLQ，不丢也不无限循环。</summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_channel is not null)

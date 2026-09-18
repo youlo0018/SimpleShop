@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using CommunalService.Domain.Messaging;
 
 namespace CommunalService.Domain.Logging;
@@ -9,10 +9,15 @@ namespace CommunalService.Domain.Logging;
 /// </summary>
 public sealed class LoggingEventPublisher(IMessagePublisher messagePublisher)
 {
+    /// <summary>当前服务名（取入口程序集名）。</summary>
     private static string ServiceName => Assembly.GetEntryAssembly()?.GetName().Name ?? "SimpleShop";
+    /// <summary>运行环境名（Development/Production）。</summary>
     private static string EnvironmentName => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+    /// <summary>服务版本号。</summary>
+    /// <summary>服务版本号（入口程序集版本）。</summary>
     private static string ServiceVersion => Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
 
+    /// <summary>辅助处理：PublishPageViewAsync。</summary>
     public Task PublishPageViewAsync(
         long platformId,
         long merchantId,
@@ -24,6 +29,7 @@ public sealed class LoggingEventPublisher(IMessagePublisher messagePublisher)
         return PublishAsync("pv.log", userId.ToString(), "pv.page_view", traceId, platformId, merchantId, userId, pageView, cancellationToken);
     }
 
+    /// <summary>辅助处理：PublishOperationAsync。</summary>
     public Task PublishOperationAsync(
         long platformId,
         long merchantId,
@@ -37,6 +43,7 @@ public sealed class LoggingEventPublisher(IMessagePublisher messagePublisher)
         return PublishAsync("operation.log", $"{operatorId}:{sanitized.ObjectType}", "business.operation", traceId, platformId, merchantId, operatorId, sanitized, cancellationToken);
     }
 
+    /// <summary>辅助处理：PublishExceptionAsync。</summary>
     public Task PublishExceptionAsync(
         long platformId,
         long merchantId,

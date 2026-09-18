@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PermissionEntity = PermissionService.Domain.Entity.Permission;
@@ -12,6 +12,7 @@ namespace PermissionService.Application.Features.Permission.CreatePermission;
 public class CreatePermissionCommandHandler(IPermissionCenterRepository repository)
     : IRequestHandler<CreatePermissionCommand, ApiResponse>
 {
+    /// <summary>处理入口：新增权限点：编码/路径查重；路径必须以 /gateway/ 开头（网关按它映射所需权限码，30s 缓存生效）。</summary>
     public async Task<ApiResponse> Handle(CreatePermissionCommand request, CancellationToken cancellationToken)
     {
         if (await repository.PermissionExistsAsync(request.Code, request.InterfacePath, cancellationToken))

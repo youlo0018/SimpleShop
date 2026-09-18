@@ -1,4 +1,4 @@
-using CommunalService.Application.Common;
+﻿using CommunalService.Application.Common;
 using CommunalService.Domain;
 using OrderService.Application;
 using OrderService.Infrastructure;
@@ -26,7 +26,8 @@ await app.MigrateDatabaseAsync(
     typeof(OrderService.Domain.Entity.Order),
     typeof(OrderService.Domain.Entity.OrderItem),
     typeof(OrderService.Domain.Entity.Shipment),
-    typeof(OrderService.Domain.Entity.ShipmentItem));
+    typeof(OrderService.Domain.Entity.ShipmentItem),
+    typeof(OrderService.Domain.Entity.PendingStockRelease));
 
 if (app.Environment.IsDevelopment())
 {

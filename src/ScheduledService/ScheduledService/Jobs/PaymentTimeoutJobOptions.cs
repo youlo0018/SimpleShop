@@ -1,11 +1,13 @@
-namespace ScheduledService.Jobs;
+﻿namespace ScheduledService.Jobs;
 
 public sealed class PaymentTimeoutJobOptions
 {
     public const string SectionName = "Jobs:PaymentTimeout";
 
+    /// <summary>每批处理数量。</summary>
     public int BatchSize { get; set; } = 50;
 
+    /// <summary>扫描间隔秒数。</summary>
     public int IntervalSeconds { get; set; } = 30;
 
     /// <summary>

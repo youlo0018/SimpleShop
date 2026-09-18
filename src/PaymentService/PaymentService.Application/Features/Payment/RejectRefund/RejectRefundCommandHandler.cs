@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PaymentService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace PaymentService.Application.Features.Payment.RejectRefund;
 public class RejectRefundCommandHandler(IPaymentOrderRepository repository, TenantContext tenant)
     : IRequestHandler<RejectRefundCommand, ApiResponse>
 {
+    /// <summary>处理入口：拒绝退款：条件更新退款单状态为 90 并记录原因；不发事件、不动库存与订单。</summary>
     public async Task<ApiResponse> Handle(RejectRefundCommand request, CancellationToken cancellationToken)
     {
         var refund = await repository.GetRefundByIdAsync(request.Id, cancellationToken);
@@ -25,6 +26,7 @@ public class RejectRefundCommandHandler(IPaymentOrderRepository repository, Tena
             : ApiResults.Fail(BaseApiResponseCode.BadRequest, "退款状态更新失败");
     }
 
+    /// <summary>条件判断：CanDecide。</summary>
     private bool CanDecide(Domain.Entity.RefundOrder refund)
         => tenant.HasWildcard || tenant.IsPlatform || (tenant.IsMerchant && refund.MerchantId == tenant.MerchantId);
 }

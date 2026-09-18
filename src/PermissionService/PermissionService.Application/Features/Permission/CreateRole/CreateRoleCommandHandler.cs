@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using PermissionService.Domain.Entity;
@@ -12,6 +12,7 @@ namespace PermissionService.Application.Features.Permission.CreateRole;
 public class CreateRoleCommandHandler(IPermissionCenterRepository repository)
     : IRequestHandler<CreateRoleCommand, ApiResponse>
 {
+    /// <summary>处理入口：创建角色：编码查重 → 落库 → ReplaceRolePermissions 物理重写角色-权限映射（唯一约束决定不能软删）。</summary>
     public async Task<ApiResponse> Handle(CreateRoleCommand request, CancellationToken cancellationToken)
     {
         if (await repository.RoleCodeExistsAsync(request.Code, cancellationToken))

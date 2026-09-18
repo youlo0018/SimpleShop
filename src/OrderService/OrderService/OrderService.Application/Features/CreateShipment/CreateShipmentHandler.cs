@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
 using MediatR;
@@ -17,6 +17,7 @@ public sealed class CreateShipmentHandler(
     IDistributedLock distributedLock)
     : IRequestHandler<CreateShipmentCommand, ApiResponse>
 {
+    /// <summary>处理入口：商户发货：只有已支付订单能创建发货单；订单锁保证发货和取消/退款不会同时改状态。</summary>
     public async Task<ApiResponse> Handle(CreateShipmentCommand request, CancellationToken cancellationToken)
     {
         if (request.Items.Count == 0)

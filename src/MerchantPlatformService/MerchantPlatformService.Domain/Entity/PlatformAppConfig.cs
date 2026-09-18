@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using CommunalService.Domain.Entity;
 using FreeSql.DataAnnotations;
 
@@ -14,9 +14,11 @@ public sealed class PlatformAppConfig : BaseEntity
     [Description("平台ID")] public long PlatformId { get; set; }
 
     [Column(StringLength = 64), Description("平台编码")]
+    /// <summary>平台编码</summary>
     public string PlatformCode { get; set; } = string.Empty;
 
     [Column(StringLength = 32768), Description("小程序页面配置JSON")]
+    /// <summary>小程序页面配置JSON</summary>
     public string ConfigJson { get; set; } = "{}";
 
     [Description("发布版本")] public int PublishVersion { get; set; }

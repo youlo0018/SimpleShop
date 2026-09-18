@@ -1,4 +1,4 @@
-namespace CommunalService.Domain.Enums;
+﻿namespace CommunalService.Domain.Enums;
 
 public enum PollingAddressType
 {

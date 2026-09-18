@@ -1,4 +1,4 @@
-using ScheduledService;
+﻿using ScheduledService;
 using FreeSql;
 using ScheduledService.Compensation;
 

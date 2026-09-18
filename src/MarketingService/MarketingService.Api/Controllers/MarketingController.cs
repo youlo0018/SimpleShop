@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MarketingService.Application.Features.Activities;
@@ -13,6 +13,7 @@ namespace MarketingService.Api.Controllers;
 /// </summary>
 public class MarketingController(IMediator mediator) : BaseController
 {    /// <summary>活动列表（GET /gateway/marketing/ActivityList）：后台分页，网关按 marketing:read 放行。</summary>
+    /// <summary>内部处理：ActivityList。</summary>
     public Task<ApiResponse> ActivityList([FromQuery] ListActivitiesQuery query)
         => mediator.Send(query, CancellationToken.None);
     /// <summary>活动详情：含范围明细，编辑弹窗回显用。</summary>
@@ -75,5 +76,8 @@ public class MarketingController(IMediator mediator) : BaseController
         => mediator.Send(query, CancellationToken.None);
     /// <summary>结算预览（POST，登录用户）：计算优惠与可用券/活动，无副作用（下单前展示用）。</summary>
     public Task<ApiResponse> SettlePreview([FromBody] SettlePreviewCommand command)
+        => mediator.Send(command, CancellationToken.None);
+    /// <summary>到手价试算（POST，游客可访问）：商品列表/详情批量展示"到手价"，口径与结算引擎一致。</summary>
+    public Task<ApiResponse> FinalPrice([FromBody] FinalPriceCommand command)
         => mediator.Send(command, CancellationToken.None);
 }

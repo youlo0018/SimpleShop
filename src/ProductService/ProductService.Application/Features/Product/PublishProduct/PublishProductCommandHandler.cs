@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using EntityProduct = ProductService.Domain.Entity.Product;
@@ -7,12 +7,14 @@ using ProductService.Domain.IRepository;
 
 namespace ProductService.Application.Features.Product.PublishProduct;
 
+/// <summary>辅助处理：PublishProductCommandHandler。</summary>
 public class PublishProductCommandHandler(
     IProductRepository<EntityProduct> repository,
     ISkuRepository<Sku> skuRepository,
     TenantContext tenant)
     : IRequestHandler<PublishProductCommand, ApiResponse>
 {
+    /// <summary>处理入口：辅助处理：PublishProductCommandHandler。</summary>
     public async Task<ApiResponse> Handle(PublishProductCommand request, CancellationToken cancellationToken)
     {
         var product = await repository.GetByIdAsync(request.Id);

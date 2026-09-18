@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Elastic.Clients.Elasticsearch;
 using LogService.Api.Elasticsearch;
 using Microsoft.AspNetCore.Builder;
@@ -13,6 +13,7 @@ namespace LogService.Api.Endpoints;
 /// </summary>
 public static class LogQueryEndpoint
 {
+    /// <summary>辅助处理：MapLogQueryEndpoint。</summary>
     public static IEndpointRouteBuilder MapLogQueryEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/log/{kind}", async (

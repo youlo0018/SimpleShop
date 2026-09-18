@@ -3,10 +3,6 @@
     <Project Path="Gateway/Ocelot.ApiGateway/Ocelot.ApiGateway.csproj" />
   </Folder>
   <Folder Name="/src/" />
-  <Folder Name="/src/AdminService/" />
-  <Folder Name="/src/AdminService/AdminService/">
-    <Project Path="src/AdminService/AdminService/AdminService.Domin/AdminService.Domin.csproj" />
-  </Folder>
   <Folder Name="/src/AuthService/" />
   <Folder Name="/src/AuthService/AuthService/">
     <Project Path="src/AuthService/AuthService/AuthService.Api/AuthService.Api.csproj" />
@@ -23,6 +19,12 @@
   <Folder Name="/src/CommunalService/" />
   <Folder Name="/src/CommunalService/CommunalService/">
     <Project Path="src/CommunalService/CommunalService/CommunalService.Domain/CommunalService.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/FileService/">
+    <Project Path="src/FileService/FileService.Api/FileService.Api.csproj" />
+    <Project Path="src/FileService/FileService.Application/FileService.Application.csproj" />
+    <Project Path="src/FileService/FileService.Domain/FileService.Domain.csproj" />
+    <Project Path="src/FileService/FileService.Infrastructure/FileService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/CustomerService/">
     <Project Path="src/CustomerService/CustomerService.Api/CustomerService.Api.csproj" />

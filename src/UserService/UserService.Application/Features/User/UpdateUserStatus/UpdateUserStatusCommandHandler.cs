@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using UserService.Domain.IRepository;
@@ -11,6 +11,7 @@ namespace UserService.Application.Features.User.UpdateUserStatus;
 public class UpdateUserStatusCommandHandler(IUserRepository repository)
     : IRequestHandler<UpdateUserStatusCommand, ApiResponse>
 {
+    /// <summary>处理入口：启用/禁用账号：禁用后登录被拒（Login 校验 IsEnabled），已签发的令牌到期前仍有效。</summary>
     public async Task<ApiResponse> Handle(UpdateUserStatusCommand request, CancellationToken cancellationToken)
     {
         var user = await repository.GetByIdAsync(request.Id);

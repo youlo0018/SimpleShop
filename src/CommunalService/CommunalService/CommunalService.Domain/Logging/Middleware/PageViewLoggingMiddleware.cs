@@ -15,6 +15,7 @@ public sealed class PageViewLoggingMiddleware(
     LoggingEventPublisher logPublisher,
     ILogger<PageViewLoggingMiddleware> logger)
 {
+    /// <summary>内部处理：InvokeAsync。</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -58,9 +59,11 @@ public sealed class PageViewLoggingMiddleware(
         }
     }
 
+    /// <summary>辅助处理：ParseLong。</summary>
     private static long ParseLong(HttpContext context, string header)
         => long.TryParse(context.Request.Headers[header].ToString(), out var value) ? value : 0;
 
+    /// <summary>条件判断：IsInternalPath。</summary>
     private static bool IsInternalPath(PathString path)
         => path.StartsWithSegments("/api/log") || path.StartsWithSegments("/health") || path.StartsWithSegments("/metrics");
 }

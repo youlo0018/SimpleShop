@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace UserService.Application.Features.User.UpdateUserStatus;
 

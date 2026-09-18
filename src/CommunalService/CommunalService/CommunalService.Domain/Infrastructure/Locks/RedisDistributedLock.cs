@@ -1,4 +1,4 @@
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 
 namespace CommunalService.Domain.Infrastructure.Locks;
 
@@ -17,6 +17,7 @@ public sealed class RedisDistributedLock(IConnectionMultiplexer redis) : IDistri
         return 0
         """;
 
+    /// <summary>内部处理：AcquireAsync。</summary>
     public async Task<IDistributedLockHandle?> AcquireAsync(
         string key,
         TimeSpan expiry,
@@ -43,12 +44,16 @@ public sealed class RedisDistributedLock(IConnectionMultiplexer redis) : IDistri
         }
     }
 
+    /// <summary>内部处理：RedisLockHandle。</summary>
     private sealed class RedisLockHandle(IDatabase database, string key, string token) : IDistributedLockHandle
     {
+        /// <summary>锁键（分布式锁标识）。</summary>
         public string Key { get; } = key;
 
+        /// <summary>访问令牌。</summary>
         public string Token { get; } = token;
 
+        /// <summary>释放资源。</summary>
         public async ValueTask DisposeAsync()
         {
             await database.ScriptEvaluateAsync(ReleaseScript, [Key], [Token]);

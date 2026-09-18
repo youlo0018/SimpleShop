@@ -1,4 +1,4 @@
-using CommunalService.Domain;
+﻿using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using CommunalService.Domain.Infrastructure.Locks;
 using MediatR;
@@ -7,12 +7,14 @@ using PaymentService.Domain.IRepository;
 
 namespace PaymentService.Application.Features.CreatePayment;
 
+/// <summary>创建支付单：BizNo 幂等；金额与明细校验在 Validator。</summary>
 public sealed class CreatePaymentHandler(
     IPaymentOrderRepository repository,
     TenantContext tenant,
     IDistributedLock distributedLock)
     : IRequestHandler<CreatePaymentCommand, ApiResponse>
 {
+    /// <summary>处理入口：创建支付单：BizNo 幂等；金额与明细校验在 Validator。</summary>
     public async Task<ApiResponse> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
         if (tenant.UserId <= 0)

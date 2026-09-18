@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
@@ -9,12 +9,18 @@ namespace CommunalService.Domain.Messaging;
 /// </summary>
 public sealed class RabbitMqMessagePublisher : IMessagePublisher, IDisposable
 {
+    /// <summary>消息序列化选项（camelCase，发布/消费两端一致）。</summary>
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>RabbitMQ 连接工厂（配置来自 RabbitMqOptions）。</summary>
     private readonly IConnectionFactory _factory;
+    /// <summary>事件交换机名（所有业务事件统一发布到此交换机）。</summary>
     private readonly string _exchange;
+    /// <summary>连接建立互斥锁：避免并发请求重复建连。</summary>
     private readonly SemaphoreSlim _connectLock = new(1, 1);
+    /// <summary>复用的 RabbitMQ 连接（懒加载）。</summary>
     private IConnection? _connection;
+    /// <summary>发布通道（连接断开后重建）。</summary>
     private IChannel? _channel;
 
     public RabbitMqMessagePublisher(IOptions<RabbitMqOptions> options)
@@ -30,6 +36,7 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IDisposable
         };
     }
 
+    /// <summary>查询：GetChannelAsync。</summary>
     private async Task<IChannel> GetChannelAsync(CancellationToken cancellationToken)
     {
         await _connectLock.WaitAsync(cancellationToken);
@@ -83,6 +90,7 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IDisposable
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>释放资源。</summary>
     public void Dispose()
     {
         _channel?.Dispose();

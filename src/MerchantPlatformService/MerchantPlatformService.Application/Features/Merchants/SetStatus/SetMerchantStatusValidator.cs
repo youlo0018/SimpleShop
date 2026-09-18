@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using MerchantPlatformService.Domain.Enums;
 
 namespace MerchantPlatformService.Application.Features.Merchants.SetStatus;

@@ -1,4 +1,4 @@
-using Locks = CommunalService.Domain.Infrastructure.Locks;
+﻿using Locks = CommunalService.Domain.Infrastructure.Locks;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Contracts.Messages;
 using Microsoft.AspNetCore.Http;
@@ -18,6 +18,7 @@ public sealed class LockStockHandler(
     IOperationLogger operationLogger)
     : IRequestHandler<LockStockCommand, InventoryStockResponse>
 {
+    /// <summary>处理入口：锁定库存（下单第一步）：按 SkuId 升序逐个加 SKU 锁（固定顺序防死锁）； 流水按 BizNo+SKU+动作 幂等；任一 SKU 失败立即补偿释放已锁定的部分并返回失败。</summary>
     public async Task<InventoryStockResponse> Handle(LockStockCommand request, CancellationToken cancellationToken)
     {
         var lockedItems = new List<StockItem>();
@@ -62,6 +63,7 @@ public sealed class LockStockHandler(
         return new InventoryStockResponse { Success = true };
     }
 
+    /// <summary>内部处理：CompensateAsync。</summary>
     private async Task CompensateAsync(
         IEnumerable<StockItem> lockedItems,
         string bizNo,

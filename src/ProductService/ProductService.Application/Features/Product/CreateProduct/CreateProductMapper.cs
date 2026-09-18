@@ -1,10 +1,11 @@
-using ProductService.Domain.Entity;
+﻿using ProductService.Domain.Entity;
 using EntityProduct = ProductService.Domain.Entity.Product;
 
 namespace ProductService.Application.Features.Product.CreateProduct;
 
 public static class CreateProductMapper
 {
+    /// <summary>命令 → 商品实体映射（字段默认值在此收敛）。</summary>
     public static EntityProduct ToProduct(this CreateProductCommand command)
     {
         return new EntityProduct
@@ -21,6 +22,7 @@ public static class CreateProductMapper
         };
     }
 
+    /// <summary>SKU 项 → SKU 实体映射（库存/图片等默认值在此收敛）。</summary>
     public static Sku ToSku(this CreateSkuItem item, CreateProductCommand command, long productId)
     {
         return new Sku
