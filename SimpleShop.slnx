@@ -20,11 +20,11 @@
   <Folder Name="/src/CommunalService/CommunalService/">
     <Project Path="src/CommunalService/CommunalService/CommunalService.Domain/CommunalService.Domain.csproj" />
   </Folder>
-  <Folder Name="/src/FileService/">
-    <Project Path="src/FileService/FileService.Api/FileService.Api.csproj" />
-    <Project Path="src/FileService/FileService.Application/FileService.Application.csproj" />
-    <Project Path="src/FileService/FileService.Domain/FileService.Domain.csproj" />
-    <Project Path="src/FileService/FileService.Infrastructure/FileService.Infrastructure.csproj" />
+  <Folder Name="/src/ToolService/">
+    <Project Path="src/ToolService/ToolService.Api/ToolService.Api.csproj" />
+    <Project Path="src/ToolService/ToolService.Application/ToolService.Application.csproj" />
+    <Project Path="src/ToolService/ToolService.Domain/ToolService.Domain.csproj" />
+    <Project Path="src/ToolService/ToolService.Infrastructure/ToolService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/CustomerService/">
     <Project Path="src/CustomerService/CustomerService.Api/CustomerService.Api.csproj" />

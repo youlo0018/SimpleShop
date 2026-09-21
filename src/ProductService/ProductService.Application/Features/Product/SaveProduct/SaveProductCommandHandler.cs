@@ -1,4 +1,5 @@
-﻿using CommunalService.Domain;
+﻿using System.Text.Json;
+using CommunalService.Domain;
 using CommunalService.Domain.Enums;
 using MediatR;
 using ProductService.Domain.Entity;
@@ -26,6 +27,7 @@ public class SaveProductCommandHandler(IProductAdminRepository repository, Tenan
 
         product.Name = request.Name;
         product.MainImage = request.MainImage;
+        product.Images = JsonSerializer.Serialize(request.Images ?? []);
         product.Description = request.Description;
         product.CategoryId = request.CategoryId;
 

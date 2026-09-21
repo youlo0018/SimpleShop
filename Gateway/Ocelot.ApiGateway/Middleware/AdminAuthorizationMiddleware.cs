@@ -76,26 +76,29 @@ public sealed class AdminAuthorizationMiddleware(
         }
 
         var principal = await ValidateTokenAsync(context.Request.Headers.Authorization.ToString());
-        if (principal is null)
+        if (principal is not null)
         {
-            await WriteAsync(context, StatusCodes.Status401Unauthorized, BaseApiResponseCode.Unauthorized, "请先登录");
-            return;
+            context.User = principal;
+            foreach (var claim in principal.Claims.Where(claim => claim.Type is "permission" or "role" or "tenant_type"))
+                context.Request.Headers.Append($"X-Claim-{claim.Type}", claim.Value);
+            context.Request.Headers["X-Claim-UserId"] = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0";
+            // jti 用于下游刷新/登出时定位 Redis 会话键。
+            context.Request.Headers["X-Claim-Jti"] = principal.FindFirstValue("jti") ?? string.Empty;
+            context.Request.Headers["X-Claim-PlatformId"] = principal.FindFirstValue("platform_id") ?? "0";
+            context.Request.Headers["X-Claim-MerchantId"] = principal.FindFirstValue("merchant_id") ?? "0";
         }
 
-        context.User = principal;
-        foreach (var claim in principal.Claims.Where(claim => claim.Type is "permission" or "role" or "tenant_type"))
-            context.Request.Headers.Append($"X-Claim-{claim.Type}", claim.Value);
-        context.Request.Headers["X-Claim-UserId"] = principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0";
-        // jti 用于下游刷新/登出时定位 Redis 会话键。
-        context.Request.Headers["X-Claim-Jti"] = principal.FindFirstValue("jti") ?? string.Empty;
-        context.Request.Headers["X-Claim-PlatformId"] = principal.FindFirstValue("platform_id") ?? "0";
-        context.Request.Headers["X-Claim-MerchantId"] = principal.FindFirstValue("merchant_id") ?? "0";
-
-
+        // 先判断路径是否需要权限：公开接口（含 /health）无 token 也放行；需要权限才要求登录（401）。
         var required = ResolveRequiredPermission(context, await GetPermissionCatalogAsync());
         if (required is null)
         {
             await next(context);
+            return;
+        }
+
+        if (principal is null)
+        {
+            await WriteAsync(context, StatusCodes.Status401Unauthorized, BaseApiResponseCode.Unauthorized, "请先登录");
             return;
         }
 

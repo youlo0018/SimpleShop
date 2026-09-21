@@ -1,4 +1,5 @@
-﻿using ProductService.Domain.Entity;
+﻿using System.Text.Json;
+using ProductService.Domain.Entity;
 using EntityProduct = ProductService.Domain.Entity.Product;
 
 namespace ProductService.Application.Features.Product.CreateProduct;
@@ -14,6 +15,7 @@ public static class CreateProductMapper
             MerchantId = command.MerchantId,
             Name = command.Name,
             MainImage = command.MainImage,
+            Images = JsonSerializer.Serialize(command.Images ?? []),
             CategoryId = command.CategoryId,
             BrandId = command.BrandId,
             Description = command.Description,

@@ -26,6 +26,20 @@
           <small class="muted">支持 JPG / PNG / WebP，最大 5MB（可在 AgileConfig 调整）</small>
         </div>
       </el-form-item>
+      <el-form-item label="轮播图">
+        <div class="gallery-area">
+          <div v-for="(image, index) in form.images" :key="`${image}-${index}`" class="upload-box">
+            <img :src="absoluteUrl(image)" class="upload-image">
+            <div class="upload-mask" @click.stop="pickGallery(index)"><span class="upload-mask-icon">⇪</span><span>更换图片</span></div>
+            <span class="upload-remove" @click.stop="form.images.splice(index, 1)">×</span>
+          </div>
+          <div v-if="form.images.length < 6" class="upload-box add" @click="pickGallery(-1)">
+            <div class="upload-empty"><span class="upload-plus">＋</span><span>添加轮播图</span></div>
+          </div>
+          <input ref="galleryInputRef" type="file" accept="image/*" class="hidden-input" @change="onGalleryPicked">
+        </div>
+        <small class="muted">最多 6 张，展示在商品详情图集；主图会作为兜底第一张</small>
+      </el-form-item>
       <el-form-item label="描述" prop="description">
         <div class="rich-editor">
           <div class="editor-toolbar">
@@ -78,7 +92,7 @@ const uploadUrl = `${apiBase}/files/Upload`
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` }))
 const merchants = ref([]); const categoryTree = ref([]); const categoryPath = ref([]); const editorRef = ref(null); const formRef = ref(null)
 const saving = ref(false); const skuError = ref('')
-const form = reactive({ id: '0', platformId: 0, merchantId: '', categoryId: '', name: '', mainImage: '', description: '', skus: [] })
+const form = reactive({ id: '0', platformId: 0, merchantId: '', categoryId: '', name: '', mainImage: '', images: [], description: '', skus: [] })
 const specGroups = reactive([{ name: '', values: '' }])
 const rules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }, { max: 40, message: '商品名称不能超过40个字符', trigger: 'blur' }],
@@ -116,6 +130,23 @@ const onFilePicked = async event => {
 const onUploadSuccess = response => {
   if (Number(response.code) === 200 && response.data?.url) form.mainImage = response.data.url
   else ElMessage.error(response.message || '上传失败')
+}
+
+const galleryInputRef = ref(null)
+const galleryIndex = ref(-1)
+const pickGallery = index => { galleryIndex.value = index; galleryInputRef.value?.click() }
+const onGalleryPicked = async event => {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await fetch(uploadUrl, { method: 'POST', headers: uploadHeaders.value, body: formData }).then(r => r.json()).catch(() => null)
+  if (Number(response?.code) !== 200 || !response.data?.url) return ElMessage.error(response?.message || '上传失败')
+  const url = response.data.url
+  if (galleryIndex.value >= 0) form.images.splice(galleryIndex.value, 1, url)
+  else form.images.push(url)
+  galleryIndex.value = -1
 }
 
 const addGroup = () => { specGroups.push({ name: '', values: '' }); generateSkus() }
@@ -181,7 +212,9 @@ onMounted(async () => {
   const productId = route.params.id
   if (productId) {
     const data = await request.get('/products/AdminDetail', { params: { id: productId } })
-    Object.assign(form, data.product, { id: String(data.product.id), skus: (data.skus || []).map(sku => ({ ...sku })) })
+    let storedImages = []
+    try { storedImages = JSON.parse(data.product.images || '[]') } catch { storedImages = [] }
+    Object.assign(form, data.product, { id: String(data.product.id), images: storedImages, skus: (data.skus || []).map(sku => ({ ...sku })) })
     const matched = flattenTree(categoryTree.value).find(item => String(item.node.id) === String(form.categoryId))
     categoryPath.value = matched?.path.map(item => String(item.id)) || []
     const names = [...new Set(form.skus.flatMap(sku => (sku.specName || '').split('/')).filter(Boolean))]
@@ -207,4 +240,19 @@ onMounted(async () => {
 .sku-table { margin-top: 12px; }
 .toolbar { margin: 10px 0; display: flex; gap: 8px; }
 .footer-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+/* 主图上传：固定尺寸 + 悬浮玻璃层（不随图片尺寸变化） */
+.upload-area { display: flex; align-items: center; gap: 14px; }
+.upload-box { position: relative; width: 180px; height: 180px; border: 1px dashed var(--el-border-color, #dcdfe6); border-radius: 12px; overflow: hidden; cursor: pointer; background: #fafafc; display: grid; place-items: center; flex-shrink: 0; }
+.upload-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+.upload-empty { display: grid; justify-items: center; gap: 4px; color: #a1a1a6; font-size: 12px; }
+.upload-plus { font-size: 24px; line-height: 1; }
+.upload-mask { position: absolute; inset: 0; display: grid; place-items: center; gap: 4px; align-content: center; color: #fff; font-size: 12px; background: rgba(0, 0, 0, .42); backdrop-filter: blur(6px); opacity: 0; transition: opacity .18s ease; }
+.upload-box:hover .upload-mask { opacity: 1; }
+.upload-mask-icon { font-size: 22px; line-height: 1; }
+.hidden-input { display: none; }
+.gallery-area { display: flex; flex-wrap: wrap; gap: 12px; }
+.upload-box.add { border-style: dashed; }
+.upload-remove { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; font-size: 15px; line-height: 24px; text-align: center; cursor: pointer; z-index: 2; }
+.upload-remove:hover { background: #f56c6c; }
 </style>

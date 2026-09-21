@@ -40,7 +40,7 @@ npx vite preview --host 0.0.0.0 --port 5174 --outDir dist/build/h5 --strictPort
 - 小程序平台在 `apps/user-uniapp/src/common/platform-config.js` 的 `PLATFORM_CODE` 锁定（默认 DEMOPL），应用内不提供平台切换。
 - 测试数据：`node scripts/seed-test-data.js`（dummyjson 商品 + 演示平台/商户/活动/券/用户/订单）；测试会创建带占位图的临时商品，跑完可清理（见 REVIEW 风险）。
 - 回归脚本（`tests/e2e/`）：`api-regression.sh`(114) / `ui-regression.js`(46，需 5173+5174 preview) / `full-chain.sh`(104) / `marketing-flow.sh`(26) / `business-flow.sh`。
-- 文件存储切换：AgileConfig（appId=`FileService`）`FileStorage:Provider` = Local（默认）/AliyunOss/TencentCos/AzureBlob，凭据在 `FileStorage:{Provider}:*`；格式白名单 `AllowedExtensions`、分类大小 `MaxSizeBytes` 均在此配置。
+- 文件存储切换：AgileConfig（appId=`ToolService`）`FileStorage:Provider` = Local（默认）/AliyunOss/TencentCos/AzureBlob，凭据在 `FileStorage:{Provider}:*`；格式白名单 `AllowedExtensions`、分类大小 `MaxSizeBytes` 均在此配置。
 
 ## 3. 硬性协作约定
 
@@ -53,18 +53,30 @@ npx vite preview --host 0.0.0.0 --port 5174 --outDir dist/build/h5 --strictPort
 
 ## 4. 代码现状（2026-09-18）
 
-- **服务与分层**：14 个后端服务全部按 DDD 四层落地（Api/Application/Domain/Infrastructure；控制器纯转发、业务在 Handler、验证在 Validator、查询在仓储）。新增 CustomerService（客户域）与 FileService（统一上传）。
+- **服务与分层**：14 个后端服务全部按 DDD 四层落地（Api/Application/Domain/Infrastructure；控制器纯转发、业务在 Handler、验证在 Validator、查询在仓储）。新增 CustomerService（客户域）与 ToolService（统一上传）。
 - **账号域分离**：前台客户在 CustomerService（客户 JWT + Redis 会话，支持滑动续期/刷新/登出，网关校验会话键）；后台账号在 UserService + AuthService OpenIddict（password flow、RS256 自签证书）；权限只认 `user_role` 显式绑定（fail-closed），无 legacy 兜底。
 - **营销与到手价**：DiscountEngine（活动/券互斥 + 平台优先级 + 到手价取更低价）；`MarketingSnapshotCache` 平台快照缓存（写操作失效 + 30s TTL）；`FinalPrice` 批量试算供列表/详情展示。
-- **统一上传**：所有端走 FileService `/gateway/files/Upload`（本地/阿里云/腾讯云/Azure 可切），商品主图与装修上传框为固定尺寸 + 悬浮玻璃层。
+- **统一上传**：所有端走 ToolService `/gateway/files/Upload`（本地/阿里云/腾讯云/Azure 可切），商品主图与装修上传框为固定尺寸 + 悬浮玻璃层。
 - **小程序**：按凯德星参考图重做（首页/商城/店铺/详情/我的），平台由发布配置锁定；后台装修为可视化拖拽 + 手机预览（轮播/图标资源在后台域通过 `assetUrl()` 解析）。
 - **注释完备性**：`src/` 全量公开/私有成员 XML 注释已补齐（扫描 0 缺失），新增代码按 `CODING_STANDARD.md` 5.0 强制标准执行。
 - **已知风险**（详见 REVIEW.md 风险节）：下单孤儿预留无 TTL、Inventory 消费者无 DLQ、`order.created/order.cancelled` 无消费者、本地多表写入无事务、上传整文件读入内存（大视频有内存压力）、云存储未用真实凭据联调、测试临时商品会污染列表。
 
 ## 5. 进度日志（倒序，新条目写在最上面）
 
+### 2026-09-21（第二十六轮）：商品轮播图 + 上传框尺寸调整
+- 商品编辑：主图上传框固定 **180×180**；新增「轮播图」编辑块（最多 6 张，同样 180×180 固定框 + 悬浮玻璃层「更换图片」+ 右上删除角标 + 虚线添加框）。
+- 后端：`Product.Images`（JSON 数组字符串，2000 字符）贯通创建/编辑/详情（`CreateProductCommand.Images`、`SaveProductCommand.Images`、Mapper/Handler 序列化；Validator 限制 ≤6 张且地址 ≤255）。
+- 小程序商品详情图集改为「轮播图 + 主图 + SKU 图」去重（最多 8 张）。
+- 后台装修页上传框统一调整为 **120×120**（图片与图标一致）。
+- 验证：CDP 实测商品编辑 4 个上传框均 180×180（3 轮播 + 添加框）、装修页 120×120；小程序详情图集 4 张真实图片加载正常；`api-regression` 114/114。
+
+### 2026-09-18（第二十五轮）：文件服务更名为工具服务（ToolService）
+- `FileService` 全量更名 **`ToolService`（工具服务）**：项目/命名空间/程序集 `src/ToolService/ToolService.{Api,Application,Domain,Infrastructure}`、Consul 服务名 `ToolService`、AgileConfig appId `ToolService`、数据库 `simpleshoptool`（已迁移 stored_file 数据）。
+- 定位为**通用工具服务**：文件上传是其第一个能力；对外接口保持 `/gateway/files/*`（不破坏已落库 URL 与前端调用），后续新增工具能力按需加控制器/路由。
+- 同步：`SimpleShop.slnx`、`run-dev-services.sh`（start_service Tool）、网关 ocelot 路由 ServiceName；README/BUSINESS/REVIEW/TEST_CASES/CODING_STANDARD 中服务名统一为 ToolService（配置节 `FileStorage:*` 保持不变）。
+
 ### 2026-09-18（第二十四轮）：统一文件服务（多存储）+ 上传交互统一
-- 新增 **FileService**（5080/5081，`simpleshopfile`，表 `stored_file`）：所有端统一上传入口 `POST /gateway/files/Upload`，返回绝对地址；本地存储回源 `GET /gateway/files/Content/{对象键}`。
+- 新增 **ToolService**（5080/5081，`simpleshoptool`，表 `stored_file`；第二十五轮由 FileService 更名）：所有端统一上传入口 `POST /gateway/files/Upload`，返回绝对地址；本地存储回源 `GET /gateway/files/Content/{对象键}`。
 - **多存储可切换**（AgileConfig `FileStorage:Provider`）：`Local`（默认）/`AliyunOss`/`TencentCos`/`AzureBlob`；凭据/自定义域名在 `FileStorage:{Provider}:*`；格式白名单 `AllowedExtensions` 与分类大小上限 `MaxSizeBytes`（image 5MB/document 20MB/audio 20MB/video 200MB/default 10MB，字节）均可配置；校验顺序：扩展名 → 大小 → 文件头魔数。已接入官方 SDK（Aliyun.OSS.SDK.NetCore/Tencent.QCloud.Cos.Sdk/Azure.Storage.Blobs）。
 - **前端统一上传交互**：商品编辑主图与装修图片/图标改为**固定尺寸上传框 + 悬浮玻璃层**（点击上传/更换，不随图片尺寸变化、不再显示链接输入与独立上传按钮）；小程序头像上传切到 `/files/Upload`；移除 ProductService 的旧上传端点（历史图片读取保留兼容）。
 - 网关新增 `/gateway/files/{everything}` 路由；`run-dev-services.sh`、解决方案、健康检查（14 服务）同步；`api-regression` 新增 FILE-01~06 并把 IMG 用例切到新入口（114/114），`ui-regression` 46/46。

@@ -94,9 +94,11 @@ const fallback = '/static/placeholder.png'
 const theme = ref(getTheme()); const product = ref({}); const selected = ref(null); const quantity = ref(1)
 const cartCount = ref(0)
 
-// 图集 = 主图 + SKU 图去重（最多 8 张），加载失败时回落占位图。
+// 图集 = 轮播图（后台配置）+ 主图 + SKU 图去重（最多 8 张），加载失败时回落占位图。
 const images = computed(() => {
-  const list = [product.value.mainImage, ...(product.value.skus || []).map(sku => sku.image)].filter(Boolean)
+  let stored = []
+  try { stored = JSON.parse(product.value.images || '[]') } catch { stored = [] }
+  const list = [...stored, product.value.mainImage, ...(product.value.skus || []).map(sku => sku.image)].filter(Boolean)
   return [...new Set(list)].slice(0, 8)
 })
 // 到手价：由后端营销引擎按当前 SKU 试算（含活动/最优券），前端只展示。

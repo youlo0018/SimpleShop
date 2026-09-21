@@ -1045,19 +1045,19 @@ onMounted(async () => { await Promise.all([loadPlatforms(), loadPreviewData()]);
 .panel-empty { display: grid; gap: 8px; justify-items: center; color: #a1a1a6; font-size: 12px; padding: 60px 10px; text-align: center; }
 .panel-empty-icon { font-size: 28px; }
 .panel-empty-tip { color: #c7c7cc; }
-/* 固定尺寸上传框 + 悬浮玻璃层（与商品编辑一致） */
-.upload-box { position: relative; width: 96px; height: 96px; border: 1px dashed var(--el-border-color); border-radius: 12px; overflow: hidden; cursor: pointer; background: #fafafc; display: grid; place-items: center; flex-shrink: 0; }
-.upload-box.small { width: 72px; height: 72px; }
-.upload-image { width: 100%; height: 100%; object-fit: cover; display: block; }
-.upload-image.contain { object-fit: contain; padding: 8px; box-sizing: border-box; }
-.upload-empty { display: grid; justify-items: center; gap: 2px; color: #a1a1a6; font-size: 11px; }
-.upload-plus { font-size: 20px; line-height: 1; }
-.upload-mask { position: absolute; inset: 0; display: grid; place-items: center; gap: 2px; align-content: center; color: #fff; font-size: 11px; background: rgba(0, 0, 0, .42); backdrop-filter: blur(6px); opacity: 0; transition: opacity .18s ease; }
-.upload-box:hover .upload-mask { opacity: 1; }
-.upload-mask-icon { font-size: 18px; line-height: 1; }
-.hidden-input { display: none; }
-.icon-upload { display: flex; align-items: center; gap: 10px; }
-.icon-hint { font-size: 11px; color: #a1a1a6; }
+/* 固定尺寸上传框 + 悬浮玻璃层（与商品编辑一致；子组件内部元素需 :deep 穿透 scoped） */
+:deep(.upload-box) { position: relative; width: 120px; height: 120px; border: 1px dashed var(--el-border-color); border-radius: 12px; overflow: hidden; cursor: pointer; background: #fafafc; display: grid; place-items: center; flex-shrink: 0; }
+:deep(.upload-box.small) { width: 120px; height: 120px; }
+:deep(.upload-image) { width: 100%; height: 100%; object-fit: cover; display: block; }
+:deep(.upload-image.contain) { object-fit: contain; padding: 8px; box-sizing: border-box; }
+:deep(.upload-empty) { display: grid; justify-items: center; gap: 2px; color: #a1a1a6; font-size: 11px; }
+:deep(.upload-plus) { font-size: 20px; line-height: 1; }
+:deep(.upload-mask) { position: absolute; inset: 0; display: grid; place-items: center; gap: 2px; align-content: center; color: #fff; font-size: 11px; background: rgba(0, 0, 0, .42); backdrop-filter: blur(6px); opacity: 0; transition: opacity .18s ease; }
+:deep(.upload-box:hover .upload-mask) { opacity: 1; }
+:deep(.upload-mask-icon) { font-size: 18px; line-height: 1; }
+:deep(.hidden-input) { display: none; }
+:deep(.icon-upload) { display: flex; align-items: center; gap: 10px; }
+:deep(.icon-hint) { font-size: 11px; color: #a1a1a6; }
 :deep(.link-picker) { display: flex; gap: 8px; width: 100%; }
 :deep(.link-picker select), :deep(.link-picker input) { flex: 1; height: 32px; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; min-width: 0; }
 </style>

@@ -13,6 +13,11 @@ public class SaveProductValidator : AbstractValidator<SaveProductCommand>
         RuleFor(x => x.Name).NotEmpty().WithMessage("商品名称必填").MaximumLength(40).WithMessage("商品名称过长");
         RuleFor(x => x.MainImage).NotEmpty().WithMessage("商品主图必填").MaximumLength(255).WithMessage("商品主图地址过长");
         RuleFor(x => x.Description).MaximumLength(255).WithMessage("商品描述不能超过255个字符");
+        RuleFor(x => x.Images)
+            .Must(images => images is null || images.Count <= 6)
+            .WithMessage("轮播图最多6张")
+            .Must(images => images is null || images.All(image => (image ?? string.Empty).Length <= 255))
+            .WithMessage("轮播图地址过长");
         RuleFor(x => x.CategoryId).GreaterThan(0).WithMessage("分类必选");
         RuleFor(x => x.Skus).NotEmpty().WithMessage("至少配置一个SKU");
         RuleForEach(x => x.Skus).ChildRules(sku =>

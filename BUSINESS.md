@@ -25,7 +25,7 @@
 | Auth | 5019 | 5004 | simpleshopauth | 后台登录 OpenIddict 令牌（password flow、RS256 自签证书；EF Core） |
 | User | 5011 | 5003 | simpleshopuser | 后台账号域：账号管理（列表/建号/改号/启停）+ 资料；不含客户 |
 | Customer | 5280 | 5001 | simpleshopcustomer | 前台客户域：注册/登录（客户 JWT）、资料、地址簿、收藏 |
-| File | 5080 | 5081 | simpleshopfile | 统一文件上传：多存储（Local/阿里云OSS/腾讯云COS/Azure Blob，AgileConfig 切换）、格式与大小限制可配 |
+| Tool | 5080 | 5081 | simpleshoptool | 工具服务（统一文件上传）：多存储（Local/阿里云OSS/腾讯云COS/Azure Blob，AgileConfig 切换）、格式与大小限制可配 |
 | Permission | 5022 | 5023 | simpleshoppermission | 权限中心：角色/权限点/用户绑定；登录解析与后台管理 |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU、三级分类、审核上下架、图片上传 |
 | Cart | 5060 | 5060 | simpleshopcart | 购物车（PostgreSQL 存储） |
@@ -37,7 +37,7 @@
 | Scheduled | - | - | simpleshopscheduled + simpleshoporder | 独立定时进程：支付超时关单 + 库存释放补偿 |
 | Log | 5088 | - | Elasticsearch | 消费 pv/operation/exception 日志 → ES（带 DLQ） |
 
-**统一文件上传（FileService）**：
+**统一文件上传（ToolService）**：
 - 所有端（后台/小程序/后续端）统一走 `POST /gateway/files/Upload`（multipart，字段 `file`），返回绝对访问地址；本地存储通过 `GET /gateway/files/Content/{对象键}` 回源。
 - 存储后端由 AgileConfig `FileStorage:Provider` 决定：`Local`（默认）/`AliyunOss`/`TencentCos`/`AzureBlob`；各厂商凭据、自定义域名均在 `FileStorage:{Provider}:*` 配置。
 - 允许格式 `FileStorage:AllowedExtensions`、分类大小上限 `FileStorage:MaxSizeBytes`（image/document/audio/video/default，字节）均在 AgileConfig 调整，无需改代码。

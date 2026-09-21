@@ -186,7 +186,7 @@
       ],
       "DownstreamPathTemplate": "/api/File/{everything}",
       "DownstreamScheme": "http",
-      "ServiceName": "FileService",
+      "ServiceName": "ToolService",
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
       }

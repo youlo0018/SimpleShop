@@ -82,6 +82,7 @@
 | PRD-07 | P1 | 已上架商品 | 编辑时传入非法 SKU（价格 0） | HTTP 400（不得静默跳过） | api |
 | PRD-08 | P1 | 无 | 商品列表分页 `pageSize=1000` | HTTP 400 | api |
 | PRD-09 | P2 | 后台 token | 商品详情传不存在的 id | 404 | api |
+| PRD-10 | P1 | 后台 token | 编辑商品上传轮播图（≤6 张） | 落库 `product.Images`（JSON 数组）；小程序详情图集按「轮播图 + 主图 + SKU 图」去重展示；>6 张或地址超长 400 | ui/api |
 
 ## 6. 图片上传（IMG）
 

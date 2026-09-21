@@ -40,7 +40,7 @@ SimpleShop 是一个基于 **.NET 10 微服务** 与 **Vue 3 / UniApp** 的全�
 | Auth | 5019 | 5004 | simpleshopauth | **后台账号 OpenIddict 令牌**（password flow、公开客户端 admin-app、RS256 自签证书） |
 | User | 5011 | 5003 | simpleshopuser | **后台账号域**：账号管理（列表/建号/改号/启停）+ 资料；不含客户 |
 | Customer | 5280 | 5001 | simpleshopcustomer | **前台客户域**：注册/登录（客户 JWT）、资料、地址簿、收藏 |
-| File | 5080 | 5081 | simpleshopfile | **统一文件上传入口**：本地/阿里云 OSS/腾讯云 COS/微软云 Azure 多存储（AgileConfig 切换），格式白名单与分类大小限制可配 |
+| Tool | 5080 | 5081 | simpleshoptool | **工具服务**（统一文件上传）：本地/阿里云 OSS/腾讯云 COS/微软云 Azure 多存储（AgileConfig 切换），格式白名单与分类大小限制可配 |
 | Permission | 5022 | 5023 | simpleshoppermission | 角色/权限点/用户绑定，登录权限解析 |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU、三级分类、上下架、图片上传 |
 | Cart | 5060 | 5060 | simpleshopcart | 购物车（PostgreSQL） |
@@ -167,7 +167,7 @@ SimpleShop is a full-stack e-commerce MVP built on **.NET 10 microservices** and
 | Auth | 5019 | 5004 | simpleshopauth | **Backend account OpenIddict tokens** (password flow, public client admin-app, RS256 self-signed cert) |
 | User | 5011 | 5003 | simpleshopuser | **Backend account domain**: account management (list/create/update/enable) + profile; no customers |
 | Customer | 5280 | 5001 | simpleshopcustomer | **Storefront customer domain**: register/login (customer JWT), profile, addresses, favorites |
-| File | 5080 | 5081 | simpleshopfile | **Unified upload entry**: local / Aliyun OSS / Tencent COS / Azure Blob (switchable via AgileConfig); format whitelist and per-category size limits configurable |
+| Tool | 5080 | 5081 | simpleshoptool | **Tool service** (unified file upload): local / Aliyun OSS / Tencent COS / Azure Blob (switchable via AgileConfig); format whitelist and per-category size limits configurable |
 | Permission | 5022 | 5023 | simpleshoppermission | Roles/permissions/bindings, login permission resolution |
 | Product | 5058 | 5058 | simpleshopproduct | SPU/SKU, categories, publishing, image upload |
 | Cart | 5060 | 5060 | simpleshopcart | Shopping cart (PostgreSQL) |

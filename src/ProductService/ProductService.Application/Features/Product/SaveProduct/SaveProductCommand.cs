@@ -9,6 +9,7 @@ namespace ProductService.Application.Features.Product.SaveProduct;
 /// <param name="CategoryId">分类 ID。</param>
 /// <param name="Name">名称。</param>
 /// <param name="MainImage">主图。</param>
+/// <param name="Images">轮播图地址列表（最多 6 张）。</param>
 /// <param name="Description">描述。</param>
 public record SaveProductCommand(long Id, long CategoryId, string Name, string MainImage, string Description,
-    List<CreateSkuItem> Skus) : IRequest<ApiResponse>;
+    List<CreateSkuItem> Skus, List<string>? Images = null) : IRequest<ApiResponse>;

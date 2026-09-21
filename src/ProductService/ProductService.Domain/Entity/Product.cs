@@ -19,6 +19,10 @@ public sealed class Product : BaseEntity
     /// <summary>主图地址。</summary>
     public string MainImage { get; set; }
 
+    [Column(StringLength = 2000), Description("商品轮播图（JSON 数组）")]
+    /// <summary>轮播图地址列表（JSON 数组字符串，详情页图集用；主图作为兜底第一张）。</summary>
+    public string Images { get; set; } = "[]";
+
     [Description("Category Id")]
     /// <summary>Category Id</summary>
     public long CategoryId { get; set; }

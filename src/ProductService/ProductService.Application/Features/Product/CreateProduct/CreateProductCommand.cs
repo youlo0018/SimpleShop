@@ -13,6 +13,8 @@ public record CreateProductCommand : IRequest<ApiResponse>
     public string Name { get; set; }
     /// <summary>主图地址。</summary>
     public string MainImage { get; set; }
+    /// <summary>轮播图地址列表（最多 6 张，详情页图集）。</summary>
+    public List<string> Images { get; set; } = [];
     /// <summary>分类 ID。</summary>
     public long CategoryId { get; set; }
     /// <summary>品牌 ID。</summary>

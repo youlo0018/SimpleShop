@@ -58,9 +58,9 @@ Handler 构建仓储分页查询：`!IsDeleted` → `WhereIf` 业务过滤 → �
 - **编辑** `/products/Update`：`SaveProductValidator`（与创建同标准）→ `SaveProductCommandHandler` → 仓储 `UpdateProductWithSkusAsync`（主表更新 + SKU 按编码 Upsert）
 - **上/下架** `/products/PublishProduct`、`/products/OffShelf`：租户归属校验在 Handler（403）
 - **分类** `/products/CreateCategory|UpdateCategory|DisableCategory|DeleteCategory`：3 级上限与成环校验在 Handler；删除前检查子分类与在挂商品
-- **图片/文件上传**：已统一迁移到 **FileService** `/gateway/files/Upload`（详见链路 6.5）；ProductService 旧上传端点已移除，历史图片读取 `/products/File/{id}` 保留兼容
+- **图片/文件上传**：已统一迁移到 **ToolService** `/gateway/files/Upload`（详见链路 6.5）；ProductService 旧上传端点已移除，历史图片读取 `/products/File/{id}` 保留兼容
 
-### 链路 6.5：统一文件上传（FileService）
+### 链路 6.5：统一文件上传（ToolService）
 
 1. 所有端 `POST /gateway/files/Upload`（multipart，字段 `file`）→ `UploadFileHandler`：整文件读入内存（含前 16 字节文件头）。
 2. `FileUploadValidator`（配置驱动）：扩展名白名单（`FileStorage:AllowedExtensions`）→ 分类大小上限（`MaxSizeBytes`：image 5MB/document 20MB/audio 20MB/video 200MB/default 10MB）→ 文件头魔数（防伪造扩展名）。
