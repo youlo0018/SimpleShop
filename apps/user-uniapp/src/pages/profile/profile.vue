@@ -112,6 +112,22 @@ const cycleText = computed(() => {
 
 const go = url => uni.navigateTo({ url: logged.value ? url : '/pages/auth/login' })
 const goEdit = () => go('/pages/profile/edit')
+const goService = item => {
+  const type = item.linkType || item.action
+  if (type === 'service') return uni.showToast({ title: '客服功能筹备中', icon: 'none' })
+  if (!logged.value) return uni.navigateTo({ url: '/pages/auth/login' })
+  if (type === 'orders') return uni.navigateTo({ url: '/pages/orders/orders' })
+  if (type === 'cart') return uni.switchTab({ url: '/pages/cart/cart' })
+  if (type === 'address') return uni.navigateTo({ url: '/pages/address/address' })
+  if (type === 'coupon-center') return uni.navigateTo({ url: '/pages/coupon/center' })
+  if (type === 'coupons') return uni.navigateTo({ url: '/pages/coupon/mine' })
+  if (type === 'favorites') return uni.navigateTo({ url: '/pages/favorites/favorites' })
+  if (type === 'category') return uni.navigateTo({ url: `/pages/category/category?id=${item.linkValue || ''}` })
+  if (type === 'products') return uni.navigateTo({ url: `/pages/shop/shop${item.linkValue ? `?merchantId=${item.linkValue}` : ''}` })
+  if (type === 'refresh') return refresh()
+  if (type === 'profile') return uni.switchTab({ url: '/pages/profile/profile' })
+  uni.navigateTo({ url: '/pages/category/category' })
+}
 const refresh = () => { user.value = getUser(); logged.value = isLogin(); loadStats(); uni.showToast({ title: '已刷新' }) }
 const goBenefits = () => uni.showToast({ title: '权益中心筹备中', icon: 'none' })
 const exit = async () => {

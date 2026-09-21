@@ -5,6 +5,7 @@
     <view v-for="order in orders" :key="order.id" class="card" @tap="show(order)">
       <view class="head"><text>{{ order.orderNo }}</text><text class="status" :style="{ color: statusColor(order), background: statusColor(order) + '14' }">{{ status(order) }}</text></view>
       <view class="foot"><text>{{ formatTime(order.createdAt) }}</text><b>¥{{ Number(order.paymentPrice).toFixed(2) }}</b></view>
+      <view v-if="Number(order.orderStatus) === 40" class="actions"><button class="receive" @tap.stop="receiveFromCard(order)">确认收货</button></view>
     </view>
 
     <view v-if="detail" class="mask" @tap="detail = null"><view class="sheet safe-bottom" @tap.stop>
@@ -20,6 +21,8 @@
       <view v-if="Number(detail.allDiscountPrice) > 0" class="kv discount-total"><text>优惠合计</text><b class="promo-cut">-¥{{ Number(detail.allDiscountPrice).toFixed(2) }}</b></view>
       <view class="kv"><text>实付金额</text><b>¥{{ Number(detail.paymentPrice).toFixed(2) }}</b></view>
       <view class="kv"><text>收货人</text><b>{{ detail.receiverName }} {{ detail.receiverPhone }}</b></view><view class="addr">{{ detail.receiverAddress }}</view>
+      <view v-for="shipment in detail.shipments || []" :key="shipment.id" class="kv"><text>{{ shipment.logisticsCompany || '物流' }}</text><b>{{ shipment.trackingNo || shipment.shipmentNo }}</b></view>
+      <button v-if="canReceive" class="receive block" @tap.stop="receive">确认收货</button>
       <button v-if="[20,40,50].includes(Number(detail.orderStatus))" class="submit" @tap.stop="refund">申请退款</button>
     </view></view>
   </view>
@@ -27,7 +30,7 @@
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { get, post } from '@/common/request'
 import { isLogin, requireLogin } from '@/common/store'
 
@@ -50,6 +53,29 @@ const show = async order => {
   const result = await get('/orders/Detail', { id: order.id, customerId: 0 })
   if (result.success === false) return uni.showToast({ title: result.message || '订单不存在', icon: 'none' })
   detail.value = { ...result.order, items: result.items || [] }
+}
+// 已发货（40）且存在已发货包裹（20）才可确认收货；接口 /orders/Receive 需 shipmentId。
+const pendingShipment = target => (target?.shipments || []).find(item => Number(item.status) === 20)
+const canReceive = computed(() => Number(detail.value?.orderStatus) === 40 && Boolean(pendingShipment(detail.value)))
+const confirmReceive = async shipmentId => {
+  const confirmed = await new Promise(resolve => uni.showModal({
+    title: '确认收货', content: '确认已收到货物？', success: result => resolve(result.confirm), fail: () => resolve(false)
+  }))
+  if (!confirmed) return
+  const result = await post('/orders/Receive', { shipmentId })
+  if (result?.success === false) return uni.showToast({ title: result.message || '收货失败', icon: 'none' })
+  uni.showToast({ title: '已确认收货' }); detail.value = null; load()
+}
+const receive = async () => {
+  const shipment = pendingShipment(detail.value)
+  if (!shipment) return uni.showToast({ title: '暂无待签收包裹', icon: 'none' })
+  await confirmReceive(shipment.id)
+}
+const receiveFromCard = async order => {
+  const result = await get('/orders/Detail', { id: order.id, customerId: 0 })
+  const shipment = pendingShipment(result)
+  if (!shipment) return uni.showToast({ title: '暂无待签收包裹', icon: 'none' })
+  await confirmReceive(shipment.id)
 }
 const refund = async () => {
   const amount = Number(detail.value.paymentPrice)
@@ -86,4 +112,7 @@ onShow(load)
 .goods-promo { display: flex; justify-content: space-between; font-size: 22rpx; margin-top: 4rpx; }
 .promo-type { color: #86868b; }
 .promo-cut { color: #ff3b30; font-weight: 600; }
-.discount-total b { color: #ff3b30; } .submit { margin-top: 22rpx; background: #0071e3; color: #fff; }</style>
+.discount-total b { color: #ff3b30; } .submit { margin-top: 22rpx; background: #0071e3; color: #fff; }
+.actions { display: flex; justify-content: flex-end; margin-top: 18rpx; }
+.receive { background: #34c759; color: #fff; font-size: 26rpx; height: 68rpx; line-height: 68rpx; padding: 0 34rpx; }
+.receive.block { width: 100%; margin-top: 22rpx; }</style>

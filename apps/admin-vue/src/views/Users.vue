@@ -31,8 +31,8 @@
           <el-col :span="12"><el-form-item label="手机号" prop="phone"><el-input v-model="form.phone" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="邮箱" prop="email"><el-input v-model="form.email" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="角色" prop="role"><el-select v-model="form.role" style="width:100%"><el-option v-for="role in roleOptions" :key="role.code" :value="role.code" :label="`${role.name}（${scopeText(role.tenantType)}）`" /></el-select></el-form-item></el-col>
-          <el-col v-if="Number(selectedRole?.tenantType) === 1" :span="12"><el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item></el-col>
-          <el-col v-if="Number(selectedRole?.tenantType) === 2" :span="12"><el-form-item label="所属商户" prop="merchantId"><el-select v-model="form.merchantId" filterable style="width:100%"><el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" /></el-select></el-form-item></el-col>
+          <el-col v-if="!platformScoped && Number(selectedRole?.tenantType) === 1" :span="12"><el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item></el-col>
+          <el-col v-if="!merchantScoped && Number(selectedRole?.tenantType) === 2" :span="12"><el-form-item label="所属商户" prop="merchantId"><el-select v-model="form.merchantId" filterable style="width:100%"><el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" /></el-select></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="头像地址" prop="avatar"><el-input v-model="form.avatar" placeholder="图片 URL（可留空）" /></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="性别" prop="gender"><el-select v-model="form.gender" style="width:100%"><el-option :value="0" label="未设置" /><el-option :value="1" label="男" /><el-option :value="2" label="女" /></el-select></el-form-item></el-col>
           <el-col :span="12"><el-form-item label="生日" prop="birth"><el-date-picker v-model="form.birth" type="date" value-format="YYYY-MM-DD" placeholder="选择生日" style="width:100%" /></el-form-item></el-col>
@@ -47,9 +47,11 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { currentMerchantId, currentPlatformId, isMerchantScoped, isPlatformScoped } from '@/utils/tenant'
 import { EMAIL_PATTERN, PHONE_PATTERN, isStrongPassword, lengthRule, optionalPattern, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const bindings = ref([]); const total = ref(0); const dialog = ref(false)
+const platformScoped = isPlatformScoped(); const merchantScoped = isMerchantScoped()
 const roles = ref([]); const platforms = ref([]); const merchants = ref([]); const formRef = ref(null)
 const query = reactive({ keyword: '', page: 1, pageSize: 10 })
 const emptyForm = () => ({ id: 0, userName: '', password: '', phone: '', email: '', role: '', platformId: '', merchantId: '', avatar: '', gender: 0, birth: '' })
@@ -86,7 +88,12 @@ const roleText = row => {
 }
 
 const resetForm = () => Object.assign(form, emptyForm())
-const openCreate = () => { resetForm(); dialog.value = true }
+const openCreate = () => {
+  resetForm()
+  if (platformScoped) form.platformId = currentPlatformId()
+  if (merchantScoped) form.merchantId = currentMerchantId()
+  dialog.value = true
+}
 const openEdit = row => {
   resetForm()
   Object.assign(form, { id: row.id, userName: row.userName, phone: row.phone || '', email: row.email || '', role: '', avatar: row.avatar || '', gender: Number(row.gender || 0), birth: row.birth ? String(row.birth).slice(0, 10) : '' })
@@ -123,8 +130,8 @@ const load = async () => {
 onMounted(async () => {
   await load()
   const [platformData, merchantData] = await Promise.all([
-    request.get('/platforms/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] })),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
+    platformScoped ? Promise.resolve({ items: [] }) : request.get('/platforms/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] })),
+    merchantScoped ? Promise.resolve({ items: [] }) : request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   platforms.value = platformData.items || []; merchants.value = merchantData.items || []
 })

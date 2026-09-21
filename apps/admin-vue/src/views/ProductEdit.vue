@@ -7,7 +7,7 @@
       <el-form-item label="分类" prop="categoryId">
         <el-cascader v-model="categoryPath" :options="categoryOptions" :props="{ value: 'id', label: 'label', emitPath: true, checkStrictly: true }" style="width:420px" placeholder="选择分类" @change="selectCategory" />
       </el-form-item>
-      <el-form-item label="商户" prop="merchantId">
+      <el-form-item v-if="!merchantScoped" label="商户" prop="merchantId">
         <el-select v-model="form.merchantId" filterable style="width:420px" placeholder="选择商户">
           <el-option v-for="merchant in merchants" :key="merchant.id" :value="merchant.id" :label="merchant.merchantName" />
         </el-select>
@@ -85,12 +85,14 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/api/request'
 import { maxLengthRule } from '@/utils/validators'
+import { currentMerchantId, currentPlatformId, isMerchantScoped } from '@/utils/tenant'
 
 const route = useRoute(); const router = useRouter()
 const apiBase = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5008/gateway'
 const uploadUrl = `${apiBase}/files/Upload`
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` }))
 const merchants = ref([]); const categoryTree = ref([]); const categoryPath = ref([]); const editorRef = ref(null); const formRef = ref(null)
+const merchantScoped = isMerchantScoped()
 const saving = ref(false); const skuError = ref('')
 const form = reactive({ id: '0', platformId: 0, merchantId: '', categoryId: '', name: '', mainImage: '', images: [], description: '', skus: [] })
 const specGroups = reactive([{ name: '', values: '' }])
@@ -174,9 +176,10 @@ const generateSkus = () => {
 const loadReferences = async () => {
   const [categoryData, merchantData] = await Promise.all([
     request.get('/products/GetCategoryTree'),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
+    merchantScoped ? Promise.resolve({ items: [] }) : request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   categoryTree.value = categoryData || []; merchants.value = merchantData.items || []
+  if (merchantScoped) { form.merchantId = currentMerchantId(); form.platformId = currentPlatformId() }
 }
 
 const validateSkus = () => {
@@ -199,7 +202,7 @@ const save = async () => {
   if (!valid || skuError.value) return ElMessage.warning('请按红色提示修正输入')
   saving.value = true
   try {
-    form.platformId = merchants.value.find(item => String(item.id) === String(form.merchantId))?.platformId || 0
+    form.platformId = merchantScoped ? currentPlatformId() : merchants.value.find(item => String(item.id) === String(form.merchantId))?.platformId || 0
     const payload = { ...form, skus: form.skus.map(sku => ({ ...sku, skuCode: sku.skuCode.trim() })) }
     if (form.id && form.id !== '0') await request.post('/products/Update', payload)
     else await request.post('/products/CreateProduct', payload)

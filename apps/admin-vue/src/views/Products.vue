@@ -17,7 +17,7 @@
         </div>
       </template></el-table-column>
       <el-table-column label="分类" width="130"><template #default="{ row }">{{ categoryName(row.categoryId) }}</template></el-table-column>
-      <el-table-column label="商户" width="150"><template #default="{ row }">{{ merchantName(row.merchantId) }}</template></el-table-column>
+      <el-table-column v-if="!merchantScoped" label="商户" width="150"><template #default="{ row }">{{ merchantName(row.merchantId) }}</template></el-table-column>
       <el-table-column label="价格" width="110"><template #default="{ row }">{{ skuRange(row.skus) }}</template></el-table-column>
       <el-table-column label="状态" width="100"><template #default="{ row }">{{ statusText[row.status] || '未知' }}</template></el-table-column>
       <el-table-column label="审核" width="90"><template #default="{ row }">{{ reviewText[row.reviewStatus] || '未审核' }}</template></el-table-column>
@@ -38,9 +38,11 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { isMerchantScoped } from '@/utils/tenant'
 
 const apiBase = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5008/gateway'
 const rows = ref([]); const categories = ref([]); const merchants = ref([]); const total = ref(0)
+const merchantScoped = isMerchantScoped()
 const query = reactive({ keyword: '', page: 1, pageSize: 10, status: null })
 const statusText = { 0: '草稿', 1: '已上架', 2: '已下架' }
 const reviewText = { 0: '待审核', 1: '已审核', 2: '已拒绝' }
@@ -49,7 +51,7 @@ const absoluteUrl = url => !url || /^https?:/.test(url) ? url : `${apiBase.split
 const loadRefs = async () => {
   const [categoryData, merchantData] = await Promise.all([
     request.get('/products/GetCategoryTree'),
-    request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
+    merchantScoped ? Promise.resolve({ items: [] }) : request.get('/merchants/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   ])
   categories.value = categoryData || []
   merchants.value = merchantData.items || []

@@ -11,7 +11,7 @@
       <el-table-column prop="merchantName" label="商户名称" min-width="170" />
       <el-table-column prop="contactName" label="联系人" width="100" />
       <el-table-column prop="contactPhone" label="电话" width="135" />
-      <el-table-column label="所属平台" width="160"><template #default="{ row }">{{ platformText(row.platformId) }}</template></el-table-column>
+      <el-table-column v-if="!platformScoped" label="所属平台" width="160"><template #default="{ row }">{{ platformText(row.platformId) }}</template></el-table-column>
       <el-table-column prop="commissionRate" label="佣金率%" width="95" />
       <el-table-column label="状态" width="100"><template #default="{ row }">{{ statusText[row.status] || '未知' }}</template></el-table-column>
       <el-table-column label="操作" width="230" fixed="right">
@@ -27,7 +27,7 @@
 
     <el-dialog v-model="dialog" :title="form.id ? '编辑商户' : '添加商户'" width="560px" @closed="resetForm">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable placeholder="选择平台" style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item>
+        <el-form-item v-if="!platformScoped" label="所属平台" prop="platformId"><el-select v-model="form.platformId" filterable placeholder="选择平台" style="width:100%"><el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" /></el-select></el-form-item>
         <el-form-item label="商户名称" prop="merchantName"><el-input v-model="form.merchantName" maxlength="64" /></el-form-item>
         <el-form-item label="联系人" prop="contactName"><el-input v-model="form.contactName" maxlength="32" /></el-form-item>
         <el-form-item label="手机号" prop="contactPhone"><el-input v-model="form.contactPhone" /></el-form-item>
@@ -43,9 +43,11 @@
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { currentPlatformId, isPlatformScoped } from '@/utils/tenant'
 import { EMAIL_PATTERN, PHONE_PATTERN, optionalPattern, trimForm } from '@/utils/validators'
 
 const rows = ref([]); const platforms = ref([]); const total = ref(0); const dialog = ref(false); const formRef = ref(null)
+const platformScoped = isPlatformScoped()
 const query = reactive({ keyword: '', status: null, page: 1, pageSize: 10 })
 const emptyForm = () => ({ id: 0, platformId: '', merchantName: '', contactName: '', contactPhone: '', contactEmail: '', commissionRate: 5 })
 const form = reactive(emptyForm())
@@ -61,12 +63,13 @@ const statusText = { 0: '草稿', 10: '待审核', 20: '已入驻', 30: '已拒�
 
 const platformText = id => platforms.value.find(platform => String(platform.id) === String(id))?.platformName || id
 const loadRefs = async () => {
+  if (platformScoped) { platforms.value = []; return }
   const data = await request.get('/platforms/List', { params: { page: 1, pageSize: 100 } }).catch(() => ({ items: [] }))
   platforms.value = data.items || []
 }
 const load = async () => { const data = await request.get('/merchants/List', { params: query }); rows.value = data.items || []; total.value = Number(data.total || 0) }
 const resetForm = () => Object.assign(form, emptyForm())
-const openCreate = async () => { await loadRefs(); resetForm(); form.platformId = platforms.value[0]?.id || ''; dialog.value = true }
+const openCreate = async () => { await loadRefs(); resetForm(); form.platformId = platformScoped ? currentPlatformId() : platforms.value[0]?.id || ''; dialog.value = true }
 const openEdit = async row => { await loadRefs(); Object.assign(form, { ...row }); dialog.value = true }
 const review = async (row, status) => { await request.post('/merchants/Review', { id: row.id, status }); ElMessage.success('审核完成'); load() }
 const setStatus = async (row, status) => { await request.post('/merchants/SetStatus', { id: row.id, status }); ElMessage.success('状态已更新'); load() }

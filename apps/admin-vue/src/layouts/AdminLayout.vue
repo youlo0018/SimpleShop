@@ -30,8 +30,9 @@
           <template v-if="allow('merchant:read') || allow('platform:read') || allow('platform:update')">
             <p class="menu-group">运营</p>
             <el-menu-item v-if="allow('merchant:read')" index="/merchants"><el-icon><Shop /></el-icon><span>商户管理</span></el-menu-item>
-            <el-menu-item v-if="allow('platform:read')" index="/platforms"><el-icon><OfficeBuilding /></el-icon><span>平台管理</span></el-menu-item>
+            <el-menu-item v-if="allow('platform:read') && !platformScoped" index="/platforms"><el-icon><OfficeBuilding /></el-icon><span>平台管理</span></el-menu-item>
             <el-menu-item v-if="allow('platform:update')" index="/app-design"><el-icon><Cellphone /></el-icon><span>小程序装修</span></el-menu-item>
+            <el-menu-item v-if="allow('platform:update')" index="/regions"><el-icon><Location /></el-icon><span>地区地址</span></el-menu-item>
           </template>
 
           <template v-if="allow('marketing:read')">
@@ -71,13 +72,15 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Cellphone, Collection, Goods, Key, List, Odometer, OfficeBuilding,
+  Cellphone, Collection, Goods, Key, List, Location, Odometer, OfficeBuilding,
   PriceTag, RefreshLeft, Shop, SwitchButton, User
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { hasPermission as allow } from '@/utils/permission'
+import { isPlatformScoped } from '@/utils/tenant'
 
 const auth = useAuthStore()
+const platformScoped = isPlatformScoped()
 const router = useRouter()
 const avatarText = computed(() => (auth.user?.userName || 'A').slice(0, 1).toUpperCase())
 const exit = () => { auth.logout(); router.push('/login') }

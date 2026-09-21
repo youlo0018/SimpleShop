@@ -109,7 +109,7 @@
       <el-tab-pane label="营销配置" name="config">
         <el-form label-width="150px" style="max-width:520px">
           <el-form-item v-if="canChoosePlatform" label="平台">
-            <el-select v-model="platformId" filterable style="width:100%" @change="loadConfig">
+            <el-select v-if="canChoosePlatform" v-model="platformId" filterable style="width:100%" @change="loadConfig">
               <el-option v-for="item in platforms" :key="item.id" :value="item.id" :label="item.platformName" />
             </el-select>
           </el-form-item>
@@ -268,6 +268,7 @@
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/api/request'
+import { isPlatformScoped } from '@/utils/tenant'
 import { hasPermission as allow } from '@/utils/permission'
 import { trimForm } from '@/utils/validators'
 
@@ -276,7 +277,7 @@ const editable = computed(() => allow('marketing:create'))
 // 全局数字序列化为字符串：API 回填与比较必须先 Number()，否则 el-radio/el-select 严格比较不回显。
 const n = value => Number(value || 0)
 const user = JSON.parse(localStorage.getItem('admin_user') || 'null')
-const canChoosePlatform = computed(() => (user?.permissions || []).includes('*'))
+const canChoosePlatform = computed(() => !isPlatformScoped() && (user?.permissions || []).includes('*'))
 const platforms = ref([]); const merchants = ref([]); const productOptions = ref([])
 const templateOptions = ref([]); const couponActivityOptions = ref([])
 const platformId = ref(user?.platformId && n(user.platformId) > 0 ? user.platformId : '')

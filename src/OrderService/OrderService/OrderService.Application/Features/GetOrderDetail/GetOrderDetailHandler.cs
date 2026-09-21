@@ -4,12 +4,12 @@ using OrderService.Domain.IRepository;
 namespace OrderService.Application.Features.GetOrderDetail;
 
 /// <summary>
-/// 订单详情：主单 + 明细快照一起返回，方便用户核对“当时买了什么”。
+/// 订单详情：主单 + 明细快照 + 包裹（物流）一起返回，方便用户核对“当时买了什么”。
 /// </summary>
-public sealed class GetOrderDetailHandler(IOrderRepository repository)
+public sealed class GetOrderDetailHandler(IOrderRepository repository, IShipmentRepository shipmentRepository)
     : IRequestHandler<GetOrderDetailQuery, object>
 {
-    /// <summary>处理入口：订单详情：主单 + 明细快照一起返回，方便用户核对“当时买了什么”。</summary>
+    /// <summary>处理入口：订单详情：主单 + 明细快照 + 包裹一起返回（客户确认收货需要 shipmentId）。</summary>
     public async Task<object> Handle(GetOrderDetailQuery request, CancellationToken cancellationToken)
     {
         // 后台租户查询时 CustomerId 为 0；只有顾客侧详情才必须校验订单归属。
@@ -22,11 +22,13 @@ public sealed class GetOrderDetailHandler(IOrderRepository repository)
         }
 
         var items = await repository.GetItemsAsync(order.Id, cancellationToken);
-            return new
-            {
-                success = true,
-                order = order,
-            items
+        var shipments = await shipmentRepository.GetByOrderAsync(order.Id, cancellationToken);
+        return new
+        {
+            success = true,
+            order,
+            items,
+            shipments
         };
     }
 }

@@ -8,7 +8,7 @@
           <el-tag v-else type="info" size="small">未发布（草稿）</el-tag>
         </div>
         <div class="toolbar">
-          <el-select v-model="platformId" filterable style="width:220px" @change="load">
+          <el-select v-if="!platformScoped" v-model="platformId" filterable style="width:220px" @change="load">
             <el-option v-for="platform in platforms" :key="platform.id" :value="platform.id" :label="platform.platformName" />
           </el-select>
           <el-button :loading="saving" @click="save(false)">保存草稿</el-button>
@@ -121,15 +121,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="地址地区" name="regions">
-            <div class="hint">小程序收货地址的省/市/区三级下拉数据。默认使用内置全国数据（31 省 / 342 市 / 3056 区县），保存自定义 JSON 后该平台改用自定义数据。</div>
-            <el-tag :type="regionsCustom ? 'success' : 'info'" size="small">{{ regionsCustom ? '当前：平台自定义' : '当前：内置默认全国数据' }}</el-tag>
-            <el-input v-model="regionsJson" type="textarea" :rows="14" class="regions-json" placeholder='[{"name":"广东省","children":[{"name":"深圳市","children":[{"name":"南山区"}]}]}]' />
-            <div class="regions-actions">
-              <el-button size="small" @click="loadRegions">加载当前数据</el-button>
-              <el-button size="small" type="primary" :loading="regionsSaving" @click="saveRegions">保存自定义</el-button>
-              <el-button size="small" type="danger" plain @click="resetRegions">恢复默认</el-button>
-            </div>
-            <div class="hint">结构：三级数组（name + children）；「恢复默认」会清除平台自定义数据。</div>
+            <RegionEditor :platform-id="platformId" />
           </el-tab-pane>
 
           <el-tab-pane label="主题与标签" name="theme">
@@ -449,6 +441,8 @@
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/api/request'
+import RegionEditor from '@/components/RegionEditor.vue'
+import { currentPlatformId, isPlatformScoped } from '@/utils/tenant'
 import { isHexColor } from '@/utils/validators'
 
 // 后台域下无法直接加载小程序静态资源与网关相对路径：统一解析为可访问的绝对地址。
@@ -544,6 +538,7 @@ const LinkPicker = defineComponent({
 
 // ---------- 状态 ----------
 const platforms = ref([]); const platformId = ref(''); const saving = ref(false)
+const platformScoped = isPlatformScoped()
 const version = ref(0); const isPublished = ref(false)
 const activeTab = ref('home')
 const selection = reactive({ kind: '', index: -1 })
@@ -551,7 +546,6 @@ const categories = ref([]); const merchants = ref([]); const productCache = ref(
 const currentPlatformName = ref('')
 
 const design = ref(emptyDesign())
-const regionsJson = ref(''); const regionsCustom = ref(false); const regionsSaving = ref(false)
 
 function emptyDesign() {
   return {
@@ -775,32 +769,6 @@ const onDragEnd = () => {
   }
 }
 
-// 地址地区数据：加载当前平台生效数据（自定义或内置默认），保存/恢复默认。
-const loadRegions = async () => {
-  if (!platformId.value) return
-  const data = await request.get('/platform-configs/Regions', { params: { platformId: platformId.value } })
-  regionsCustom.value = Boolean(data?.isCustom)
-  regionsJson.value = JSON.stringify(data?.regions || [], null, 1)
-}
-const saveRegions = async () => {
-  if (!platformId.value) return ElMessage.warning('请先选择平台')
-  let parsed
-  try { parsed = JSON.parse(regionsJson.value) } catch { return ElMessage.error('地区数据必须是合法JSON') }
-  if (!Array.isArray(parsed) || !parsed.length || parsed.some(item => !item?.name)) return ElMessage.error('地区数据必须是含 name 的数组')
-  regionsSaving.value = true
-  try {
-    await request.post('/platform-configs/SaveRegions', { platformId: platformId.value, regionsJson: regionsJson.value })
-    ElMessage.success('已保存自定义地区数据')
-    await loadRegions()
-  } finally { regionsSaving.value = false }
-}
-const resetRegions = async () => {
-  const confirmed = await ElMessageBox.confirm('恢复默认将清除该平台自定义地区数据，确认？', '恢复默认', { type: 'warning' }).then(() => true).catch(() => false)
-  if (!confirmed) return
-  await request.post('/platform-configs/SaveRegions', { platformId: platformId.value, regionsJson: '' })
-  ElMessage.success('已恢复内置默认数据')
-  await loadRegions()
-}
 const linkTypeText = value => ({
   products: '商品列表', category: '分类页', cart: '购物车', orders: '我的订单', address: '收货地址',
   'coupon-center': '领券中心', coupons: '我的券包', favorites: '我的收藏', refresh: '刷新资料', service: '联系客服'
@@ -859,13 +827,13 @@ const addProfileItem = list => {
 
 // ---------- 加载 / 保存 ----------
 const loadPlatforms = async () => {
+  if (platformScoped) { platformId.value = currentPlatformId(); return }
   const data = await request.get('/platforms/List', { params: { page: 1, pageSize: 100 } })
   platforms.value = data.items || []
   if (!platformId.value && platforms.value.length) platformId.value = platforms.value[0].id
 }
 const load = async () => {
   if (!platformId.value) return
-  loadRegions().catch(() => {})
   const data = await request.get('/platform-configs/Admin', { params: { platformId: platformId.value } })
   design.value = { ...emptyDesign(), ...(data.design || {}) }
   design.value.theme = { ...emptyDesign().theme, ...(data.design?.theme || {}) }
@@ -1099,7 +1067,5 @@ onMounted(async () => { await Promise.all([loadPlatforms(), loadPreviewData()]);
 :deep(.icon-upload) { display: flex; align-items: center; gap: 10px; }
 :deep(.icon-hint) { font-size: 11px; color: #a1a1a6; }
 :deep(.link-picker) { display: flex; gap: 8px; width: 100%; }
-.regions-json { margin: 10px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-.regions-actions { display: flex; gap: 8px; margin-bottom: 8px; }
 :deep(.link-picker select), :deep(.link-picker input) { flex: 1; height: 32px; border: 1px solid var(--el-border-color); border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; min-width: 0; }
 </style>

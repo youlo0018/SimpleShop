@@ -5,7 +5,7 @@
       <view class="line"><b>{{ item.receiverName }}</b><text>{{ item.receiverPhone }}</text><text v-if="item.isDefault" class="tag">默认</text></view>
       <view class="addr">{{ item.province }}{{ item.city }}{{ item.district }}{{ item.detail }}</view>
     </view>
-    <button class="submit safe-bottom" @tap="dialog = true">新增地址</button>
+    <button v-if="!dialog" class="submit safe-bottom" @tap="dialog = true">新增地址</button>
     <view v-if="dialog" class="mask" @tap="dialog = false"><view class="form safe-bottom" @tap.stop>
       <input v-model="form.receiverName" placeholder="收货人" /><input v-model="form.receiverPhone" placeholder="手机号" />
       <picker mode="multiSelector" :range="regionRange" :value="regionValue" @columnchange="onRegionColumnChange" @change="onRegionChange">
@@ -101,8 +101,9 @@ onShow(() => { requireLogin(); load(); loadRegions() })
 .tag { color: #0071e3 !important; background: rgba(0, 113, 227, .1); font-size: 20rpx !important; font-weight: 600; padding: 4rpx 14rpx; border-radius: 980px; }
 .addr { color: #6e6e73; line-height: 1.55; }
 .submit { position: fixed; left: 30rpx; right: 30rpx; bottom: calc(50px + 20rpx); background: #0071e3; color: #fff; box-shadow: 0 10rpx 26rpx rgba(0, 113, 227, .3); }
-.mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; }
-.form { width: 100%; background: #fff; border-radius: 36rpx 36rpx 0 0; padding: 44rpx 40rpx; box-shadow: 0 -10rpx 40rpx rgba(0, 0, 0, .08); } .form input { height: 96rpx; background: #f5f5f7; border-radius: 20rpx; padding: 0 26rpx; margin-bottom: 20rpx; font-size: 28rpx; }
+.mask { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; }
+.form { width: 100%; background: #fff; border-radius: 36rpx 36rpx 0 0; padding: 44rpx 40rpx; box-shadow: 0 -10rpx 40rpx rgba(0, 0, 0, .08); max-height: 82vh; overflow-y: auto; } .form input { height: 96rpx; background: #f5f5f7; border-radius: 20rpx; padding: 0 26rpx; margin-bottom: 20rpx; font-size: 28rpx; }
+.form .submit { position: relative; left: auto; right: auto; bottom: auto; margin: 6rpx 0 0; }
 .region-picker { height: 96rpx; background: #f5f5f7; border-radius: 20rpx; padding: 0 26rpx; margin-bottom: 20rpx; display: flex; align-items: center; justify-content: space-between; font-size: 28rpx; }
 .region-picker .placeholder { color: #a1a1a6; }
 .region-picker .caret { color: #a1a1a6; font-size: 32rpx; }</style>

@@ -30,6 +30,8 @@ npx vite preview --host 0.0.0.0 --port 5173 --outDir dist --strictPort
 cd apps/user-uniapp && npm run build:h5
 npx vite preview --host 0.0.0.0 --port 5174 --outDir dist/build/h5 --strictPort
 #    微信小程序：npm run build:mp-weixin → 导入 dist/build/mp-weixin
+#    注意：微信端依赖 @dcloudio/uni-mp-weixin（缺失时会静默把 H5 产物写进 mp-weixin 目录）；
+#          vite.config.js 的 normalize-mp-weixin-output 插件会把 App.wxss 合并进 app.wxss（微信只加载 app.wxss）。
 ```
 
 - 后台 http://127.0.0.1:5173 （`codexadmin / Admin123456`）；商城 http://127.0.0.1:5174 （手机视口验证）。
@@ -63,12 +65,34 @@ npx vite preview --host 0.0.0.0 --port 5174 --outDir dist/build/h5 --strictPort
 
 ## 5. 进度日志（倒序，新条目写在最上面）
 
+### 2026-09-21（第三十轮）：后台地区地址改多级下拉编辑 + 小程序订单确认收货
+- 后台地区地址不再用 JSON：新增共用组件 `src/components/RegionEditor.vue`（`RegionConfig.vue` 独立页与装修页「地址地区」Tab 共用）。
+  - 展示：`el-cascader`（checkStrictly，逐级浏览省/市/区）+ 省/市/区统计 + 状态标签（内置默认/平台自定义）。
+  - 编辑：不选→新增省、选省→新增市、选到市→新增区县（区县层禁用新增）；「删除选中」按层级删除并二次确认；保存时序列化回 `name/children` 调 `SaveRegions`；恢复默认清空自定义。
+  - 验证：CDP 实测选北京市→新增市 343→删除回 342→新增省保存（接口 `isCustom=true`、32 省含测试省）→恢复默认（`isCustom=false`、31 省），装修页 Tab 同样渲染编辑器。
+- 小程序订单确认收货：`GetOrderDetailHandler` 增加返回 `shipments`（物流公司/单号 + 包裹状态）；订单列表状态 40 的卡片与详情弹窗新增「确认收货」（仅当存在已发货包裹 status=20），确认后调 `/orders/Receive {shipmentId}`。
+  - 验证：demo_user_01 两个待收货订单卡片均出现按钮；CDP 确认收货后接口返回成功、页面提示「已确认收货」，DB `order.OrderStatus=50`、`shipment.Status=50`、`ReceivedAt` 已写。
+- 回归：`ui-regression` 46/46、`api-regression` 114/114。
+
+### 2026-09-21（第二十九轮）：租户视角收敛 + 我的页图标修复 + 商户列表 400
+- 地址弹窗「详细地址看不见」根因（截图为证）：地址页底部固定的「新增地址」按钮与弹窗内「保存」按钮复用了 `.submit{position:fixed}`，两个 fixed 按钮叠在弹窗上盖住了详细地址那一行；且 `uni-button::after` 伪元素相对最近的定位祖先（`.mask`）铺满，命中测试也会点到按钮。
+  - 修复：弹窗打开时隐藏页面「新增地址」按钮（`v-if="!dialog"`）；`.form .submit` 改为 `position: relative`（保留在文档流并让 `::after` 相对自身）；`.mask` 加 `z-index:100`；`.form` 加 `max-height:82vh; overflow-y:auto`。
+  - 验证：CDP 实测详细地址 rect 688-738 与保存按钮 775-821 不重叠、`elementFromPoint`=输入框本身、点击后可聚焦并输入「科技园路1号」；截图确认弹窗顺序=收货人/手机号/省市区/详细地址/设为默认/保存；`ui-regression` 46/46。
+- 我的页图标点不动：`profile.vue` 模板绑定了 `goService(item)` 但脚本未定义（点击静默报错）。补齐映射：orders/cart/address/coupon-center/coupons/favorites/category/products/refresh/profile，service 提示「客服功能筹备中」；未登录先跳登录。
+- 后台租户视角收敛（新增 `src/utils/tenant.js`）：`isPlatformScoped()`=platformId>0、`isMerchantScoped()`=tenantType=merchant、`currentPlatformId()/currentMerchantId()` **保持雪花 ID 字符串**（Number 会丢末位精度，实测 13755080881608709→...708）。
+  - 平台账号：隐藏「平台管理」菜单；装修页/地区地址/商户管理/营销/用户管理的平台下拉与平台列隐藏，自动锁定本平台；不再请求 `/platforms/List`。
+  - 商户账号：商品编辑的商户下拉、商品列表/详情的商户列隐藏，自动回填本商户与本平台；不再请求 `/merchants/List`（商户角色无 merchant:read，403）。
+- 商户列表 400 修复：`ListMerchantsQuery` 由属性式非空 `string Keyword` 改为主构造参数（默认 `""`）——ASP.NET 对查询参数的非空引用类型隐式 required 会拒绝空字符串，导致 `keyword=` 一律 400「Keyword field is required」。
+- 验证：CDP 三账号核验（codexadmin 全量可见；platform-admin 租户隐藏平台下拉且地区统计 31/342/3056、商户列表无报错；demo-merchant 无商户下拉/列）；demo-merchant API 建品成功（临时商品已清理）；`ui-regression` 46/46、`api-regression` 114/114。
+
 ### 2026-09-21（第二十八轮）：小程序地址省市区三级下拉 + 平台地区配置
 - 需求：小程序新增/修改地址时省市区不再手填，改为三级下拉；默认内置全国数据，平台可在后台配置；详细地址仍由用户填写。
 - 后端（MerchantPlatformService）：`PlatformAppConfig.RegionsJson`（text，空=用内置默认）；`GET /gateway/platform-configs/Regions?platformId=` 返回 `{regions,isCustom}`（`isCustom=false` 时返回 `Data/china-regions.json`，31 省/342 市/3056 区县，81KB，csproj 随发布复制）；`POST /gateway/platform-configs/SaveRegions`（platform:update）校验三级 JSON（合法 JSON、非空数组、每级含 name、≤2MB），**空字符串=恢复默认**。
 - 后台（AppDesign）：新增「地址地区」Tab —— 状态标签（内置默认/平台自定义）、JSON 文本域（进入页面自动加载当前生效数据）、加载当前数据/保存自定义/恢复默认（二次确认）。
 - 小程序（address.vue）：省市区改 `<picker mode="multiSelector">` 三级联动；`loadRegions()` 按平台缓存到 `platform_regions`（平台切换/清缓存后重拉）；`applyRegionDefaults()` 将表单值与地区数据对齐（不存在的值回落第一项，新增/保存后同样对齐）；详细地址保持输入框。
 - 验证：CDP 实测后台 Tab JSON 128366 字符含北京市；小程序默认选择器=广东省/深圳市/南山区、展开含省数据；平台保存自定义（仅北京市）后小程序回落=北京市/市辖区/朝阳区；恢复默认接口返回 `isCustom=false`、31 省。`ui-regression` 46/46。
+- 后台入口：除装修页 Tab 外，新增独立菜单「地区地址」（`/regions` → `RegionConfig.vue`，platform:update），显示省/市/区统计与 JSON 编辑。
+- 小程序构建修复：补装 `@dcloudio/uni-mp-weixin`（此前缺失，`npm run build:mp-weixin` 实际产出 H5 文件到 `dist/build/mp-weixin`，微信开发者工具无法运行）；`vite.config.js` 增加 `normalize-mp-weixin-output` 插件——把 `App.wxss`（App.vue 全局样式：CSS 变量/safe-bottom/按钮样式）合并进 `app.wxss`，`App.json` 改名 `App2.json` 对应 `App2.js`，消除大小写文件冲突。
 - 注意：后台 `SaveRegions` 的「恢复默认」用空字符串表达；读取接口的默认数据来自程序目录 `Data/china-regions.json`，不落库（避免每平台存 81KB 冗余）。
 
 ### 2026-09-21（第二十七轮）：结算/购物车活动展示只保留最优惠一个

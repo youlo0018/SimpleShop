@@ -22,6 +22,7 @@ const routes = [
       { path: 'merchants', component: () => import('@/views/Merchants.vue'), meta: { title: '商户管理', permission: 'merchant:read' } },
       { path: 'platforms', component: () => import('@/views/Platforms.vue'), meta: { title: '平台管理', permission: 'platform:read' } },
       { path: 'app-design', component: () => import('@/views/AppDesign.vue'), meta: { title: '小程序装修', permission: 'platform:update' } },
+      { path: 'regions', component: () => import('@/views/RegionConfig.vue'), meta: { title: '地区地址', permission: 'platform:update' } },
       { path: 'marketing', component: () => import('@/views/Marketing.vue'), meta: { title: '营销管理', permission: 'marketing:read' } },
       { path: 'permissions', component: () => import('@/views/Permissions.vue'), meta: { title: '角色权限', permission: 'permission:manage' } }
     ]
