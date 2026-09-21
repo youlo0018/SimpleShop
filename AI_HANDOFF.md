@@ -63,6 +63,20 @@ npx vite preview --host 0.0.0.0 --port 5174 --outDir dist/build/h5 --strictPort
 
 ## 5. 进度日志（倒序，新条目写在最上面）
 
+### 2026-09-21（第二十八轮）：小程序地址省市区三级下拉 + 平台地区配置
+- 需求：小程序新增/修改地址时省市区不再手填，改为三级下拉；默认内置全国数据，平台可在后台配置；详细地址仍由用户填写。
+- 后端（MerchantPlatformService）：`PlatformAppConfig.RegionsJson`（text，空=用内置默认）；`GET /gateway/platform-configs/Regions?platformId=` 返回 `{regions,isCustom}`（`isCustom=false` 时返回 `Data/china-regions.json`，31 省/342 市/3056 区县，81KB，csproj 随发布复制）；`POST /gateway/platform-configs/SaveRegions`（platform:update）校验三级 JSON（合法 JSON、非空数组、每级含 name、≤2MB），**空字符串=恢复默认**。
+- 后台（AppDesign）：新增「地址地区」Tab —— 状态标签（内置默认/平台自定义）、JSON 文本域（进入页面自动加载当前生效数据）、加载当前数据/保存自定义/恢复默认（二次确认）。
+- 小程序（address.vue）：省市区改 `<picker mode="multiSelector">` 三级联动；`loadRegions()` 按平台缓存到 `platform_regions`（平台切换/清缓存后重拉）；`applyRegionDefaults()` 将表单值与地区数据对齐（不存在的值回落第一项，新增/保存后同样对齐）；详细地址保持输入框。
+- 验证：CDP 实测后台 Tab JSON 128366 字符含北京市；小程序默认选择器=广东省/深圳市/南山区、展开含省数据；平台保存自定义（仅北京市）后小程序回落=北京市/市辖区/朝阳区；恢复默认接口返回 `isCustom=false`、31 省。`ui-regression` 46/46。
+- 注意：后台 `SaveRegions` 的「恢复默认」用空字符串表达；读取接口的默认数据来自程序目录 `Data/china-regions.json`，不落库（避免每平台存 81KB 冗余）。
+
+### 2026-09-21（第二十七轮）：结算/购物车活动展示只保留最优惠一个
+- 问题：结算页把 `SettlePreview.activities` 全量渲染，演示平台累积大量测试活动（多为赠券）时会出现多行、且全是「赠券」。
+- 修复（前端展示层，不动引擎语义）：`checkout.vue`/`cart.vue` 新增 `bestActivity`（按 `estimatedDiscount` 取最大、并列取门槛更低；全为 0 时展示一个赠券），只渲染一行；商品详情活动标签优先满减/满折、无折扣才展示赠券。
+- 数据清理：软删演示平台测试活动 127 个（`API*/链路*`）并按名称去重，平台仅保留 8 个业务活动（满减/满折/赠券各一）。
+- 验证：CDP 实测结算页活动行数=1（`全平台满100减10 -¥10.00`，实付 110）；`ui-regression` 46/46。
+
 ### 2026-09-21（第二十六轮）：商品轮播图 + 上传框尺寸调整
 - 商品编辑：主图上传框固定 **180×180**；新增「轮播图」编辑块（最多 6 张，同样 180×180 固定框 + 悬浮玻璃层「更换图片」+ 右上删除角标 + 虚线添加框）。
 - 后端：`Product.Images`（JSON 数组字符串，2000 字符）贯通创建/编辑/详情（`CreateProductCommand.Images`、`SaveProductCommand.Images`、Mapper/Handler 序列化；Validator 限制 ≤6 张且地址 ≤255）。

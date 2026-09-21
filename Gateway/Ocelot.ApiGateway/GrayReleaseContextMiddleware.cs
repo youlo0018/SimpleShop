@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace SimpleShop.Gateway.Middleware;
+namespace SimpleShop.Gateway;
 
 public sealed class GrayReleaseContextMiddleware(
     RequestDelegate next,

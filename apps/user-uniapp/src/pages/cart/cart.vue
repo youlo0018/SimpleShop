@@ -9,7 +9,7 @@
           <text class="promo-amount">-¥{{ Number(settle.totalDiscount).toFixed(2) }}</text>
         </view>
         <view class="promo-tags">
-          <text v-for="item in (settle.activities || []).slice(0, 2)" :key="'a' + item.activityId" class="promo-item">活动：{{ item.name }}</text>
+          <text v-if="bestActivity" class="promo-item">活动：{{ bestActivity.name }}</text>
           <text v-for="item in (settle.coupons || []).slice(0, 2)" :key="'c' + item.userCouponId" class="promo-item">券：{{ item.name }}</text>
         </view>
       </view>
@@ -33,6 +33,13 @@ import { validateQuantity } from '@/common/validators'
 
 const fallback = '/static/placeholder.png'
 const theme = ref(getTheme()); const items = ref([]); const settle = ref(null); const changing = ref('')
+// 与结算页一致：活动只展示最优惠的一个（赠券兜底）。
+const bestActivity = computed(() => {
+  const list = [...(settle.value?.activities || [])]
+  if (!list.length) return null
+  return list.sort((a, b) => Number(b.estimatedDiscount) - Number(a.estimatedDiscount)
+    || Number(a.threshold) - Number(b.threshold))[0]
+})
 const total = computed(() => items.value.filter(item => item.checked).reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2))
 const payable = computed(() => {
   const amount = Number(total.value) - Number(settle.value?.totalDiscount || 0)

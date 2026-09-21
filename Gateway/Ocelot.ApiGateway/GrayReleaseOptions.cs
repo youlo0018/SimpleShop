@@ -1,4 +1,4 @@
-namespace SimpleShop.Gateway.Middleware;
+namespace SimpleShop.Gateway;
 
 public sealed class GrayReleaseOptions
 {

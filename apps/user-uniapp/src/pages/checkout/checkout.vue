@@ -10,10 +10,11 @@
         <text class="promo-name">券：{{ coupon.name }}</text>
         <text class="promo-value">-¥{{ Number(coupon.estimatedDiscount).toFixed(2) }}</text>
       </view>
-      <view v-for="activity in settle.activities || []" :key="activity.activityId" class="promo-row static">
+      <!-- 活动只展示最优惠的一个（赠券仅在没有折扣活动时兜底展示） -->
+      <view v-if="bestActivity" class="promo-row static">
         <text class="tick activity">活动</text>
-        <text class="promo-name">{{ activity.name }}</text>
-        <text class="promo-value">{{ Number(activity.estimatedDiscount) > 0 ? '-¥' + Number(activity.estimatedDiscount).toFixed(2) : '赠券' }}</text>
+        <text class="promo-name">{{ bestActivity.name }}</text>
+        <text class="promo-value">{{ Number(bestActivity.estimatedDiscount) > 0 ? '-¥' + Number(bestActivity.estimatedDiscount).toFixed(2) : '赠券' }}</text>
       </view>
     </view>
 
@@ -48,6 +49,13 @@ import { isPhone, toast, validateQuantity } from '@/common/validators'
 const fallback = '/static/placeholder.png'
 const theme = ref(getTheme()); const items = ref([]); const address = ref(null); const submitting = ref(false)
 const settle = ref(null); const selectedCouponIds = ref([])
+// 最优惠活动：按预估优惠金额取最大（并列取门槛更低者）；全是赠券（0 元）时展示其中一个赠券活动。
+const bestActivity = computed(() => {
+  const list = [...(settle.value?.activities || [])]
+  if (!list.length) return null
+  return list.sort((a, b) => Number(b.estimatedDiscount) - Number(a.estimatedDiscount)
+    || Number(a.threshold) - Number(b.threshold))[0]
+})
 const amount = computed(() => items.value.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0).toFixed(2))
 const totalDiscount = computed(() => Number(settle.value?.totalDiscount || 0))
 const payable = computed(() => (Number(amount.value) - totalDiscount.value).toFixed(2))

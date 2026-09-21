@@ -55,6 +55,87 @@ namespace MerchantPlatformService.Api.Controllers;
         });
     }
 
+    /// <summary>
+    /// 省市区数据（GET，游客可访问）：平台自定义优先，未配置时返回内置默认全国数据。
+    /// 小程序地址表单用它渲染三级下拉，结构为 [{name, children:[{name, children:[{name}]}]}]。
+    /// </summary>
+    [HttpGet]
+    public async Task<ApiResponse> Regions([FromQuery] long platformId)
+    {
+        var platform = await freeSql.Select<Platform>().Where(item => item.Id == platformId && !item.IsDeleted).FirstAsync();
+        if (platform is null) return Error(BaseApiResponseCode.NotFound, "平台不存在");
+        var config = await freeSql.Select<PlatformAppConfig>()
+            .Where(item => item.PlatformId == platform.Id && !item.IsDeleted).FirstAsync();
+        var custom = config?.RegionsJson;
+        // 反序列化为普通对象树：JsonDocument 会在方法返回后释放，不能直接序列化其 RootElement。
+        if (!string.IsNullOrWhiteSpace(custom))
+            return Ok(new { regions = JsonSerializer.Deserialize<object>(custom), isCustom = true });
+        return Ok(new { regions = JsonSerializer.Deserialize<object>(await LoadDefaultRegionsAsync()), isCustom = false });
+    }
+
+    /// <summary>保存平台自定义省市区数据（POST，platform:update）：JSON 三级结构校验 + 大小上限 2MB。</summary>
+    [HttpPost]
+    public async Task<ApiResponse> SaveRegions([FromBody] SaveRegionsRequest request)
+    {
+        // 空值表示恢复内置默认（清除平台自定义）。
+        var resetToDefault = string.IsNullOrWhiteSpace(request.RegionsJson);
+        if (!resetToDefault && request.RegionsJson.Length > 2 * 1024 * 1024)
+            return Error(BaseApiResponseCode.BadRequest, "地区数据不能超过2MB");
+        if (!resetToDefault)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(request.RegionsJson);
+                if (document.RootElement.ValueKind != JsonValueKind.Array)
+                    return Error(BaseApiResponseCode.BadRequest, "地区数据必须是数组");
+                if (document.RootElement.GetArrayLength() == 0)
+                    return Error(BaseApiResponseCode.BadRequest, "地区数据不能为空数组");
+                foreach (var province in document.RootElement.EnumerateArray())
+                {
+                    if (province.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(province.GetProperty("name").GetString()))
+                        return Error(BaseApiResponseCode.BadRequest, "地区数据缺少名称");
+                }
+            }
+            catch (JsonException)
+            {
+                return Error(BaseApiResponseCode.BadRequest, "地区数据必须是合法JSON");
+            }
+        }
+
+        var scopedPlatformId = await ResolvePlatformIdAsync(request.PlatformId);
+        if (scopedPlatformId <= 0)
+            return Error(tenant.HasWildcard ? BaseApiResponseCode.BadRequest : BaseApiResponseCode.Forbidden,
+                tenant.HasWildcard ? "请选择平台" : "无权配置该平台");
+
+        var config = await freeSql.Select<PlatformAppConfig>()
+            .Where(item => item.PlatformId == scopedPlatformId && !item.IsDeleted).FirstAsync();
+        if (config is null)
+        {
+            var platform = await freeSql.Select<Platform>().Where(item => item.Id == scopedPlatformId && !item.IsDeleted).FirstAsync();
+            config = new PlatformAppConfig { PlatformId = scopedPlatformId, PlatformCode = platform?.PlatformCode ?? string.Empty, RegionsJson = resetToDefault ? null : request.RegionsJson };
+            await freeSql.Insert(config).ExecuteAffrowsAsync();
+        }
+        else
+        {
+            config.RegionsJson = resetToDefault ? null : request.RegionsJson;
+            config.UpdatedAt = DateTime.Now;
+            await freeSql.Update<PlatformAppConfig>().SetSource(config).ExecuteAffrowsAsync();
+        }
+        return Ok(new { success = true, isCustom = !resetToDefault });
+    }
+
+    /// <summary>内置省市区数据缓存（随程序发布，只读一次）。</summary>
+    private static string? _defaultRegions;
+
+    /// <summary>读取内置省市区数据文件（Data/china-regions.json）。</summary>
+    private static async Task<string> LoadDefaultRegionsAsync()
+    {
+        if (_defaultRegions is not null) return _defaultRegions;
+        var path = Path.Combine(AppContext.BaseDirectory, "Data", "china-regions.json");
+        _defaultRegions = await System.IO.File.ReadAllTextAsync(path);
+        return _defaultRegions;
+    }
+
     [HttpGet]
     /// <summary>后台装修配置（GET，platform:read）：按租户裁剪，返回草稿与发布配置。</summary>
     public async Task<ApiResponse> Admin([FromQuery] long platformId)
@@ -235,4 +316,9 @@ namespace MerchantPlatformService.Api.Controllers;
 }
 
 /// <summary>保存平台小程序装修配置（发布开关 + JSON 校验）。</summary>
+/// <summary>保存平台省市区数据请求：平台 ID + 三级地区 JSON。</summary>
+/// <param name="PlatformId">平台 ID。</param>
+/// <param name="RegionsJson">三级地区 JSON 数组字符串。</param>
+public sealed record SaveRegionsRequest(long PlatformId, string RegionsJson);
+
 public sealed record SavePlatformAppConfigRequest(long PlatformId, string ConfigJson, bool Publish);

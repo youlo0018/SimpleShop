@@ -21,6 +21,10 @@ public sealed class PlatformAppConfig : BaseEntity
     /// <summary>小程序页面配置JSON</summary>
     public string ConfigJson { get; set; } = "{}";
 
+    [Column(StringLength = -1, IsNullable = true), Description("平台自定义省市区数据JSON（空=使用内置默认）")]
+    /// <summary>平台自定义省市区数据（三级 JSON 数组）；为空时小程序使用内置默认全国数据。</summary>
+    public string? RegionsJson { get; set; }
+
     [Description("发布版本")] public int PublishVersion { get; set; }
 
     [Description("是否发布")] public bool IsPublished { get; set; }

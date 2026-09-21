@@ -8,6 +8,7 @@ using CommunalService.Domain.Messaging;
 using Consul;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Configuration;
+using SimpleShop.Gateway;
 using SimpleShop.Gateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);

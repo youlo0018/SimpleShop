@@ -11,4 +11,8 @@
     <ProjectReference Include="..\MerchantPlatformService.Application\MerchantPlatformService.Application.csproj" />
     <ProjectReference Include="..\MerchantPlatformService.Infrastructure\MerchantPlatformService.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- 内置全国省市区数据（平台未自定义时使用） -->
+    <None Update="Data\china-regions.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

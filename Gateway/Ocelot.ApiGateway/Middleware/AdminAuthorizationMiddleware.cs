@@ -51,6 +51,7 @@ public sealed class AdminAuthorizationMiddleware(
         ["/gateway/platforms/SetEnabled"] = "platform:update",
         ["/gateway/platform-configs/Admin"] = "platform:update",
         ["/gateway/platform-configs/Save"] = "platform:update",
+        ["/gateway/platform-configs/SaveRegions"] = "platform:update",
         ["/gateway/users/Create"] = "user:create",
         ["/gateway/users/Update"] = "user:update-status",
         ["/gateway/users/UpdateStatus"] = "user:update-status",

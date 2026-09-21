@@ -2,7 +2,7 @@ using System.Diagnostics;
 using CommunalService.Domain.Logging;
 using CommunalService.Domain.Messaging;
 
-namespace SimpleShop.Gateway.Middleware;
+namespace SimpleShop.Gateway;
 
 /// <summary>
 /// 网关访问日志：把每个请求转成一条 PV/访问事件，异步丢给消息队列。

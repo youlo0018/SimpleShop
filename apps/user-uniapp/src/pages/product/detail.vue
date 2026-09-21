@@ -129,7 +129,11 @@ const promoText = ref('')
 const loadPromo = async () => {
   const platformId = product.value.platformId || getPlatform()?.id || 0
   const data = await get('/marketing/ActiveActivities', { platformId }).catch(() => null)
-  const activity = (data?.activities || []).find(item => Number(item.scopeType) === 1)
+  // 优先展示有折扣的活动（满减/满折），没有时才展示赠券，避免标签只出现"满X赠券"。
+  const scoped = (data?.activities || []).filter(item => Number(item.scopeType) === 1)
+  const activity = scoped.find(item => Number(item.activityType) === 1)
+    || scoped.find(item => Number(item.activityType) === 2)
+    || scoped.find(item => Number(item.activityType) === 3)
   if (!activity) return
   promoText.value = Number(activity.activityType) === 1 ? `满${Number(activity.threshold)}减${Number(activity.discountValue)}`
     : Number(activity.activityType) === 2 ? `满${Number(activity.threshold)}打${(Number(activity.discountValue) * 10).toFixed(1)}折`
